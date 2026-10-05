@@ -6,5 +6,16 @@
  <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES"><Testables><TestableReference skipped="NO"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="A00000000000000000000001" BuildableName="CutFuzeTests.xctest" BlueprintName="CutFuzeTests" ReferencedContainer="container:CutFuze.xcodeproj"/></TestableReference><TestableReference skipped="NO"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="B00000000000000000000001" BuildableName="CutFuzeUITests.xctest" BlueprintName="CutFuzeUITests" ReferencedContainer="container:CutFuze.xcodeproj"/></TestableReference></Testables></TestAction>
  <LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" allowLocationSimulation="YES"><BuildableProductRunnable runnableDebuggingMode="0"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="000000000000000100000000" BuildableName="CutFuze.app" BlueprintName="CutFuze" ReferencedContainer="container:CutFuze.xcodeproj"/></BuildableProductRunnable></LaunchAction>
  <ProfileAction buildConfiguration="Release" shouldUseLaunchSchemeArgsEnv="YES" savedToolIdentifier="" useCustomWorkingDirectory="NO" debugDocumentVersioning="YES"><BuildableProductRunnable runnableDebuggingMode="0"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="000000000000000100000000" BuildableName="CutFuze.app" BlueprintName="CutFuze" ReferencedContainer="container:CutFuze.xcodeproj"/></BuildableProductRunnable></ProfileAction>
- <AnalyzeAction buildConfiguration="Debug"/><ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES"/>
+ <AnalyzeAction buildConfiguration="Debug"/>
+ <ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES">
+  <PreActions>
+   <ExecutionAction ActionType="Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
+    <ActionContent title="Increment Build Number" scriptText="cd &quot;${PROJECT_DIR}&quot;&#10;/usr/bin/xcrun agvtool next-version -all&#10;">
+     <EnvironmentBuildable>
+      <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="000000000000000100000000" BuildableName="CutFuze.app" BlueprintName="CutFuze" ReferencedContainer="container:CutFuze.xcodeproj"/>
+     </EnvironmentBuildable>
+    </ActionContent>
+   </ExecutionAction>
+  </PreActions>
+ </ArchiveAction>
 </Scheme>
