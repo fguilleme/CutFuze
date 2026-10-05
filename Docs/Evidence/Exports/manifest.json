@@ -1,0 +1,101 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "C9BBB5BE-525E-46AC-BC53-874568855688.mp4",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "sync_0_C235A2F9-9344-4515-82EC-91421BD5AB16.mp4",
+        "timestamp" : 1791213398.536
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "7897404C-CD52-4219-AD83-8E78E51EA562.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "public.plain-text_0_F61B71E3-4C65-4313-B6E6-70764BC864E0.txt",
+        "timestamp" : 1791213398.53
+      }
+    ],
+    "testIdentifier" : "MediaTests/testAudioVideoImpulsesAfterCutsAndRetime()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeTests/MediaTests/testAudioVideoImpulsesAfterCutsAndRetime"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "74BFCF34-6B3F-44FB-BF54-41C3FF36DFF8.mp4",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "portable-Paysage_0_4688D529-9775-4176-8ECD-6945FEA2F046.mp4",
+        "timestamp" : 1791213399.768
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "8109714E-C4D1-4E75-9874-8B82EBED70F5.mp4",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "portable-Carré_0_9A60A652-D7C0-4CCB-B42F-29F9F579168F.mp4",
+        "timestamp" : 1791213399.713
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "F718007B-1794-492C-8AC2-A82F26A74901.mp4",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "portable-Vertical_0_75C65A61-41D5-4C5A-A4C9-A3F922924E0A.mp4",
+        "timestamp" : 1791213399.658
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "3F5FFE99-2352-4F0E-9728-5266D9C8DB87.mp4",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Paysage_0_3B9F32C5-165B-4808-8970-68E78E03855F.mp4",
+        "timestamp" : 1791213399.562
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "9658253C-5051-43F1-BC30-B437A35C18A9.mp4",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Carré_0_E2245094-C2BD-4159-ADB9-EC32710B0813.mp4",
+        "timestamp" : 1791213399.458
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "3ACABF42-CB21-4F23-AB0C-A9FFFE38F88D.mp4",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Vertical_0_0F46A4E5-70AE-48F7-96AA-DB14068321CF.mp4",
+        "timestamp" : 1791213399.364
+      }
+    ],
+    "testIdentifier" : "MediaTests/testPhotosOnlyThreeVariantsAudioPortableReexport()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeTests/MediaTests/testPhotosOnlyThreeVariantsAudioPortableReexport"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "2FE989A7-B4F8-47E0-A6CA-E6655504246C.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "public.plain-text_0_63A30A92-36A8-4673-A953-41E5581E7BAC.txt",
+        "timestamp" : 1791213400.064
+      }
+    ],
+    "testIdentifier" : "MediaTests/testVideoSourceReverseCurveAndRenderingTiming()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeTests/MediaTests/testVideoSourceReverseCurveAndRenderingTiming"
+  }
+]

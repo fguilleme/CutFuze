@@ -1,0 +1,3 @@
+"NSMicrophoneUsageDescription" = "Record narration for your project, only on this device.";
+"NSSpeechRecognitionUsageDescription" = "Create captions from the selected audio using available on-device recognition.";
+"NSPhotoLibraryAddUsageDescription" = "Save exported videos to your photo library when you choose to.";

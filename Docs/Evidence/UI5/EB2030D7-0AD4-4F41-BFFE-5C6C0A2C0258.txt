@@ -1,0 +1,40 @@
+Failed to tap "closeComparison" Button: No matches found for Elements matching predicate '"closeComparison" IN identifiers' from input {(
+    Button, identifier: 'editorBack', label: 'Bibliothèque',
+    Button, identifier: 'arrow.uturn.backward', label: 'Annuler la modification',
+    Button, identifier: 'arrow.uturn.forward', label: 'Rétablir', Disabled,
+    Button, identifier: 'export', label: 'Exporter',
+    Button, identifier: 'play', label: 'Lire',
+    Button, label: 'Format actif Vertical',
+    Button, label: 'Format actif Carré', Selected,
+    Button, label: 'Format actif Paysage',
+    Button, identifier: 'rectangle.on.rectangle', label: 'Comparer les formats',
+    Button, identifier: 'Scénario', label: 'Scénario',
+    Button, identifier: 'Timeline', label: 'Timeline', Selected,
+    Button, identifier: 'addMedia', label: 'Ajouter',
+    Button, identifier: 'point.topleft.down.to.point.bottomright.curvepath', label: 'Aimantation', value: On,
+    Button, identifier: 'location.fill', label: 'Suivre la lecture',
+    Button, label: 'Image',
+    Button, label: 'Son',
+    Button, label: 'Texte',
+    Button, label: 'Animation',
+    Button, label: 'Plus',
+    Button,
+    Button, label: 'audio, 0.00, 30.00 s',
+    Button, label: 'image, 0.00, 10.40 s', Selected,
+    Button, label: 'image, 9.80, 10.40 s',
+    Button, label: 'Lever les yeux, 0.60, 8.50 s',
+    Button, label: 'Une histoire commence par un regard., 1.00, 8.00 s',
+    Button,
+    Button, label: 'Fermer',
+    Button, label: 'Ouvrir',
+    Button, label: 'Ouvrir',
+    Button, label: 'Ouvrir'
+)}
+Possibly caused by runtime issues:
+Automation type mismatch: computed Button from legacy attributes vs PopUpButton from modern attribute. Input attributes and values: {
+    "XC_kAXXCAttributeAutomationType" = 14;
+    "XC_kAXXCAttributeElementBaseType" = NSObject;
+    "XC_kAXXCAttributeElementType" = "SwiftUI.AccessibilityNode";
+    "XC_kAXXCAttributeTraits" = 1108101562369;
+}
+See test report attachments for more detail.

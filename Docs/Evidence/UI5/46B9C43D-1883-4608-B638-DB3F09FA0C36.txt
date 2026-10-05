@@ -1,0 +1,92 @@
+Application, 0x107ae5a40, pid: 87376, label: 'CutFuze' <App element pid: 87376>
+  Window (Main), 0x107ae5b80, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 87376, elementOrHash.elementID: 4423631872.4>
+    Other, 0x107ae5e00, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 87376, elementOrHash.elementID: 4424698368.5>
+      Other, 0x107ae5f40, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 87376, elementOrHash.elementID: 4473492480.6>
+        Other, 0x107ae6080, {{-402.0, -874.0}, {1206.0, 2622.0}} <AX element pid: 87376, elementOrHash.elementID: 4473500800.428>
+        Other, 0x107ae61c0, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 87376, elementOrHash.elementID: 4423630848.7>
+          Other, 0x107ae6300, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 87376, elementOrHash.elementID: 4483627392.8>
+            Button, 0x107ae6440, {{0.0, 68.7}, {44.0, 44.0}}, identifier: 'editorBack', label: 'Bibliothèque' <AX element pid: 87376, elementOrHash.elementID: 4700247520.76>
+            StaticText, 0x107ae6580, {{44.0, 74.5}, {197.7, 18.0}}, label: 'Trente secondes de lumière' <AX element pid: 87376, elementOrHash.elementID: 4700247680.77>
+            Button, 0x107ae66c0, {{258.0, 68.7}, {44.0, 44.0}}, identifier: 'arrow.uturn.backward', label: 'Annuler la modification' <AX element pid: 87376, elementOrHash.elementID: 4700248160.78>
+            Button, 0x107ae6800, {{302.0, 68.7}, {44.0, 44.0}}, identifier: 'arrow.uturn.forward', label: 'Rétablir', Disabled <AX element pid: 87376, elementOrHash.elementID: 4700248320.79>
+            Button, 0x107ae6940, {{346.0, 69.7}, {44.0, 42.0}}, identifier: 'export', label: 'Exporter' <AX element pid: 87376, elementOrHash.elementID: 4700248480.80>
+            StaticText, 0x107ae6a80, {{45.0, 94.5}, {76.0, 12.0}}, label: 'Sauvegardé' <AX element pid: 87376, elementOrHash.elementID: 4700248000.81>
+            Image, 0x107ae6bc0, {{45.0, 95.3}, {10.0, 10.0}}, identifier: 'checkmark.circle', label: 'Sélectionné', Selected <AX element pid: 87376, elementOrHash.elementID: 4700247840.82>
+            Image, 0x107ae6d00, {{16.0, 119.0}, {370.0, 264.7}}, label: 'Image' <AX element pid: 87376, elementOrHash.elementID: 4717649088.331>
+            Button, 0x107ae6e40, {{8.0, 385.7}, {44.0, 44.0}}, identifier: 'play', label: 'Lire' <AX element pid: 87376, elementOrHash.elementID: 4717650048.332>
+            Button, 0x107ae6f80, {{222.0, 388.7}, {38.0, 38.0}}, label: 'Format actif Vertical' <AX element pid: 87376, elementOrHash.elementID: 4717650208.333>
+            Button, 0x107ae70c0, {{263.0, 388.7}, {38.0, 38.0}}, label: 'Format actif Carré', Selected <AX element pid: 87376, elementOrHash.elementID: 4717650368.334>
+            Button, 0x107ae7200, {{304.0, 388.7}, {38.0, 38.0}}, label: 'Format actif Paysage' <AX element pid: 87376, elementOrHash.elementID: 4717650528.335>
+            Button, 0x107ae7340, {{350.0, 385.7}, {44.0, 44.0}}, identifier: 'rectangle.on.rectangle', label: 'Comparer les formats' <AX element pid: 87376, elementOrHash.elementID: 4717650688.336>
+            StaticText, 0x107ae7480, {{60.0, 400.9}, {88.7, 13.3}}, label: '00:00 / 00:30' <AX element pid: 87376, elementOrHash.elementID: 4717649248.337>
+            Button, 0x107ae75c0, {{16.0, 436.7}, {93.0, 38.0}}, identifier: 'Scénario', label: 'Scénario' <AX element pid: 87376, elementOrHash.elementID: 4700245600.339>
+            Button, 0x107ae7700, {{109.0, 436.7}, {90.7, 38.0}}, identifier: 'Timeline', label: 'Timeline', Selected <AX element pid: 87376, elementOrHash.elementID: 4700248800.340>
+            Button, 0x107ae7840, {{300.0, 436.7}, {86.0, 38.0}}, identifier: 'addMedia', label: 'Ajouter' <AX element pid: 87376, elementOrHash.elementID: 4700250560.341>
+              Button, 0x107ae7980, {{300.0, 436.7}, {86.0, 38.0}} <AX element pid: 87376, elementOrHash.elementID: 4424780416.350>
+                Image, 0x107ae7ac0, {{312.3, 450.3}, {10.0, 10.0}}, identifier: 'plus', label: 'Ajouter' <AX element pid: 87376, elementOrHash.elementID: 4700246400.392>
+                StaticText, 0x107ae7c00, {{312.3, 448.4}, {62.7, 14.3}}, label: 'Ajouter' <AX element pid: 87376, elementOrHash.elementID: 4700248640.393>
+            Slider, 0x107ae7d40, {{37.3, 480.0}, {237.3, 31.0}}, label: 'Zoom temporel', value: 35 <AX element pid: 87376, elementOrHash.elementID: 4709042048.342>
+            Button, 0x107ae7e80, {{299.0, 479.7}, {44.0, 32.0}}, identifier: 'point.topleft.down.to.point.bottomright.curvepath', label: 'Aimantation', value: On <AX element pid: 87376, elementOrHash.elementID: 4700249920.343>
+            Button, 0x10323b980, {{348.0, 479.7}, {36.0, 32.0}}, identifier: 'location.fill', label: 'Suivre la lecture' <AX element pid: 87376, elementOrHash.elementID: 4700250080.344>
+            Image, 0x10323bd40, {{19.3, 489.7}, {11.7, 11.7}}, identifier: 'minus.magnifyingglass', label: 'Zoom Arrière' <AX element pid: 87376, elementOrHash.elementID: 4700250720.345>
+            Image, 0x10323bac0, {{281.0, 489.7}, {11.7, 11.7}}, identifier: 'plus.magnifyingglass', label: 'Zoom Avant' <AX element pid: 87376, elementOrHash.elementID: 4700252320.346>
+            ScrollView, 0x103239400, {{0.0, 511.7}, {402.0, 277.3}} <AX element pid: 87376, elementOrHash.elementID: 4610310144.347>
+              Button, 0x106455a40, {{54.0, 687.7}, {1048.0, 36.0}}, label: 'audio, 0.00, 30.00 s' <AX element pid: 87376, elementOrHash.elementID: 4708361664.432>
+              Button, 0x106454780, {{54.0, 558.7}, {362.0, 36.0}}, label: 'image, 0.00, 10.40 s', Selected <AX element pid: 87376, elementOrHash.elementID: 4708355712.433>
+              Button, 0x106454640, {{397.0, 558.7}, {362.0, 36.0}}, label: 'image, 9.80, 10.40 s' <AX element pid: 87376, elementOrHash.elementID: 4708354880.434>
+              Button, 0x106455cc0, {{75.0, 601.7}, {295.5, 36.0}}, label: 'Lever les yeux, 0.60, 8.50 s' <AX element pid: 87376, elementOrHash.elementID: 4708365760.435>
+              Button, 0x106455e00, {{89.0, 644.7}, {278.0, 36.0}}, label: 'Une histoire commence par un regard., 1.00, 8.00 s' <AX element pid: 87376, elementOrHash.elementID: 4708352320.436>
+              Other, 0x106456080, {{369.0, 511.7}, {30.0, 277.3}}, label: 'Barre de défilement verticale, 3 pages', value: 0 % <AX element pid: 87376, elementOrHash.elementID: 4471759872.354>
+                Other, 0x106457ac0, {{396.0, 514.7}, {3.0, 71.7}} <AX element pid: 87376, elementOrHash.elementID: 4708090304.394>
+              Other, 0x106457d40, {{0.0, 756.0}, {402.0, 30.0}}, label: 'Barre de défilement horizontale, 3 pages', value: 0 % <AX element pid: 87376, elementOrHash.elementID: 4471758848.355>
+                Other, 0x106457e80, {{3.0, 783.0}, {138.7, 3.0}} <AX element pid: 87376, elementOrHash.elementID: 4708089856.395>
+            Button, 0x107b44000, {{8.0, 789.0}, {85.7, 51.0}}, label: 'Image' <AX element pid: 87376, elementOrHash.elementID: 4700930368.94>
+              Image, 0x107b44140, {{42.3, 799.3}, {17.0, 14.3}}, identifier: 'slider.horizontal.3', label: 'Modifier' <AX element pid: 87376, elementOrHash.elementID: 4700930048.102>
+              StaticText, 0x107b44280, {{35.6, 819.0}, {30.3, 12.0}}, label: 'Image' <AX element pid: 87376, elementOrHash.elementID: 4700930208.103>
+            Button, 0x107b443c0, {{93.7, 789.0}, {85.3, 51.0}}, label: 'Son' <AX element pid: 87376, elementOrHash.elementID: 4700930848.95>
+              Image, 0x107b44500, {{128.7, 797.7}, {15.3, 17.7}}, identifier: 'waveform', label: 'Forme D’onde Audio' <AX element pid: 87376, elementOrHash.elementID: 4700930528.104>
+              StaticText, 0x107b44640, {{126.8, 820.7}, {19.0, 12.0}}, label: 'Son' <AX element pid: 87376, elementOrHash.elementID: 4700930688.105>
+            Button, 0x107b44780, {{179.0, 789.0}, {85.7, 51.0}}, label: 'Texte' <AX element pid: 87376, elementOrHash.elementID: 4700931328.96>
+              Image, 0x107b448c0, {{212.0, 800.3}, {19.3, 12.3}}, identifier: 'textformat', label: 'Formatage Du Texte' <AX element pid: 87376, elementOrHash.elementID: 4700931008.106>
+              StaticText, 0x107b44a00, {{208.2, 818.0}, {27.0, 12.0}}, label: 'Texte' <AX element pid: 87376, elementOrHash.elementID: 4700931168.107>
+            Button, 0x107b44b40, {{264.7, 789.0}, {85.3, 51.0}}, label: 'Animation' <AX element pid: 87376, elementOrHash.elementID: 4700931808.97>
+              Image, 0x107b44c80, {{297.3, 796.7}, {19.7, 19.7}}, identifier: 'diamond', label: 'Losange' <AX element pid: 87376, elementOrHash.elementID: 4700931488.108>
+              StaticText, 0x107b44dc0, {{282.4, 821.7}, {49.7, 12.0}}, label: 'Animation' <AX element pid: 87376, elementOrHash.elementID: 4700931648.109>
+            Button, 0x107b44f00, {{350.0, 789.0}, {44.0, 51.0}}, label: 'Plus' <AX element pid: 87376, elementOrHash.elementID: 4700932768.98>
+              Button, 0x107b45040, {{350.0, 789.0}, {44.0, 51.0}} <AX element pid: 87376, elementOrHash.elementID: 4424783104.110>
+                Image, 0x107b45180, {{364.3, 813.0}, {15.7, 3.3}}, identifier: 'ellipsis', label: 'Plus' <AX element pid: 87376, elementOrHash.elementID: 4700931968.117>
+    Other, 0x107b452c0, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 87376, elementOrHash.elementID: 4471757824.425>
+      Other, 0x107b45400, {{-402.0, -874.0}, {1206.0, 2622.0}} <AX element pid: 87376, elementOrHash.elementID: 4471776000.426>
+      Other, 0x107b45540, {{0.0, 62.0}, {402.0, 812.0}} <AX element pid: 87376, elementOrHash.elementID: 4473489920.427>
+        Other, 0x107b45680, {{0.0, 62.0}, {402.0, 812.0}} <AX element pid: 87376, elementOrHash.elementID: 4708094336.429>
+          Other, 0x107b457c0, {{0.0, 62.0}, {402.0, 812.0}} <AX element pid: 87376, elementOrHash.elementID: 4699596800.430>
+            Other, 0x107b45900, {{0.0, 62.0}, {402.0, 812.0}} <AX element pid: 87376, elementOrHash.elementID: 4717651648.431>
+              Other, 0x107b45a40, {{0.0, 62.0}, {402.0, 812.0}} <AX element pid: 87376, elementOrHash.elementID: 4471762432.437>
+                NavigationBar, 0x107b45b80, {{0.0, 78.0}, {402.0, 54.0}}, identifier: 'Comparer les formats' <AX element pid: 87376, elementOrHash.elementID: 4471912704.438>
+                  StaticText, 0x107b45cc0, {{114.7, 89.7}, {172.7, 20.7}}, label: 'Comparer les formats' <AX element pid: 87376, elementOrHash.elementID: 4708101504.441>
+                  Other, 0x107b45e00, {{303.3, 82.0}, {78.7, 36.0}} <AX element pid: 87376, elementOrHash.elementID: 4423702784.442>
+                    Other, 0x107b45f40, {{303.3, 82.0}, {78.7, 36.0}} <AX element pid: 87376, elementOrHash.elementID: 4717645728.445>
+                      Button, 0x107b46080, {{303.3, 82.0}, {78.7, 36.0}}, label: 'Fermer' <AX element pid: 87376, elementOrHash.elementID: 4717657248.447>
+                Other, 0x107b461c0, {{0.0, 62.0}, {402.0, 812.0}} <AX element pid: 87376, elementOrHash.elementID: 4708096576.439>
+                  Other, 0x107b46300, {{0.0, 62.0}, {402.0, 812.0}} <AX element pid: 87376, elementOrHash.elementID: 4708102400.443>
+                    Other, 0x107b46440, {{0.0, 62.0}, {402.0, 812.0}} <AX element pid: 87376, elementOrHash.elementID: 4424782208.446>
+                      Other, 0x107b46580, {{0.0, 62.0}, {402.0, 812.0}} <AX element pid: 87376, elementOrHash.elementID: 4717649888.448>
+                        ScrollView, 0x107b466c0, {{0.0, 62.0}, {402.0, 812.0}} <AX element pid: 87376, elementOrHash.elementID: 4424806400.449>
+                          Other, 0x107b46800, {{0.0, 62.0}, {402.0, 812.0}} <AX element pid: 87376, elementOrHash.elementID: 4708097472.450>
+                            Other, 0x107b46940, {{0.0, 62.0}, {402.0, 110.0}} <AX element pid: 87376, elementOrHash.elementID: 4424563584.454>
+                          Other, 0x107b46a80, {{0.0, 62.0}, {402.0, 812.0}} <AX element pid: 87376, elementOrHash.elementID: 4708097920.451>
+                          Other, 0x107b46bc0, {{0.0, 132.0}, {402.0, 1016.3}} <AX element pid: 87376, elementOrHash.elementID: 4471764480.452>
+                            StaticText, 0x107b46d00, {{22.0, 154.0}, {274.7, 71.7}}, label: 'Même instant, trois compositions.' <AX element pid: 87376, elementOrHash.elementID: 4717647168.455>
+                            StaticText, 0x107b46e40, {{22.0, 245.7}, {34.0, 14.3}}, label: '00:00' <AX element pid: 87376, elementOrHash.elementID: 4717652608.456>
+                            StaticText, 0x107b46f80, {{22.0, 280.0}, {35.0, 20.3}}, label: '9:16' <AX element pid: 87376, elementOrHash.elementID: 4717652128.457>
+                            Button, 0x107b470c0, {{333.0, 280.0}, {47.0, 20.3}}, label: 'Ouvrir' <AX element pid: 87376, elementOrHash.elementID: 4717650848.458>
+                            StaticText, 0x107b47200, {{22.0, 588.3}, {21.3, 20.3}}, label: '1:1' <AX element pid: 87376, elementOrHash.elementID: 4717648608.459>
+                            Button, 0x107b47340, {{333.0, 588.3}, {47.0, 20.3}}, label: 'Ouvrir' <AX element pid: 87376, elementOrHash.elementID: 4717651968.460>
+                            StaticText, 0x107b47480, {{22.0, 896.7}, {35.0, 20.3}}, label: '16:9' <AX element pid: 87376, elementOrHash.elementID: 4717652448.461>
+                            Button, 0x107b475c0, {{333.0, 896.7}, {47.0, 20.3}}, label: 'Ouvrir' <AX element pid: 87376, elementOrHash.elementID: 4717653248.462>
+                          Other, 0x107b47700, {{369.0, 132.0}, {30.0, 680.0}}, label: 'Barre de défilement verticale, 2 pages', value: 0 % <AX element pid: 87376, elementOrHash.elementID: 4471964672.453>
+                            Other, 0x107b47840, {{396.0, 135.0}, {3.0, 644.7}} <AX element pid: 87376, elementOrHash.elementID: 4708103744.463>
+                          Other, 0x107b47980, {{369.0, 132.0}, {30.0, 680.0}}, label: 'Barre de défilement verticale, 2 pages', value: 0 % <AX element pid: 87376, elementOrHash.elementID: 4471964672.453>
+                            Other, 0x107b47ac0, {{396.0, 135.0}, {3.0, 644.7}} <AX element pid: 87376, elementOrHash.elementID: 4708103744.463>
+                Toolbar, 0x107b47c00, {{0.0, 62.0}, {402.0, 812.0}}, identifier: 'Toolbar', label: 'Barre d’outils' <AX element pid: 87376, elementOrHash.elementID: 4471762944.440>
+                  Other, 0x107b47d40, {{0.0, 62.0}, {402.0, 812.0}} <AX element pid: 87376, elementOrHash.elementID: 4471763456.444>

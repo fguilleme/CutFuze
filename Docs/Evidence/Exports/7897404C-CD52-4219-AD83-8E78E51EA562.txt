@@ -1,0 +1,1 @@
+30 fps sync corpus: expected [0.1, 0.5, 0.8], measured audio peaks [(time: 0.10985416666666667, amplitude: 1.086043), (time: 0.495125, amplitude: 0.373108), (time: 0.8125833333333333, amplitude: 1.1006799)]. Measured on simulator after AAC/H.264 decoding.

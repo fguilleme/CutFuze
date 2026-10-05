@@ -1,0 +1,49 @@
+{
+  "devicesAndConfigurations" : [
+    {
+      "device" : {
+        "architecture" : "arm64",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "modelName" : "iPhone 18 Pro",
+        "osBuildNumber" : "24A434",
+        "osVersion" : "27.0",
+        "platform" : "iOS Simulator"
+      },
+      "expectedFailures" : 0,
+      "failedTests" : 0,
+      "passedTests" : 28,
+      "skippedTests" : 0,
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Test Scheme Action"
+      }
+    }
+  ],
+  "environmentDescription" : "CutFuze · Built with macOS 26.6.2",
+  "expectedFailures" : 0,
+  "failedTests" : 0,
+  "finishTime" : 1791213401.72,
+  "passedTests" : 28,
+  "result" : "Passed",
+  "runtimeWarnings" : [
+
+  ],
+  "skippedTests" : 0,
+  "startTime" : 1791213380.968,
+  "statistics" : [
+
+  ],
+  "testFailures" : [
+
+  ],
+  "title" : "Test - CutFuze",
+  "topInsights" : [
+    {
+      "category" : "Longest Test Runs",
+      "impact" : "36% of duration",
+      "text" : "1 longest test run with outlier durations exceeding 1.28s (three standard deviations)"
+    }
+  ],
+  "totalTestCount" : 28
+}

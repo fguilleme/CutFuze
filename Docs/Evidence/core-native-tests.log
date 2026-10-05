@@ -1,0 +1,61 @@
+Test Suite 'CoreTests' started at 2026-10-05 18:00:47.729.
+Test Case '-[CoreTests.CoreTests testAnimatedVariantKeepsLocalFramingAndSharedMotion]' started.
+Test Case '-[CoreTests.CoreTests testAnimatedVariantKeepsLocalFramingAndSharedMotion]' passed (0.007 seconds).
+Test Case '-[CoreTests.CoreTests testAtomicStoreRecoveryAndNoMediaDuplication]' started.
+Test Case '-[CoreTests.CoreTests testAtomicStoreRecoveryAndNoMediaDuplication]' passed (0.015 seconds).
+Test Case '-[CoreTests.CoreTests testBoundCaptionsFollowSceneSplitAndDuplicate]' started.
+Test Case '-[CoreTests.CoreTests testBoundCaptionsFollowSceneSplitAndDuplicate]' passed (0.001 seconds).
+Test Case '-[CoreTests.CoreTests testBoundCaptionsFollowSpeedSplitAndUndo]' started.
+Test Case '-[CoreTests.CoreTests testBoundCaptionsFollowSpeedSplitAndUndo]' passed (0.001 seconds).
+Test Case '-[CoreTests.CoreTests testCaptionEditingSplitMergeRetainsSourceProvenanceAndUndo]' started.
+Test Case '-[CoreTests.CoreTests testCaptionEditingSplitMergeRetainsSourceProvenanceAndUndo]' passed (0.002 seconds).
+Test Case '-[CoreTests.CoreTests testCaptionSourceRemapAfterSpeedAndReverse]' started.
+Test Case '-[CoreTests.CoreTests testCaptionSourceRemapAfterSpeedAndReverse]' passed (0.000 seconds).
+Test Case '-[CoreTests.CoreTests testCaptionTimingEditsInverseMapReversedSourceAndStyleScope]' started.
+Test Case '-[CoreTests.CoreTests testCaptionTimingEditsInverseMapReversedSourceAndStyleScope]' passed (0.001 seconds).
+Test Case '-[CoreTests.CoreTests testClipSplitPreservesReversedCurveMapping]' started.
+Test Case '-[CoreTests.CoreTests testClipSplitPreservesReversedCurveMapping]' passed (0.000 seconds).
+Test Case '-[CoreTests.CoreTests testCommonCutAndIsolatedSquarePresentationWithUndoRedo]' started.
+Test Case '-[CoreTests.CoreTests testCommonCutAndIsolatedSquarePresentationWithUndoRedo]' passed (0.001 seconds).
+Test Case '-[CoreTests.CoreTests testContinuousGestureIsOneUndoAndCancellationRestores]' started.
+Test Case '-[CoreTests.CoreTests testContinuousGestureIsOneUndoAndCancellationRestores]' passed (0.001 seconds).
+Test Case '-[CoreTests.CoreTests testDocumentRoundTripAndV1Migration]' started.
+Test Case '-[CoreTests.CoreTests testDocumentRoundTripAndV1Migration]' passed (0.003 seconds).
+Test Case '-[CoreTests.CoreTests testExportRejectsSymlinkAndCancelledExportPreservesPreviousFile]' started.
+Test Case '-[CoreTests.CoreTests testExportRejectsSymlinkAndCancelledExportPreservesPreviousFile]' passed (0.002 seconds).
+Test Case '-[CoreTests.CoreTests testFadePresetPreservesManualKeysAndUndo]' started.
+Test Case '-[CoreTests.CoreTests testFadePresetPreservesManualKeysAndUndo]' passed (0.000 seconds).
+Test Case '-[CoreTests.CoreTests testFailedCommandLeavesDocumentAndHistoryIntact]' started.
+Test Case '-[CoreTests.CoreTests testFailedCommandLeavesDocumentAndHistoryIntact]' passed (0.000 seconds).
+Test Case '-[CoreTests.CoreTests testInvalidCrossReferenceAndHostileTimeAreRejectedWithoutOverflow]' started.
+Test Case '-[CoreTests.CoreTests testInvalidCrossReferenceAndHostileTimeAreRejectedWithoutOverflow]' passed (0.000 seconds).
+Test Case '-[CoreTests.CoreTests testKeyframeHalfOpenBoundsAndCaptionSRT]' started.
+Test Case '-[CoreTests.CoreTests testKeyframeHalfOpenBoundsAndCaptionSRT]' passed (0.001 seconds).
+Test Case '-[CoreTests.CoreTests testKeyframeNavigationAndEditingPreserveSplitAnimationDomain]' started.
+Test Case '-[CoreTests.CoreTests testKeyframeNavigationAndEditingPreserveSplitAnimationDomain]' passed (0.000 seconds).
+Test Case '-[CoreTests.CoreTests testPortableDigestTamperingAndTruncationAreRejectedAtomically]' started.
+Test Case '-[CoreTests.CoreTests testPortableDigestTamperingAndTruncationAreRejectedAtomically]' passed (0.008 seconds).
+Test Case '-[CoreTests.CoreTests testPortableProjectSurvivesDeletionOfSourceAndPreservesVariants]' started.
+Test Case '-[CoreTests.CoreTests testPortableProjectSurvivesDeletionOfSourceAndPreservesVariants]' passed (0.012 seconds).
+Test Case '-[CoreTests.CoreTests testPortableRejectsTraversalAbsolutePathsAndResourceLimit]' started.
+Test Case '-[CoreTests.CoreTests testPortableRejectsTraversalAbsolutePathsAndResourceLimit]' passed (0.005 seconds).
+Test Case '-[CoreTests.CoreTests testRationalTimesCombineWithoutFrameDrift]' started.
+Test Case '-[CoreTests.CoreTests testRationalTimesCombineWithoutFrameDrift]' passed (0.003 seconds).
+Test Case '-[CoreTests.CoreTests testRippleTrimMovesSceneFollowersButKeepsGlobalMusic]' started.
+Test Case '-[CoreTests.CoreTests testRippleTrimMovesSceneFollowersButKeepsGlobalMusic]' passed (0.000 seconds).
+Test Case '-[CoreTests.CoreTests testSceneDuplicateSharesMediaAndCopiesVariantOverrides]' started.
+Test Case '-[CoreTests.CoreTests testSceneDuplicateSharesMediaAndCopiesVariantOverrides]' passed (0.000 seconds).
+Test Case '-[CoreTests.CoreTests testSceneReorderMovesChildrenAndPreservesGlobalAnchor]' started.
+Test Case '-[CoreTests.CoreTests testSceneReorderMovesChildrenAndPreservesGlobalAnchor]' passed (0.000 seconds).
+Test Case '-[CoreTests.CoreTests testSceneSplitAndGroupPreserveSourceAndAnimation]' started.
+Test Case '-[CoreTests.CoreTests testSceneSplitAndGroupPreserveSourceAndAnimation]' passed (0.001 seconds).
+Test Case '-[CoreTests.CoreTests testSpeedCurveIntegratesReciprocalAndInvertibleReverse]' started.
+Test Case '-[CoreTests.CoreTests testSpeedCurveIntegratesReciprocalAndInvertibleReverse]' passed (0.014 seconds).
+Test Case '-[CoreTests.CoreTests testTextSpacingDefaultsDecodeOlderPresentation]' started.
+Test Case '-[CoreTests.CoreTests testTextSpacingDefaultsDecodeOlderPresentation]' passed (0.000 seconds).
+Test Case '-[CoreTests.CoreTests testTransitionClampsAvoidDoubleConsumption]' started.
+Test Case '-[CoreTests.CoreTests testTransitionClampsAvoidDoubleConsumption]' passed (0.000 seconds).
+Test Case '-[CoreTests.CoreTests testVariantKeyframeEditingInvertsComposedValuesAndUpdatesIdentity]' started.
+Test Case '-[CoreTests.CoreTests testVariantKeyframeEditingInvertsComposedValuesAndUpdatesIdentity]' passed (0.002 seconds).
+Test Suite 'CoreTests' passed at 2026-10-05 18:00:47.813.
+	 Executed 29 tests, with 0 failures (0 unexpected) in 0.080 (0.084) seconds

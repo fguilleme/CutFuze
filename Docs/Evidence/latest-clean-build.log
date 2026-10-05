@@ -1,0 +1,687 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project /Volumes/XTRA/Dev/CutFuze/CutFuze.xcodeproj -scheme CutFuze -skipMacroValidation -destination "platform=iOS Simulator,id=CF86E250-880D-4335-9D29-2E5F26250C99" -collect-test-diagnostics never -derivedDataPath /Volumes/XTRA/Dev/CutFuze/build/DerivedData CODE_SIGNING_ALLOWED=NO build
+
+Build settings from command line:
+    CODE_SIGNING_ALLOWED = NO
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (1 target)
+    Target 'CutFuze' in project 'CutFuze' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Volumes/XTRA/Dev/CutFuze/CutFuze/Assets.xcassets
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: 7ed2bb22fcfbb49f826d3138626a8cea
+Build description path: /Volumes/XTRA/XCode-data/Intermediates.noindex/XCBuildData/7ed2bb22fcfbb49f826d3138626a8cea.xcbuilddata
+CreateBuildDirectory /Volumes/XTRA/Dev/CutFuze/build/DerivedData/SDKExplicitPrecompiledModules
+    cd /Volumes/XTRA/Dev/CutFuze/CutFuze.xcodeproj
+    builtin-create-build-directory /Volumes/XTRA/Dev/CutFuze/build/DerivedData/SDKExplicitPrecompiledModules
+
+CreateBuildDirectory /Volumes/XTRA/Dev/CutFuze/build/DerivedData/ModuleCache.noindex
+    cd /Volumes/XTRA/Dev/CutFuze/CutFuze.xcodeproj
+    builtin-create-build-directory /Volumes/XTRA/Dev/CutFuze/build/DerivedData/ModuleCache.noindex
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk /Volumes/XTRA/Dev/CutFuze/build/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+    cd /Volumes/XTRA/Dev/CutFuze/CutFuze.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -o /Volumes/XTRA/Dev/CutFuze/build/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+
+CreateBuildDirectory /Volumes/XTRA/Dev/CutFuze/build/DerivedData/CompilationCache.noindex
+    cd /Volumes/XTRA/Dev/CutFuze/CutFuze.xcodeproj
+    builtin-create-build-directory /Volumes/XTRA/Dev/CutFuze/build/DerivedData/CompilationCache.noindex
+
+CreateBuildDirectory /Volumes/XTRA/XCode-data/products
+    cd /Volumes/XTRA/Dev/CutFuze/CutFuze.xcodeproj
+    builtin-create-build-directory /Volumes/XTRA/XCode-data/products
+
+CreateBuildDirectory /Volumes/XTRA/XCode-data/Intermediates.noindex
+    cd /Volumes/XTRA/Dev/CutFuze/CutFuze.xcodeproj
+    builtin-create-build-directory /Volumes/XTRA/XCode-data/Intermediates.noindex
+
+CreateBuildDirectory /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator
+    cd /Volumes/XTRA/Dev/CutFuze/CutFuze.xcodeproj
+    builtin-create-build-directory /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator
+
+CreateBuildDirectory /Volumes/XTRA/XCode-data/Intermediates.noindex/SwiftExplicitPrecompiledModules
+    cd /Volumes/XTRA/Dev/CutFuze/CutFuze.xcodeproj
+    builtin-create-build-directory /Volumes/XTRA/XCode-data/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+CreateBuildDirectory /Volumes/XTRA/XCode-data/Intermediates.noindex/PrecompiledHeaders
+    cd /Volumes/XTRA/Dev/CutFuze/CutFuze.xcodeproj
+    builtin-create-build-directory /Volumes/XTRA/XCode-data/Intermediates.noindex/PrecompiledHeaders
+
+CreateBuildDirectory /Volumes/XTRA/XCode-data/Intermediates.noindex/ExplicitPrecompiledModules
+    cd /Volumes/XTRA/Dev/CutFuze/CutFuze.xcodeproj
+    builtin-create-build-directory /Volumes/XTRA/XCode-data/Intermediates.noindex/ExplicitPrecompiledModules
+
+CreateBuildDirectory /Volumes/XTRA/XCode-data/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+    cd /Volumes/XTRA/Dev/CutFuze/CutFuze.xcodeproj
+    builtin-create-build-directory /Volumes/XTRA/XCode-data/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze-c0d6c843f1da8d4d05c66575b553b4c0-VFS-iphonesimulator/all-product-headers.yaml
+    cd /Volumes/XTRA/Dev/CutFuze/CutFuze.xcodeproj
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze-c0d6c843f1da8d4d05c66575b553b4c0-VFS-iphonesimulator/all-product-headers.yaml
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.SwiftFileList (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.SwiftFileList
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.SwiftConstValuesFileList (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze_const_extract_protocols.json (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze_const_extract_protocols.json
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.LinkFileList (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.LinkFileList
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze-OutputFileMap.json (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze-OutputFileMap.json
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze.hmap (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze.hmap
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze.DependencyStaticMetadataFileList (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze.DependencyMetadataFileList (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze.DependencyMetadataFileList
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-project-headers.hmap (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-project-headers.hmap
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-own-target-headers.hmap (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-own-target-headers.hmap
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-generated-files.hmap (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-generated-files.hmap
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-all-target-headers.hmap (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-all-target-headers.hmap
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-all-non-framework-target-headers.hmap (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-DebugDylibPath-normal-arm64.txt (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-DebugDylibPath-normal-arm64.txt
+
+WriteAuxiliaryFile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-DebugDylibInstallName-normal-arm64.txt (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    write-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-DebugDylibInstallName-normal-arm64.txt
+
+MkDir /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    /bin/mkdir -p /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app
+
+Ld /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/__preview.dylib normal (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios27.0-simulator -dynamiclib -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -O0 -Xlinker -no_warn_duplicate_libraries -L/Volumes/XTRA/XCode-data/products/Debug-iphonesimulator -F/Volumes/XTRA/XCode-data/products/Debug-iphonesimulator -install_name @rpath/CutFuze.debug.dylib -Xlinker -dead_strip -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze_dependency_info.dat -o /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/__preview.dylib
+
+MkDir /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_output/thinned (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    /bin/mkdir -p /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_output/thinned
+
+MkDir /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_output/unthinned (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    /bin/mkdir -p /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_output/unthinned
+
+CpResource /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/PrivacyInfo.xcprivacy /Volumes/XTRA/Dev/CutFuze/CutFuze/PrivacyInfo.xcprivacy (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Volumes/XTRA/Dev/CutFuze/CutFuze/PrivacyInfo.xcprivacy /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app
+
+GenerateAssetSymbols /Volumes/XTRA/Dev/CutFuze/CutFuze/Assets.xcassets (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Volumes/XTRA/Dev/CutFuze/CutFuze/Assets.xcassets --compile /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app --output-format human-readable-text --notices --warnings --export-dependency-info /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_dependencies --output-partial-info-plist /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_generated_info.plist --app-icon AppIcon --compress-pngs --enable-on-demand-resources YES --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 27.0 --platform iphonesimulator --bundle-identifier com.guilleme.CutFuze --generate-swift-asset-symbols /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources/GeneratedAssetSymbols.swift --generate-objc-asset-symbols /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources/GeneratedAssetSymbols.h --generate-asset-symbol-index /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/* com.apple.actool.compilation-results */
+/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources/GeneratedAssetSymbols.h
+/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources/GeneratedAssetSymbols.swift
+
+
+CopyStringsFile /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/fr.lproj/InfoPlist.strings /Volumes/XTRA/Dev/CutFuze/CutFuze/fr.lproj/InfoPlist.strings (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-copyStrings --validate --outputencoding binary --outfilename InfoPlist.strings --outdir /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/fr.lproj -- /Volumes/XTRA/Dev/CutFuze/CutFuze/fr.lproj/InfoPlist.strings
+/Volumes/XTRA/Dev/CutFuze/CutFuze/fr.lproj/InfoPlist.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'CutFuze' from project 'CutFuze')
+
+CopyStringsFile /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/en.lproj/InfoPlist.strings /Volumes/XTRA/Dev/CutFuze/CutFuze/en.lproj/InfoPlist.strings (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-copyStrings --validate --outputencoding binary --outfilename InfoPlist.strings --outdir /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/en.lproj -- /Volumes/XTRA/Dev/CutFuze/CutFuze/en.lproj/InfoPlist.strings
+/Volumes/XTRA/Dev/CutFuze/CutFuze/en.lproj/InfoPlist.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'CutFuze' from project 'CutFuze')
+
+CompileAssetCatalogVariant thinned /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app /Volumes/XTRA/Dev/CutFuze/CutFuze/Assets.xcassets (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Volumes/XTRA/Dev/CutFuze/CutFuze/Assets.xcassets --compile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_output/thinned --output-format human-readable-text --notices --warnings --export-dependency-info /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_dependencies_thinned --output-partial-info-plist /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_generated_info.plist_thinned --app-icon AppIcon --compress-pngs --enable-on-demand-resources YES --filter-for-thinning-device-configuration iPhone19,3 --filter-for-device-os-version 27.0 --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 27.0 --platform iphonesimulator
+/* com.apple.actool.compilation-results */
+/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_generated_info.plist_thinned
+/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_output/thinned/AppIcon60x60@2x.png
+/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_output/thinned/AppIcon76x76@2x~ipad.png
+/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_output/thinned/Assets.car
+
+
+SwiftDriver CutFuze normal arm64 com.apple.xcode.tools.swift.compiler (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name CutFuze -Onone @/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios27.0-simulator -g -module-cache-path /Volumes/XTRA/Dev/CutFuze/build/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Volumes/XTRA/Dev/CutFuze/build/DerivedData/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator -F /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Volumes/XTRA/Dev/CutFuze/build/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Volumes/XTRA/XCode-data/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Volumes/XTRA/Dev/CutFuze/build/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Volumes/XTRA/Dev/CutFuze/build/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Volumes/XTRA/Dev/CutFuze/build/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze_const_extract_protocols.json -Xcc -iquote -Xcc /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-generated-files.hmap -Xcc -I/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-own-target-headers.hmap -Xcc -I/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-all-target-headers.hmap -Xcc -iquote -Xcc /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-project-headers.hmap -Xcc -I/Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/include -Xcc -I/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources-normal/arm64 -Xcc -I/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources/arm64 -Xcc -I/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze-Swift.h -working-directory /Volumes/XTRA/Dev/CutFuze -experimental-emit-module-separately -disable-cmo
+
+LinkAssetCatalog /Volumes/XTRA/Dev/CutFuze/CutFuze/Assets.xcassets (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-linkAssetCatalog --thinned /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_output/thinned --thinned-dependencies /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_dependencies_thinned --thinned-info-plist-content /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_generated_info.plist_thinned --unthinned /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_output/unthinned --unthinned-dependencies /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_dependencies_unthinned --unthinned-info-plist-content /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_generated_info.plist_unthinned --output /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app --plist-output /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_generated_info.plist
+note: Emplaced /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/Assets.car (in target 'CutFuze' from project 'CutFuze')
+note: Emplaced /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/AppIcon76x76@2x~ipad.png (in target 'CutFuze' from project 'CutFuze')
+note: Emplaced /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/AppIcon60x60@2x.png (in target 'CutFuze' from project 'CutFuze')
+
+ProcessInfoPlistFile /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/Info.plist /Volumes/XTRA/Dev/CutFuze/CutFuze/Info.plist (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-infoPlistUtility /Volumes/XTRA/Dev/CutFuze/CutFuze/Info.plist -producttype com.apple.product-type.application -genpkginfo /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/assetcatalog_generated_info.plist -o /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/Info.plist
+
+SwiftCompile normal arm64 Compiling\ AnimationEditing.swift,\ BeatMarkers.swift,\ CanvasSettings.swift,\ CaptionEditing.swift,\ Captions.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/AnimationEditing.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/BeatMarkers.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/CanvasSettings.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/CaptionEditing.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/Captions.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/AnimationEditing.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile AnimationEditing.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/BeatMarkers.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile BeatMarkers.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/CanvasSettings.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile CanvasSettings.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/CaptionEditing.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile CaptionEditing.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/Captions.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile Captions.swift
+
+SwiftCompile normal arm64 Compiling\ VisionAnalysis.swift,\ VoiceRecorder.swift,\ BeatMarkersSheet.swift,\ CanvasSheet.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Services/VisionAnalysis.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Services/VoiceRecorder.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/BeatMarkersSheet.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/CanvasSheet.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Services/VisionAnalysis.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile VisionAnalysis.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Services/VoiceRecorder.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile VoiceRecorder.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/BeatMarkersSheet.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile BeatMarkersSheet.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/CanvasSheet.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile CanvasSheet.swift
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Services/VoiceRecorder.swift:126:30: warning: 'InterruptionType' was deprecated in iOS 27.0: Use AVAudioSessionDidBecomeInactiveNotification and AVAudioSessionResumptionRecommendationNotification instead [#DeprecatedDeclaration]
+124 |     @objc private func interruption(_ notification: Notification) {
+125 |         guard let value = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+126 |               AVAudioSession.InterruptionType(rawValue: value) == .began,
+    |                              `- warning: 'InterruptionType' was deprecated in iOS 27.0: Use AVAudioSessionDidBecomeInactiveNotification and AVAudioSessionResumptionRecommendationNotification instead [#DeprecatedDeclaration]
+127 |               recorder != nil || isCountingDown else { return }
+128 |         _ = stop()
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+SwiftCompile normal arm64 Compiling\ MovieExporter.swift,\ SpeechServices.swift,\ SyntheticVideoCorpus.swift,\ TemplateCatalog.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Services/SpeechServices.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Services/SyntheticVideoCorpus.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Services/TemplateCatalog.swift (in target 'CutFuze' from project 'CutFuze')
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift:61:19: warning: 'expectsMediaDataInRealTime' was deprecated in iOS 27.0: Use the input receiver's appendImmediately(...) method instead [#DeprecatedDeclaration]
+ 59 |             guard writer.canApply(outputSettings: outputSettings, forMediaType: .video) else { throw MediaFailure.unsupported("Codec ou résolution non pris en charge par cet appareil") }
+ 60 |             let video = AVAssetWriterInput(mediaType: .video, outputSettings: outputSettings)
+ 61 |             video.expectsMediaDataInRealTime = false
+    |                   `- warning: 'expectsMediaDataInRealTime' was deprecated in iOS 27.0: Use the input receiver's appendImmediately(...) method instead [#DeprecatedDeclaration]
+ 62 |             video.mediaTimeScale = Int32(settings.frameRate * 1000)
+ 63 |             let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: video, sourcePixelBufferAttributes: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA, kCVPixelBufferWidthKey as String: Int(size.width), kCVPixelBufferHeightKey as String: Int(size.height), kCVPixelBufferIOSurfacePropertiesKey as String: [:]])
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift:63:27: warning: 'AVAssetWriterInputPixelBufferAdaptor' was deprecated in iOS 27.0: Use AVAssetWriter.inputPixelBufferReceiver(for:pixelBufferAttributes:) instead [#DeprecatedDeclaration]
+ 61 |             video.expectsMediaDataInRealTime = false
+ 62 |             video.mediaTimeScale = Int32(settings.frameRate * 1000)
+ 63 |             let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: video, sourcePixelBufferAttributes: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA, kCVPixelBufferWidthKey as String: Int(size.width), kCVPixelBufferHeightKey as String: Int(size.height), kCVPixelBufferIOSurfacePropertiesKey as String: [:]])
+    |                           `- warning: 'AVAssetWriterInputPixelBufferAdaptor' was deprecated in iOS 27.0: Use AVAssetWriter.inputPixelBufferReceiver(for:pixelBufferAttributes:) instead [#DeprecatedDeclaration]
+ 64 |             guard writer.canAdd(video) else { throw MediaFailure.export("Piste vidéo refusée") }; writer.add(video)
+ 65 |             phase = "Préparation du mixage audio"
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift:64:108: warning: 'add' was deprecated in iOS 27.0: Use the appropriate AVAssetWriter.inputReceiver(for:...) overload for your input and optional adaptor instead [#DeprecatedDeclaration]
+ 62 |             video.mediaTimeScale = Int32(settings.frameRate * 1000)
+ 63 |             let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: video, sourcePixelBufferAttributes: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA, kCVPixelBufferWidthKey as String: Int(size.width), kCVPixelBufferHeightKey as String: Int(size.height), kCVPixelBufferIOSurfacePropertiesKey as String: [:]])
+ 64 |             guard writer.canAdd(video) else { throw MediaFailure.export("Piste vidéo refusée") }; writer.add(video)
+    |                                                                                                          `- warning: 'add' was deprecated in iOS 27.0: Use the appropriate AVAssetWriter.inputReceiver(for:...) overload for your input and optional adaptor instead [#DeprecatedDeclaration]
+ 65 |             phase = "Préparation du mixage audio"
+ 66 |             let prepared = try await AudioComposer.prepare(plan: plan, rootURL: rootURL)
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift:76:24: warning: 'add' was deprecated in iOS 27.0: Use the appropriate AVAssetReader.outputProvider(for:...) overload for your output and optional adaptor instead [#DeprecatedDeclaration]
+ 74 |                 let output = AVAssetReaderAudioMixOutput(audioTracks: tracks, audioSettings: [AVFormatIDKey: kAudioFormatLinearPCM, AVSampleRateKey: 48_000, AVNumberOfChannelsKey: 2, AVLinearPCMIsFloatKey: false, AVLinearPCMBitDepthKey: 16, AVLinearPCMIsNonInterleaved: false])
+ 75 |                 output.audioMix = prepared.mix
+ 76 |                 reader.add(output)
+    |                        `- warning: 'add' was deprecated in iOS 27.0: Use the appropriate AVAssetReader.outputProvider(for:...) overload for your output and optional adaptor instead [#DeprecatedDeclaration]
+ 77 |                 let input = AVAssetWriterInput(mediaType: .audio, outputSettings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 48_000, AVNumberOfChannelsKey: 2, AVEncoderBitRateKey: 192_000])
+ 78 |                 input.expectsMediaDataInRealTime = false
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift:78:23: warning: 'expectsMediaDataInRealTime' was deprecated in iOS 27.0: Use the input receiver's appendImmediately(...) method instead [#DeprecatedDeclaration]
+ 76 |                 reader.add(output)
+ 77 |                 let input = AVAssetWriterInput(mediaType: .audio, outputSettings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 48_000, AVNumberOfChannelsKey: 2, AVEncoderBitRateKey: 192_000])
+ 78 |                 input.expectsMediaDataInRealTime = false
+    |                       `- warning: 'expectsMediaDataInRealTime' was deprecated in iOS 27.0: Use the input receiver's appendImmediately(...) method instead [#DeprecatedDeclaration]
+ 79 |                 guard writer.canAdd(input) else { throw MediaFailure.export("Piste audio refusée") }; writer.add(input)
+ 80 |                 audioInput = input; audioReader = reader; audioOutput = output
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift:79:111: warning: 'add' was deprecated in iOS 27.0: Use the appropriate AVAssetWriter.inputReceiver(for:...) overload for your input and optional adaptor instead [#DeprecatedDeclaration]
+ 77 |                 let input = AVAssetWriterInput(mediaType: .audio, outputSettings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 48_000, AVNumberOfChannelsKey: 2, AVEncoderBitRateKey: 192_000])
+ 78 |                 input.expectsMediaDataInRealTime = false
+ 79 |                 guard writer.canAdd(input) else { throw MediaFailure.export("Piste audio refusée") }; writer.add(input)
+    |                                                                                                              `- warning: 'add' was deprecated in iOS 27.0: Use the appropriate AVAssetWriter.inputReceiver(for:...) overload for your input and optional adaptor instead [#DeprecatedDeclaration]
+ 80 |                 audioInput = input; audioReader = reader; audioOutput = output
+ 81 |             }
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift:84:26: warning: 'startWriting()' was deprecated in iOS 27.0: Use start() instead [#DeprecatedDeclaration]
+ 82 |             defer { audioReader?.cancelReading(); if writer.status == .writing { writer.cancelWriting() } }
+ 83 |             phase = "Démarrage de l’encodeur"
+ 84 |             guard writer.startWriting() else { throw writer.error ?? MediaFailure.export("Démarrage encodeur") }
+    |                          `- warning: 'startWriting()' was deprecated in iOS 27.0: Use start() instead [#DeprecatedDeclaration]
+ 85 |             writer.startSession(atSourceTime: .zero)
+ 86 |             if let audioReader, !audioReader.startReading() { throw audioReader.error ?? MediaFailure.export("Démarrage audio") }
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift:86:46: warning: 'startReading()' was deprecated in iOS 27.0: Use start() instead [#DeprecatedDeclaration]
+ 84 |             guard writer.startWriting() else { throw writer.error ?? MediaFailure.export("Démarrage encodeur") }
+ 85 |             writer.startSession(atSourceTime: .zero)
+ 86 |             if let audioReader, !audioReader.startReading() { throw audioReader.error ?? MediaFailure.export("Démarrage audio") }
+    |                                              `- warning: 'startReading()' was deprecated in iOS 27.0: Use start() instead [#DeprecatedDeclaration]
+ 87 |             var nextAudio = audioOutput?.copyNextSampleBuffer()
+ 88 |             var frameIndex = 0
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift:87:42: warning: 'copyNextSampleBuffer()' was deprecated in iOS 27.0: Use AVAssetReaderOutput.Provider.next() instead [#DeprecatedDeclaration]
+ 85 |             writer.startSession(atSourceTime: .zero)
+ 86 |             if let audioReader, !audioReader.startReading() { throw audioReader.error ?? MediaFailure.export("Démarrage audio") }
+ 87 |             var nextAudio = audioOutput?.copyNextSampleBuffer()
+    |                                          `- warning: 'copyNextSampleBuffer()' was deprecated in iOS 27.0: Use AVAssetReaderOutput.Provider.next() instead [#DeprecatedDeclaration]
+ 88 |             var frameIndex = 0
+ 89 |             var audioFinished = audioInput == nil
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift:102:38: warning: 'isReadyForMoreMediaData' was deprecated in iOS 27.0: Use the input receiver's async append(...) method instead [#DeprecatedDeclaration]
+100 |                     let audioHorizon = CMTimeAdd(videoTime, CMTime(value: 1, timescale: 4))
+101 |                     var supplied = 0
+102 |                     while audioInput.isReadyForMoreMediaData, let sample = nextAudio, supplied < 8 {
+    |                                      `- warning: 'isReadyForMoreMediaData' was deprecated in iOS 27.0: Use the input receiver's async append(...) method instead [#DeprecatedDeclaration]
+103 |                         let stamp = CMSampleBufferGetPresentationTimeStamp(sample)
+104 |                         if stamp >= encodedDuration { nextAudio = nil; break }
+
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile MovieExporter.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Services/SpeechServices.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile SpeechServices.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Services/SyntheticVideoCorpus.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile SyntheticVideoCorpus.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Services/TemplateCatalog.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile TemplateCatalog.swift
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift:105:52: warning: 'isReadyForMoreMediaData' was deprecated in iOS 27.0: Use the input receiver's async append(...) method instead [#DeprecatedDeclaration]
+103 |                         let stamp = CMSampleBufferGetPresentationTimeStamp(sample)
+104 |                         if stamp >= encodedDuration { nextAudio = nil; break }
+105 |                         if !videoFinished && video.isReadyForMoreMediaData && stamp > audioHorizon { break }
+    |                                                    `- warning: 'isReadyForMoreMediaData' was deprecated in iOS 27.0: Use the input receiver's async append(...) method instead [#DeprecatedDeclaration]
+106 |                         phase = "Encodage audio à \(String(format: "%.3f", stamp.seconds)) s"
+107 |                         guard audioInput.append(sample) else { throw writer.error ?? MediaFailure.export("Encodage audio") }
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift:107:42: warning: 'append' was deprecated in iOS 27.0: Use SampleBufferReceiver.append(_:) instead [#DeprecatedDeclaration]
+105 |                         if !videoFinished && video.isReadyForMoreMediaData && stamp > audioHorizon { break }
+106 |                         phase = "Encodage audio à \(String(format: "%.3f", stamp.seconds)) s"
+107 |                         guard audioInput.append(sample) else { throw writer.error ?? MediaFailure.export("Encodage audio") }
+    |                                          `- warning: 'append' was deprecated in iOS 27.0: Use SampleBufferReceiver.append(_:) instead [#DeprecatedDeclaration]
+108 |                         nextAudio = audioOutput?.copyNextSampleBuffer()
+109 |                         supplied += 1; advanced = true
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift:108:50: warning: 'copyNextSampleBuffer()' was deprecated in iOS 27.0: Use AVAssetReaderOutput.Provider.next() instead [#DeprecatedDeclaration]
+106 |                         phase = "Encodage audio à \(String(format: "%.3f", stamp.seconds)) s"
+107 |                         guard audioInput.append(sample) else { throw writer.error ?? MediaFailure.export("Encodage audio") }
+108 |                         nextAudio = audioOutput?.copyNextSampleBuffer()
+    |                                                  `- warning: 'copyNextSampleBuffer()' was deprecated in iOS 27.0: Use AVAssetReaderOutput.Provider.next() instead [#DeprecatedDeclaration]
+109 |                         supplied += 1; advanced = true
+110 |                     }
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MovieExporter.swift:116:44: warning: 'isReadyForMoreMediaData' was deprecated in iOS 27.0: Use the input receiver's async append(...) method instead [#DeprecatedDeclaration]
+114 |                     }
+115 |                 }
+116 |                 if !videoFinished && video.isReadyForMoreMediaData {
+    |                                            `- warning: 'isReadyForMoreMediaData' was deprecated in iOS 27.0: Use the input receiver's async append(...) method instead [#DeprecatedDeclaration]
+117 |                     phase = "Encodage image \(frameIndex + 1)/\(frameCount)"
+118 |                     let timestamp = CMTime(value: Int64(frameIndex), timescale: Int32(settings.frameRate))
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Services/SyntheticVideoCorpus.swift:23:23: warning: 'AVAssetWriterInputPixelBufferAdaptor' was deprecated in iOS 27.0: Use AVAssetWriter.inputPixelBufferReceiver(for:pixelBufferAttributes:) instead [#DeprecatedDeclaration]
+21 |         let input = AVAssetWriterInput(mediaType: .video, outputSettings: [AVVideoCodecKey: AVVideoCodecType.h264, AVVideoWidthKey: width, AVVideoHeightKey: height, AVVideoCompressionPropertiesKey: [AVVideoAverageBitRateKey: 1_500_000, AVVideoMaxKeyFrameIntervalKey: 15]])
+22 |         if rotated { input.transform = .init(a: 0, b: 1, c: -1, d: 0, tx: CGFloat(height), ty: 0) }
+23 |         let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA, kCVPixelBufferWidthKey as String: width, kCVPixelBufferHeightKey as String: height, kCVPixelBufferCGImageCompatibilityKey as String: true, kCVPixelBufferCGBitmapContextCompatibilityKey as String: true])
+   |                       `- warning: 'AVAssetWriterInputPixelBufferAdaptor' was deprecated in iOS 27.0: Use AVAssetWriter.inputPixelBufferReceiver(for:pixelBufferAttributes:) instead [#DeprecatedDeclaration]
+24 |         writer.add(input)
+25 |         guard writer.startWriting() else { throw writer.error ?? VoiceServiceError.invalidAudio }
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Services/SyntheticVideoCorpus.swift:24:16: warning: 'add' was deprecated in iOS 27.0: Use the appropriate AVAssetWriter.inputReceiver(for:...) overload for your input and optional adaptor instead [#DeprecatedDeclaration]
+22 |         if rotated { input.transform = .init(a: 0, b: 1, c: -1, d: 0, tx: CGFloat(height), ty: 0) }
+23 |         let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA, kCVPixelBufferWidthKey as String: width, kCVPixelBufferHeightKey as String: height, kCVPixelBufferCGImageCompatibilityKey as String: true, kCVPixelBufferCGBitmapContextCompatibilityKey as String: true])
+24 |         writer.add(input)
+   |                `- warning: 'add' was deprecated in iOS 27.0: Use the appropriate AVAssetWriter.inputReceiver(for:...) overload for your input and optional adaptor instead [#DeprecatedDeclaration]
+25 |         guard writer.startWriting() else { throw writer.error ?? VoiceServiceError.invalidAudio }
+26 |         writer.startSession(atSourceTime: .zero)
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Services/SyntheticVideoCorpus.swift:25:22: warning: 'startWriting()' was deprecated in iOS 27.0: Use start() instead [#DeprecatedDeclaration]
+23 |         let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA, kCVPixelBufferWidthKey as String: width, kCVPixelBufferHeightKey as String: height, kCVPixelBufferCGImageCompatibilityKey as String: true, kCVPixelBufferCGBitmapContextCompatibilityKey as String: true])
+24 |         writer.add(input)
+25 |         guard writer.startWriting() else { throw writer.error ?? VoiceServiceError.invalidAudio }
+   |                      `- warning: 'startWriting()' was deprecated in iOS 27.0: Use start() instead [#DeprecatedDeclaration]
+26 |         writer.startSession(atSourceTime: .zero)
+27 |         do {
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Services/SyntheticVideoCorpus.swift:30:30: warning: 'isReadyForMoreMediaData' was deprecated in iOS 27.0: Use the input receiver's async append(...) method instead [#DeprecatedDeclaration]
+28 |             for frame in 0..<frames {
+29 |                 try Task.checkCancellation()
+30 |                 while !input.isReadyForMoreMediaData {
+   |                              `- warning: 'isReadyForMoreMediaData' was deprecated in iOS 27.0: Use the input receiver's async append(...) method instead [#DeprecatedDeclaration]
+31 |                     guard writer.status == .writing else { throw writer.error ?? VoiceServiceError.invalidAudio }
+32 |                     try await Task.sleep(nanoseconds: 1_000_000)
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+SwiftCompile normal arm64 Compiling\ TimeMapping.swift,\ AudioComposer.swift,\ FrameRenderer.swift,\ MediaImporter.swift,\ MediaSupport.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/TimeMapping.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Media/AudioComposer.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Media/FrameRenderer.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MediaImporter.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MediaSupport.swift (in target 'CutFuze' from project 'CutFuze')
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MediaImporter.swift:100:16: warning: 'add' was deprecated in iOS 27.0: Use the appropriate AVAssetReader.outputProvider(for:...) overload for your output and optional adaptor instead [#DeprecatedDeclaration]
+ 98 |         let reader = try AVAssetReader(asset: asset)
+ 99 |         let output = AVAssetReaderTrackOutput(track: track, outputSettings: [AVFormatIDKey: kAudioFormatLinearPCM, AVLinearPCMIsFloatKey: true, AVLinearPCMBitDepthKey: 32, AVLinearPCMIsNonInterleaved: false])
+100 |         reader.add(output)
+    |                `- warning: 'add' was deprecated in iOS 27.0: Use the appropriate AVAssetReader.outputProvider(for:...) overload for your output and optional adaptor instead [#DeprecatedDeclaration]
+101 |         guard reader.startReading() else { throw reader.error ?? MediaFailure.unreadable("Audio") }
+102 |         defer { reader.cancelReading() }
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MediaImporter.swift:101:22: warning: 'startReading()' was deprecated in iOS 27.0: Use start() instead [#DeprecatedDeclaration]
+ 99 |         let output = AVAssetReaderTrackOutput(track: track, outputSettings: [AVFormatIDKey: kAudioFormatLinearPCM, AVLinearPCMIsFloatKey: true, AVLinearPCMBitDepthKey: 32, AVLinearPCMIsNonInterleaved: false])
+100 |         reader.add(output)
+101 |         guard reader.startReading() else { throw reader.error ?? MediaFailure.unreadable("Audio") }
+    |                      `- warning: 'startReading()' was deprecated in iOS 27.0: Use start() instead [#DeprecatedDeclaration]
+102 |         defer { reader.cancelReading() }
+103 |         var peaks = Array(repeating: Float(0), count: max(1, bins))
+
+/Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MediaImporter.swift:104:35: warning: 'copyNextSampleBuffer()' was deprecated in iOS 27.0: Use AVAssetReaderOutput.Provider.next() instead [#DeprecatedDeclaration]
+102 |         defer { reader.cancelReading() }
+103 |         var peaks = Array(repeating: Float(0), count: max(1, bins))
+104 |         while let sample = output.copyNextSampleBuffer() {
+    |                                   `- warning: 'copyNextSampleBuffer()' was deprecated in iOS 27.0: Use AVAssetReaderOutput.Provider.next() instead [#DeprecatedDeclaration]
+105 |             try Task.checkCancellation()
+106 |             guard let buffer = CMSampleBufferGetDataBuffer(sample) else { continue }
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/TimeMapping.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile TimeMapping.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Media/AudioComposer.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile AudioComposer.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Media/FrameRenderer.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile FrameRenderer.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MediaImporter.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile MediaImporter.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Media/MediaSupport.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile MediaSupport.swift
+
+SwiftCompile normal arm64 Compiling\ EditCommands.swift,\ EffectAnimation.swift,\ PortableProject.swift,\ ProjectDocument.swift,\ ProjectStore.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/EditCommands.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/EffectAnimation.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/PortableProject.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/ProjectDocument.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/ProjectStore.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/EditCommands.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile EditCommands.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/EffectAnimation.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile EffectAnimation.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/PortableProject.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile PortableProject.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/ProjectDocument.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile ProjectDocument.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/Core/ProjectStore.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile ProjectStore.swift
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ CutFuze (in target 'CutFuze' from project 'CutFuze')
+
+SwiftCompile normal arm64 (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    
+
+SwiftCompile normal arm64 Compiling\ WorkspaceModel.swift,\ ContentView.swift,\ MyApp.swift,\ GeneratedAssetSymbols.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/WorkspaceModel.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/ContentView.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/MyApp.swift /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/WorkspaceModel.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile WorkspaceModel.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/ContentView.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile ContentView.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/MyApp.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile MyApp.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile GeneratedAssetSymbols.swift
+
+SwiftCompile normal arm64 Compiling\ KeyframeEditorSheet.swift,\ LibraryScreen.swift,\ LocalizationExtra.swift,\ MediaLibrarySheet.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/KeyframeEditorSheet.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/LibraryScreen.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/LocalizationExtra.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/MediaLibrarySheet.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/KeyframeEditorSheet.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile KeyframeEditorSheet.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/LibraryScreen.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile LibraryScreen.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/LocalizationExtra.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile LocalizationExtra.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/MediaLibrarySheet.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile MediaLibrarySheet.swift
+
+SwiftCompile normal arm64 Compiling\ CaptionEditorSheet.swift,\ ChromaKeySheet.swift,\ DesignSystem.swift,\ EditorScreen.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/CaptionEditorSheet.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/ChromaKeySheet.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/DesignSystem.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/EditorScreen.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/CaptionEditorSheet.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile CaptionEditorSheet.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/ChromaKeySheet.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile ChromaKeySheet.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/DesignSystem.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile DesignSystem.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/EditorScreen.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile EditorScreen.swift
+
+SwiftCompile normal arm64 Compiling\ EditSheets.swift,\ EffectEditorSheet.swift,\ ExportScreen.swift,\ InspectorPanel.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/EditSheets.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/EffectEditorSheet.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/ExportScreen.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/InspectorPanel.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/EditSheets.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile EditSheets.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/EffectEditorSheet.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile EffectEditorSheet.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/ExportScreen.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile ExportScreen.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/InspectorPanel.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile InspectorPanel.swift
+
+SwiftCompile normal arm64 Compiling\ PinnedPreview.swift,\ ServiceSheets.swift,\ TimelinePanel.swift,\ VisionSheet.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/PinnedPreview.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/ServiceSheets.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/TimelinePanel.swift /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/VisionSheet.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/PinnedPreview.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile PinnedPreview.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/ServiceSheets.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile ServiceSheets.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/TimelinePanel.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile TimelinePanel.swift
+
+SwiftCompile normal arm64 /Volumes/XTRA/Dev/CutFuze/CutFuze/UI/VisionSheet.swift (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-SwiftPerFileCompile VisionSheet.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling AnimationEditing.swift, BeatMarkers.swift, CanvasSettings.swift, CaptionEditing.swift, Captions.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftDriverJobDiscovery normal arm64 Compiling WorkspaceModel.swift, ContentView.swift, MyApp.swift, GeneratedAssetSymbols.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftDriverJobDiscovery normal arm64 Compiling TimeMapping.swift, AudioComposer.swift, FrameRenderer.swift, MediaImporter.swift, MediaSupport.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftDriverJobDiscovery normal arm64 Compiling VisionAnalysis.swift, VoiceRecorder.swift, BeatMarkersSheet.swift, CanvasSheet.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftDriverJobDiscovery normal arm64 Compiling MovieExporter.swift, SpeechServices.swift, SyntheticVideoCorpus.swift, TemplateCatalog.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftDriverJobDiscovery normal arm64 Compiling EditCommands.swift, EffectAnimation.swift, PortableProject.swift, ProjectDocument.swift, ProjectStore.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftDriverJobDiscovery normal arm64 Compiling KeyframeEditorSheet.swift, LibraryScreen.swift, LocalizationExtra.swift, MediaLibrarySheet.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftDriverJobDiscovery normal arm64 Emitting module for CutFuze (in target 'CutFuze' from project 'CutFuze')
+
+SwiftDriver\ Compilation\ Requirements CutFuze normal arm64 com.apple.xcode.tools.swift.compiler (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name CutFuze -Onone @/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios27.0-simulator -g -module-cache-path /Volumes/XTRA/Dev/CutFuze/build/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Volumes/XTRA/Dev/CutFuze/build/DerivedData/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator -F /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Volumes/XTRA/Dev/CutFuze/build/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Volumes/XTRA/XCode-data/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Volumes/XTRA/Dev/CutFuze/build/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Volumes/XTRA/Dev/CutFuze/build/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Volumes/XTRA/Dev/CutFuze/build/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze_const_extract_protocols.json -Xcc -iquote -Xcc /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-generated-files.hmap -Xcc -I/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-own-target-headers.hmap -Xcc -I/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-all-target-headers.hmap -Xcc -iquote -Xcc /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-project-headers.hmap -Xcc -I/Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/include -Xcc -I/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources-normal/arm64 -Xcc -I/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources/arm64 -Xcc -I/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze-Swift.h -working-directory /Volumes/XTRA/Dev/CutFuze -experimental-emit-module-separately -disable-cmo
+
+SwiftMergeGeneratedHeaders /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources/CutFuze-Swift.h /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze-Swift.h (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-swiftHeaderTool -arch arm64 /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze-Swift.h -o /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources/CutFuze-Swift.h
+
+Copy /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.swiftmodule/arm64-apple-ios-simulator.abi.json /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.abi.json (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.abi.json /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.swiftmodule/arm64-apple-ios-simulator.abi.json
+
+Copy /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.swiftmodule/arm64-apple-ios-simulator.swiftdoc /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.swiftdoc (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.swiftdoc /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.swiftmodule/arm64-apple-ios-simulator.swiftdoc
+
+Copy /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.swiftmodule/arm64-apple-ios-simulator.swiftmodule /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.swiftmodule (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.swiftmodule /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.swiftmodule/arm64-apple-ios-simulator.swiftmodule
+
+Copy /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.swiftsourceinfo (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.swiftsourceinfo /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
+
+SwiftDriverJobDiscovery normal arm64 Compiling PinnedPreview.swift, ServiceSheets.swift, TimelinePanel.swift, VisionSheet.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftDriverJobDiscovery normal arm64 Compiling EditSheets.swift, EffectEditorSheet.swift, ExportScreen.swift, InspectorPanel.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftDriverJobDiscovery normal arm64 Compiling CaptionEditorSheet.swift, ChromaKeySheet.swift, DesignSystem.swift, EditorScreen.swift (in target 'CutFuze' from project 'CutFuze')
+
+SwiftDriver\ Compilation CutFuze normal arm64 com.apple.xcode.tools.swift.compiler (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name CutFuze -Onone @/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios27.0-simulator -g -module-cache-path /Volumes/XTRA/Dev/CutFuze/build/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Volumes/XTRA/Dev/CutFuze/build/DerivedData/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator -F /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Volumes/XTRA/Dev/CutFuze/build/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Volumes/XTRA/XCode-data/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Volumes/XTRA/Dev/CutFuze/build/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Volumes/XTRA/Dev/CutFuze/build/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Volumes/XTRA/Dev/CutFuze/build/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze_const_extract_protocols.json -Xcc -iquote -Xcc /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-generated-files.hmap -Xcc -I/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-own-target-headers.hmap -Xcc -I/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-all-target-headers.hmap -Xcc -iquote -Xcc /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-project-headers.hmap -Xcc -I/Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/include -Xcc -I/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources-normal/arm64 -Xcc -I/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources/arm64 -Xcc -I/Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze-Swift.h -working-directory /Volumes/XTRA/Dev/CutFuze -experimental-emit-module-separately -disable-cmo
+
+Ld /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/CutFuze.debug.dylib normal (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios27.0-simulator -dynamiclib -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -O0 -Xlinker -no_warn_duplicate_libraries -L/Volumes/XTRA/XCode-data/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Volumes/XTRA/XCode-data/products/Debug-iphonesimulator -F/Volumes/XTRA/XCode-data/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Volumes/XTRA/XCode-data/products/Debug-iphonesimulator -filelist /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.LinkFileList -install_name @rpath/CutFuze.debug.dylib -Xlinker -rpath -Xlinker @executable_path/Frameworks -Xlinker -dead_strip -Xlinker -object_path_lto -Xlinker /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.swiftmodule -Xlinker -alias -Xlinker _main -Xlinker ___debug_main_executable_dylib_entry_point -o /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/CutFuze.debug.dylib
+
+ConstructStubExecutorLinkFileList /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-ExecutorLinkFileList-normal-arm64.txt (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    construct-stub-executor-link-file-list /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/CutFuze.debug.dylib /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor_no_swift_entry_point.a /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor.a --output /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-ExecutorLinkFileList-normal-arm64.txt
+note: Using stub executor library with Swift entry point. (in target 'CutFuze' from project 'CutFuze')
+
+Ld /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/CutFuze normal (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios27.0-simulator -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -O0 -Xlinker -no_warn_duplicate_libraries -L/Volumes/XTRA/XCode-data/products/Debug-iphonesimulator -F/Volumes/XTRA/XCode-data/products/Debug-iphonesimulator -Xlinker -rpath -Xlinker @executable_path -Xlinker -rpath -Xlinker @executable_path/Frameworks -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -e ___debug_blank_executor_main -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_dylib -Xlinker /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-DebugDylibPath-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_instlnm -Xlinker /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-DebugDylibInstallName-normal-arm64.txt -Xlinker -filelist -Xlinker /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze-ExecutorLinkFileList-normal-arm64.txt /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/CutFuze.debug.dylib -o /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/CutFuze
+
+CopySwiftLibs /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-swiftStdLibTool --copy --verbose --scan-executable /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/CutFuze.debug.dylib --scan-folder /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/Frameworks --scan-folder /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/PlugIns --scan-folder /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/SystemExtensions --scan-folder /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/Extensions --platform iphonesimulator --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
+Ignoring --strip-bitcode because --sign was not passed
+
+ExtractAppIntentsMetadata (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name CutFuze --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk --xcode-version 27A266a --platform-family iOS --deployment-target 27.0 --bundle-identifier com.guilleme.CutFuze --output /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app --target-triple arm64-apple-ios27.0-simulator --binary-file /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/CutFuze --dependency-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze_dependency_info.dat --stringsdata-file /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.SwiftFileList --metadata-file-list /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze.DependencyMetadataFileList --static-metadata-file-list /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze.DependencyStaticMetadataFileList --swift-const-vals-list /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/Objects-normal/arm64/CutFuze.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --no-app-shortcuts-localization
+2026-10-05 18:10:05.650 appintentsmetadataprocessor[97418:42188883] Starting appintentsmetadataprocessor export
+2026-10-05 18:10:05.655 appintentsmetadataprocessor[97418:42188883] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+
+AppIntentsSSUTraining (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/Info.plist --temp-dir-path /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/ssu --bundle-id com.guilleme.CutFuze --product-path /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app --extracted-metadata-path /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/Metadata.appintents --metadata-file-list /Volumes/XTRA/XCode-data/Intermediates.noindex/CutFuze.build/Debug-iphonesimulator/CutFuze.build/CutFuze.DependencyMetadataFileList --source-file /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app/Info.plist --archive-ssu-assets
+2026-10-05 18:10:05.677 appintentsnltrainingprocessor[97419:42188884] Parsing options for appintentsnltrainingprocessor
+2026-10-05 18:10:05.677 appintentsnltrainingprocessor[97419:42188884] Starting AppIntents SSU YAML Generation
+2026-10-05 18:10:05.679 appintentsnltrainingprocessor[97419:42188884] No AppShortcuts found - Skipping.
+
+RegisterExecutionPolicyException /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-RegisterExecutionPolicyException /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app
+
+Validate /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    builtin-validationUtility /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app -shallow-bundle -infoplist-subpath Info.plist
+
+Touch /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app (in target 'CutFuze' from project 'CutFuze')
+    cd /Volumes/XTRA/Dev/CutFuze
+    /usr/bin/touch -c /Volumes/XTRA/XCode-data/products/Debug-iphonesimulator/CutFuze.app
+
+PruneExplicitPrecompiledModules /Volumes/XTRA/XCode-data/Intermediates.noindex/ExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Volumes/XTRA/XCode-data/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Volumes/XTRA/Dev/CutFuze/build/DerivedData/SDKExplicitPrecompiledModules
+
+** BUILD SUCCEEDED **
+

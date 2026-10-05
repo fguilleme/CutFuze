@@ -1,0 +1,56 @@
+{
+  "devicesAndConfigurations" : [
+    {
+      "device" : {
+        "architecture" : "arm64",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "modelName" : "iPhone 18 Pro",
+        "osBuildNumber" : "24A434",
+        "osVersion" : "27.0",
+        "platform" : "iOS Simulator"
+      },
+      "expectedFailures" : 0,
+      "failedTests" : 1,
+      "passedTests" : 54,
+      "skippedTests" : 0,
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Test Scheme Action"
+      }
+    }
+  ],
+  "environmentDescription" : "CutFuze · Built with macOS 26.6.2",
+  "expectedFailures" : 0,
+  "failedTests" : 1,
+  "finishTime" : 1791216218.288,
+  "passedTests" : 54,
+  "result" : "Failed",
+  "runtimeWarnings" : [
+
+  ],
+  "skippedTests" : 0,
+  "startTime" : 1791216088.087,
+  "statistics" : [
+
+  ],
+  "testFailures" : [
+    {
+      "failureText" : "XCTAssertTrue failed",
+      "targetName" : "CutFuzeUITests",
+      "testIdentifier" : 55,
+      "testIdentifierString" : "WorkspaceUITests/testLibraryStoryTimelineVariantsUndoReopenAndLandscape()",
+      "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testLibraryStoryTimelineVariantsUndoReopenAndLandscape",
+      "testName" : "testLibraryStoryTimelineVariantsUndoReopenAndLandscape()"
+    }
+  ],
+  "title" : "Test - CutFuze",
+  "topInsights" : [
+    {
+      "category" : "Longest Test Runs",
+      "impact" : "87% of duration",
+      "text" : "1 longest test run with outlier durations exceeding 23.80s (three standard deviations)"
+    }
+  ],
+  "totalTestCount" : 55
+}

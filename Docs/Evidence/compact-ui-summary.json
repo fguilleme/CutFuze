@@ -1,0 +1,45 @@
+{
+  "devicesAndConfigurations" : [
+    {
+      "device" : {
+        "architecture" : "arm64",
+        "deviceId" : "E62C098B-FFC5-432E-875B-BAE47B972329",
+        "deviceName" : "CutFuze Compact",
+        "modelName" : "iPhone SE (3rd generation)",
+        "osBuildNumber" : "24A434",
+        "osVersion" : "27.0",
+        "platform" : "iOS Simulator"
+      },
+      "expectedFailures" : 0,
+      "failedTests" : 0,
+      "passedTests" : 1,
+      "skippedTests" : 0,
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Test Scheme Action"
+      }
+    }
+  ],
+  "environmentDescription" : "CutFuze · Built with macOS 26.6.2",
+  "expectedFailures" : 0,
+  "failedTests" : 0,
+  "finishTime" : 1791215772.897,
+  "passedTests" : 1,
+  "result" : "Passed",
+  "runtimeWarnings" : [
+
+  ],
+  "skippedTests" : 0,
+  "startTime" : 1791215639.153,
+  "statistics" : [
+
+  ],
+  "testFailures" : [
+
+  ],
+  "title" : "Test - CutFuze",
+  "topInsights" : [
+
+  ],
+  "totalTestCount" : 1
+}

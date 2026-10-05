@@ -6,20 +6,72 @@
 	objectVersion = 90;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		A00000000000000000000010 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 000000000000000100000000;
+			remoteInfo = CutFuze;
+		};
+		B00000000000000000000010 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 000000000000000100000000;
+			remoteInfo = CutFuze;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* CutFuze.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CutFuze.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000002 /* CutFuzeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = CutFuzeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B00000000000000000000002 /* CutFuzeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = CutFuzeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A00000000000000000000015 /* Exceptions for "CutFuze" folder in "CutFuze" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 000000000000000100000000 /* CutFuze */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		000000000000000000000010 /* CutFuze */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A00000000000000000000015 /* Exceptions for "CutFuze" folder in "CutFuze" target */,
+			);
 			path = CutFuze;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000003 /* CutFuzeTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CutFuzeTests;
+			sourceTree = "<group>";
+		};
+		B00000000000000000000003 /* CutFuzeUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CutFuzeUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		000000000000000130000000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		A00000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		B00000000000000000000005 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
 			);
@@ -31,6 +83,8 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000010 /* CutFuze */,
+				A00000000000000000000003 /* CutFuzeTests */,
+				B00000000000000000000003 /* CutFuzeUITests */,
 				000000000000000000000020 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -39,6 +93,8 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000120 /* CutFuze.app */,
+				A00000000000000000000002 /* CutFuzeTests.xctest */,
+				B00000000000000000000002 /* CutFuzeUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -64,6 +120,48 @@
 			productReference = 000000000000000000000120 /* CutFuze.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A00000000000000000000001 /* CutFuzeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000007 /* Build configuration list for PBXNativeTarget "CutFuzeTests" */;
+			buildPhases = (
+				A00000000000000000000004 /* Sources */,
+				A00000000000000000000005 /* Frameworks */,
+				A00000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A00000000000000000000011 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A00000000000000000000003 /* CutFuzeTests */,
+			);
+			name = CutFuzeTests;
+			productName = CutFuzeTests;
+			productReference = A00000000000000000000002 /* CutFuzeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		B00000000000000000000001 /* CutFuzeUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B00000000000000000000007 /* Build configuration list for PBXNativeTarget "CutFuzeUITests" */;
+			buildPhases = (
+				B00000000000000000000004 /* Sources */,
+				B00000000000000000000005 /* Frameworks */,
+				B00000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B00000000000000000000011 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B00000000000000000000003 /* CutFuzeUITests */,
+			);
+			name = CutFuzeUITests;
+			productName = CutFuzeUITests;
+			productReference = B00000000000000000000002 /* CutFuzeUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -84,6 +182,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				fr,
 				Base,
 			);
 			mainGroup = 000000000000000000000001;
@@ -94,12 +193,24 @@
 			projectRoot = "";
 			targets = (
 				000000000000000100000000 /* CutFuze */,
+				A00000000000000000000001 /* CutFuzeTests */,
+				B00000000000000000000001 /* CutFuzeUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		000000000000000140000000 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		A00000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		B00000000000000000000006 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -112,7 +223,30 @@
 			files = (
 			);
 		};
+		A00000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		B00000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A00000000000000000000011 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 000000000000000100000000 /* CutFuze */;
+			targetProxy = A00000000000000000000010 /* PBXContainerItemProxy */;
+		};
+		B00000000000000000000011 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 000000000000000100000000 /* CutFuze */;
+			targetProxy = B00000000000000000000010 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		000000000000000011000000 /* Debug configuration for PBXProject "CutFuze" */ = {
@@ -250,6 +384,7 @@
 		000000000000000111000000 /* Debug configuration for PBXNativeTarget "CutFuze" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 96JK7HBZ58;
@@ -257,6 +392,13 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CutFuze/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CutFuze;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = NO;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Enregistrer une narration dans votre projet, uniquement sur cet appareil.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Enregistrer les vidéos exportées dans votre photothèque à votre demande.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Créer des sous-titres à partir du son sélectionné avec la reconnaissance locale disponible.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -265,29 +407,30 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "devplaceholder.$(PROJECT_UNIQUE_VALUE:identifier).$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.guilleme.CutFuze;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
 		000000000000000112000000 /* Release configuration for PBXNativeTarget "CutFuze" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 96JK7HBZ58;
@@ -295,6 +438,13 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CutFuze/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CutFuze;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = NO;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Enregistrer une narration dans votre projet, uniquement sur cet appareil.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Enregistrer les vidéos exportées dans votre photothèque à votre demande.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Créer des sous-titres à partir du son sélectionné avec la reconnaissance locale disponible.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -303,23 +453,93 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "devplaceholder.$(PROJECT_UNIQUE_VALUE:identifier).$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.guilleme.CutFuze;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A00000000000000000000008 /* Debug configuration for PBXNativeTarget "CutFuzeTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 96JK7HBZ58;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.guilleme.CutFuzeTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CutFuze.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CutFuze";
+			};
+			name = Debug;
+		};
+		A00000000000000000000009 /* Release configuration for PBXNativeTarget "CutFuzeTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 96JK7HBZ58;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.guilleme.CutFuzeTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CutFuze.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CutFuze";
+			};
+			name = Release;
+		};
+		B00000000000000000000008 /* Debug configuration for PBXNativeTarget "CutFuzeUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 96JK7HBZ58;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.guilleme.CutFuzeUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = CutFuze;
+			};
+			name = Debug;
+		};
+		B00000000000000000000009 /* Release configuration for PBXNativeTarget "CutFuzeUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 96JK7HBZ58;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.guilleme.CutFuzeUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = CutFuze;
 			};
 			name = Release;
 		};
@@ -339,6 +559,22 @@
 			buildConfigurations = (
 				000000000000000111000000 /* Debug configuration for PBXNativeTarget "CutFuze" */,
 				000000000000000112000000 /* Release configuration for PBXNativeTarget "CutFuze" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		A00000000000000000000007 /* Build configuration list for PBXNativeTarget "CutFuzeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000008 /* Debug configuration for PBXNativeTarget "CutFuzeTests" */,
+				A00000000000000000000009 /* Release configuration for PBXNativeTarget "CutFuzeTests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		B00000000000000000000007 /* Build configuration list for PBXNativeTarget "CutFuzeUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B00000000000000000000008 /* Debug configuration for PBXNativeTarget "CutFuzeUITests" */,
+				B00000000000000000000009 /* Release configuration for PBXNativeTarget "CutFuzeUITests" */,
 			);
 			defaultConfigurationName = Release;
 		};

@@ -1,0 +1,1 @@
+Simulator: three 30-second 1280px H.264 variants exported sequentially from transported demo after deleting source. Elapsed 55.485211333 seconds. No physical-device claim.

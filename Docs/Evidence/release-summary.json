@@ -1,0 +1,53 @@
+{
+  "devicesAndConfigurations" : [
+    {
+      "device" : {
+        "architecture" : "arm64",
+        "deviceId" : "CF86E250-880D-4335-9D29-2E5F26250C99",
+        "deviceName" : "iPhone 18 Pro Max",
+        "modelName" : "iPhone 18 Pro Max",
+        "osBuildNumber" : "24A434",
+        "osVersion" : "27.0",
+        "platform" : "iOS Simulator"
+      },
+      "expectedFailures" : 0,
+      "failedTests" : 0,
+      "passedTests" : 55,
+      "skippedTests" : 0,
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Test Scheme Action"
+      }
+    }
+  ],
+  "environmentDescription" : "CutFuze · Built with macOS 26.6.2",
+  "expectedFailures" : 0,
+  "failedTests" : 0,
+  "finishTime" : 1791216745.93,
+  "passedTests" : 55,
+  "result" : "Passed",
+  "runtimeWarnings" : [
+    {
+      "issueType" : "Runtime Warning",
+      "message" : "[Internal] Thread running at User-initiated quality-of-service class waiting on a lower QoS thread running at Utility quality-of-service class. Investigate ways to avoid priority inversions",
+      "sourceURL" : "file:///Volumes/XTRA/Dev/CutFuze/CutFuzeTests/MediaTests.swift"
+    }
+  ],
+  "skippedTests" : 0,
+  "startTime" : 1791216611.253,
+  "statistics" : [
+
+  ],
+  "testFailures" : [
+
+  ],
+  "title" : "Test - CutFuze",
+  "topInsights" : [
+    {
+      "category" : "Longest Test Runs",
+      "impact" : "84% of duration",
+      "text" : "1 longest test run with outlier durations exceeding 23.72s (three standard deviations)"
+    }
+  ],
+  "totalTestCount" : 55
+}

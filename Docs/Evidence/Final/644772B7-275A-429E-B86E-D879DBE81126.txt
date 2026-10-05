@@ -1,0 +1,4 @@
+Query chain:
+ →Find: Target Application 'com.guilleme.CutFuze'
+  ↪︎Find: Descendants matching type Button
+    ↪︎Find: Elements matching predicate '"saveCaption" IN identifiers'

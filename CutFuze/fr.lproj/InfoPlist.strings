@@ -1,0 +1,3 @@
+"NSMicrophoneUsageDescription" = "Enregistrer une narration dans votre projet, uniquement sur cet appareil.";
+"NSSpeechRecognitionUsageDescription" = "Créer des sous-titres à partir du son sélectionné avec la reconnaissance locale disponible.";
+"NSPhotoLibraryAddUsageDescription" = "Enregistrer les vidéos exportées dans votre photothèque à votre demande.";

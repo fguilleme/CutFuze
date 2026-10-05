@@ -1,0 +1,30 @@
+Failed to tap "Fermer" Button: Find single matching element. Multiple matching elements found for <XCUIElementQuery: 0x109f1f930>.
+Sparse tree of matches:
+→Application, pid: 84923, label: 'CutFuze'
+  ↳Window (Main)
+    ↳Other
+    ⋅ ↳Other
+    ⋅   ↳Other
+    ⋅     ↳Other
+    ⋅       ↳Button, identifier: 'chevron.left', label: 'Fermer'
+    ⋅       ↳ScrollView
+    ⋅         ↳Other
+    ⋅           ↳Button, identifier: 'xmark', label: 'Fermer'
+    ↳Other
+      ↳Other
+        ↳Other
+          ↳Other
+            ↳Other
+              ↳Other
+                ↳NavigationBar, identifier: 'Comparer les formats'
+                  ↳Other
+                    ↳Other
+                      ↳Button, label: 'Fermer'
+Possibly caused by runtime issues:
+Automation type mismatch: computed Button from legacy attributes vs PopUpButton from modern attribute. Input attributes and values: {
+    "XC_kAXXCAttributeAutomationType" = 14;
+    "XC_kAXXCAttributeElementBaseType" = NSObject;
+    "XC_kAXXCAttributeElementType" = "SwiftUI.AccessibilityNode";
+    "XC_kAXXCAttributeTraits" = 1108101562369;
+}
+See test report attachments for more detail.

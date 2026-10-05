@@ -1,0 +1,1 @@
+Simulator rendering: 15 generated frames, 360×640, elapsed 0.023188 seconds. This is not a physical-device benchmark.

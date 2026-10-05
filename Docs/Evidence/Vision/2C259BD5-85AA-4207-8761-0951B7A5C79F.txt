@@ -1,0 +1,1 @@
+Real Vision samples: 20; first center: 0.19375,0.5; last center: 0.6073754131793976,0.49242401123046875; minimum confidence: 0.771

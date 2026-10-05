@@ -1,0 +1,107 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E62C098B-FFC5-432E-875B-BAE47B972329",
+        "deviceName" : "CutFuze Compact",
+        "exportedFileName" : "B4F30364-BC8B-4375-9234-B264AE6BC0C4.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "11-portable-project_0_DFB85ABC-1C23-4637-A121-08302AC3E840.png",
+        "timestamp" : 1791215771.099
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E62C098B-FFC5-432E-875B-BAE47B972329",
+        "deviceName" : "CutFuze Compact",
+        "exportedFileName" : "52E79C01-7AFB-41E9-A21A-BDE79EAA8FA8.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "10-captions_0_E0207B98-1DC0-4DF6-9484-1ADDE90D093A.png",
+        "timestamp" : 1791215765.335
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E62C098B-FFC5-432E-875B-BAE47B972329",
+        "deviceName" : "CutFuze Compact",
+        "exportedFileName" : "1B1DFA9C-1C1F-4CA0-BA48-B2C5EF114DEC.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "09-import-review_0_BD3E92E4-E966-4FA7-8DAA-BE9D122CA717.png",
+        "timestamp" : 1791215761.94
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E62C098B-FFC5-432E-875B-BAE47B972329",
+        "deviceName" : "CutFuze Compact",
+        "exportedFileName" : "4B529649-5DBD-496F-88BD-00497073324E.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "08-reopened_0_3CF4AD6E-CAFC-43EE-9D37-36EA5AAC82F1.png",
+        "timestamp" : 1791215754.243
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E62C098B-FFC5-432E-875B-BAE47B972329",
+        "deviceName" : "CutFuze Compact",
+        "exportedFileName" : "A46C7EFA-2275-4662-8C81-470F3D2E42D9.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "07-export-settings_0_664D8EB4-713D-4EE6-B466-DF660941CE25.png",
+        "timestamp" : 1791215749.989
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E62C098B-FFC5-432E-875B-BAE47B972329",
+        "deviceName" : "CutFuze Compact",
+        "exportedFileName" : "D25F9634-C03C-444B-BD5F-B3AA16283FB0.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "06-variants_0_0ABA61C2-075F-43BA-BE27-36B33B7F8E7F.png",
+        "timestamp" : 1791215747.654
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E62C098B-FFC5-432E-875B-BAE47B972329",
+        "deviceName" : "CutFuze Compact",
+        "exportedFileName" : "C5116B42-C173-4989-B05F-9C8F520B5860.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "05-landscape_0_E83D77BC-CCC7-428E-85F0-5271E174E6F2.png",
+        "timestamp" : 1791215744.632
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E62C098B-FFC5-432E-875B-BAE47B972329",
+        "deviceName" : "CutFuze Compact",
+        "exportedFileName" : "A1C14129-56C4-4C22-891D-07BD4E5322C2.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "04-square-inspector_0_BF797BB8-F312-4CA8-8748-FEECEA447087.png",
+        "timestamp" : 1791215738.699
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E62C098B-FFC5-432E-875B-BAE47B972329",
+        "deviceName" : "CutFuze Compact",
+        "exportedFileName" : "BEDC8E3F-0AD9-4904-A7B5-2B3329E523FC.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "03-timeline_0_A8A27FC3-C18E-467D-BB34-D18BBE04429D.png",
+        "timestamp" : 1791215736.303
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E62C098B-FFC5-432E-875B-BAE47B972329",
+        "deviceName" : "CutFuze Compact",
+        "exportedFileName" : "6A040469-B7E0-4FF3-9AF7-5C320BA58EBF.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "02-story_0_8B143423-044A-45FC-B1F7-0D381B88101A.png",
+        "timestamp" : 1791215726.399
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E62C098B-FFC5-432E-875B-BAE47B972329",
+        "deviceName" : "CutFuze Compact",
+        "exportedFileName" : "E895AC64-3776-447F-9960-B2AA960C7349.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "01-library_0_23287852-2910-4AFA-91C7-4BAB3E517314.png",
+        "timestamp" : 1791215713.884
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testLibraryStoryTimelineVariantsUndoReopenAndLandscape()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testLibraryStoryTimelineVariantsUndoReopenAndLandscape"
+  }
+]

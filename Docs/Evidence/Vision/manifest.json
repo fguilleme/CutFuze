@@ -1,0 +1,32 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "2C259BD5-85AA-4207-8761-0951B7A5C79F.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Vision-tracking-measurements_0_6AC09027-BF95-4762-AC69-8976D2760B34.txt",
+        "timestamp" : 1791214940.572
+      }
+    ],
+    "testIdentifier" : "VisionTests/testRealVisionTracksEncodedMovingRectangle()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeTests/VisionTests/testRealVisionTracksEncodedMovingRectangle"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "71C31BE2-D0D1-418F-BDD9-431BA323357D.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Vision-stabilization-measurements_0_7AF4603B-E6B0-4F3F-92DF-E2AA2875D978.txt",
+        "timestamp" : 1791214945.107
+      }
+    ],
+    "testIdentifier" : "VisionTests/testStabilizationReducesMeasuredMotionInActualRenderedFrames()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeTests/VisionTests/testStabilizationReducesMeasuredMotionInActualRenderedFrames"
+  }
+]

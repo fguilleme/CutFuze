@@ -1,0 +1,1 @@
+Translation-only stabilization; raw rendered center RMS: 4.098311609702916 pixels; corrected rendered center RMS: 0.6111181540188119 pixels; ratio: 0.14911461406984408; applied crop scale: 1.0526315789473684; measured registration jitter: 0.03372840139012524; smoothed jitter: 0.002525565433189382
