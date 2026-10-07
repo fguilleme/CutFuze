@@ -178,6 +178,7 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(segments[1].sourceAssetID, assetID)
         XCTAssertEqual(segments[1].analyzedRevision, 7)
     }
+    #if canImport(UIKit)
     @MainActor func testPendingMediaCanBeInsertedAfterSelectedScene() throws {
         let original = document(), root = try temporaryRoot()
         let model = EditorModel(document: original, store: ProjectStore(rootURL: root), rootURL: root)
@@ -191,6 +192,17 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(model.document.scenes[2].duration, .init(seconds: 5))
         XCTAssertTrue(model.pendingImports.isEmpty)
     }
+    @MainActor func testVisibleMediaNamesHideGeneratedIdentifiersAndPaths() throws {
+        let root = try temporaryRoot()
+        let model = EditorModel(document: document(), store: ProjectStore(rootURL: root), rootURL: root)
+        let generated = MediaAsset(relativePath: "Assets/illustration.png", kind: .image, name: "illustration-3-0-EFF41C0A-2F91-47F2-8EAF-57F90527B9AD")
+        let uuidOnly = MediaAsset(relativePath: "Assets/source.mov", kind: .video, name: "EFF41C0A-2F91-47F2-8EAF-57F90527B9AD.mov")
+        let userFile = MediaAsset(relativePath: "Assets/holiday.mov", kind: .video, name: "/private/imports/Vacances.mov")
+        XCTAssertEqual(model.displayName(for: generated), "Illustration")
+        XCTAssertEqual(model.displayName(for: uuidOnly), L("Vidéo"))
+        XCTAssertEqual(model.displayName(for: userFile), "Vacances")
+    }
+    #endif
     func testAtomicStoreRecoveryAndNoMediaDuplication() throws {
         let root = try temporaryRoot(), store = ProjectStore(rootURL: root)
         var doc = document(); try store.save(document: doc)

@@ -1,0 +1,131 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "29E188AD-68FF-4AC9-8FE2-74AA6D0A9637.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "editor-audio-selection_0_41988ADC-9364-4BFE-AB8C-8E8984376F75.png",
+        "timestamp" : 1791375881.327
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "AEE794A7-1522-442C-AF8C-FAD556BC4155.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "editor-text-selection_0_0EF93A55-4BFD-4F89-96AA-4879D2EB9B50.png",
+        "timestamp" : 1791375878.294
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "C2CAABD7-296F-4391-952B-B632BA5CA93E.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "editor-video-selection_0_C8B0450A-44B4-4B16-BC93-20C8FF874DF8.png",
+        "timestamp" : 1791375875.249
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testContextualToolbarTracksVideoTextAudioAndEmptySelection()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testContextualToolbarTracksVideoTextAudioAndEmptySelection"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "4CA61CD9-D206-40F3-837C-2F9396657802.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "fullscreen-preview_0_E5F8EC83-9196-4319-AF57-767428D4E43A.png",
+        "timestamp" : 1791375895.829
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testFullScreenPreviewPlaybackAndDismissal()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testFullScreenPreviewPlaybackAndDismissal"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "45F6C63C-F360-4EC2-92B8-BB6B94B30383.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "05-import-review_0_24FA1D48-8A95-4037-9930-C174ADAD105B.png",
+        "timestamp" : 1791375938.463
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "73F83327-9F3E-46BB-A511-BF35609DC6F4.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "04-export-settings_0_3271BA4C-87F8-4B75-8DA4-8EE4121A5E9B.png",
+        "timestamp" : 1791375930.821
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "DB902D1B-BC9C-4897-A6A8-D571426E8BDA.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "03-format-comparison_0_3D99AEBF-41F7-45A7-B1A7-062D29A12BE3.png",
+        "timestamp" : 1791375928.053
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "4B33CE89-8389-4995-911E-49223DAAACBD.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "02-timeline-default_0_A12C8C45-FF1A-4A61-AE02-D904DC2A06C5.png",
+        "timestamp" : 1791375924.007
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "47BABCB2-B632-4E61-8FC5-C3E79DD28D0B.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "01-library_0_3396A582-84C9-4055-8BD7-FBCD86EE5391.png",
+        "timestamp" : 1791375921.335
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testPrimaryEditorStatesFormatImportAndExport()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testPrimaryEditorStatesFormatImportAndExport"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "1F3FC802-2FD8-4C7A-955F-0B110F75DA61.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "editor-story-secondary_0_23CEA09C-3049-47C1-930D-5597C59FED73.png",
+        "timestamp" : 1791375959.642
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testTextKeyboardDoesNotMoveTimelineAndStoryIsSecondary()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testTextKeyboardDoesNotMoveTimelineAndStoryIsSecondary"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "16B3F461-70E7-431A-8587-44246CDAADC5.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "editor-speed-panel_0_1B850823-2723-48EC-B3C6-7949A38E8108.png",
+        "timestamp" : 1791375976.414
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testTimelineSplitProducesUndoAndCompactSpeedPanel()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testTimelineSplitProducesUndoAndCompactSpeedPanel"
+  }
+]

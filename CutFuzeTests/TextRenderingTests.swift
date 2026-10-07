@@ -23,4 +23,11 @@ final class TextRenderingTests: XCTestCase {
         XCTAssertGreaterThan(inkBounds(spaced).width, inkBounds(normal).width + 10)
         XCTAssertGreaterThan(inkBounds(spaced).height, inkBounds(normal).height + 10)
     }
+
+    func testTextSizeChangesRenderedCaptionGeometry() throws {
+        let small = try TextRasterizer.render(text: "Sous-titre", presentation: Presentation(textSize: 0.04), size: CGSize(width: 600, height: 400))
+        let large = try TextRasterizer.render(text: "Sous-titre", presentation: Presentation(textSize: 0.12), size: CGSize(width: 600, height: 400))
+        XCTAssertGreaterThan(inkBounds(large).width, inkBounds(small).width * 2)
+        XCTAssertGreaterThan(inkBounds(large).height, inkBounds(small).height * 2)
+    }
 }

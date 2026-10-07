@@ -47,6 +47,9 @@ final class WorkspaceModel: ObservableObject {
 
 enum EditorMode: String, CaseIterable { case story = "Scénario", timeline = "Timeline" }
 enum InspectorTab: String, CaseIterable { case image = "Image", audio = "Son", text = "Texte", animation = "Animation" }
+enum EditorSelectionKind: Equatable {
+    case none, video, text, audio, overlay
+}
 enum ImportPlacement: String, CaseIterable, Identifiable {
     case append
     case afterSelection
@@ -62,7 +65,7 @@ final class EditorModel: ObservableObject {
     @Published var selectedSceneID: UUID?
     @Published var variantID: UUID
     @Published var playhead = 0.0
-    @Published var mode: EditorMode = .story
+    @Published var mode: EditorMode = .timeline
     @Published var inspector: InspectorTab?
     @Published var localScope = true
     @Published var preview: CGImage?
@@ -78,12 +81,15 @@ final class EditorModel: ObservableObject {
     @Published var canUndo = false
     @Published var canRedo = false
     @Published var thumbnails: [UUID: CGImage] = [:]
+    @Published var assetThumbnails: [UUID: CGImage] = [:]
+    @Published var clipThumbnails: [UUID: [CGImage]] = [:]
     let store: ProjectStore
     let rootURL: URL
     let renderer = FrameRenderer()
     private let history: EditHistory
     private var saveTask: Task<Void, Never>?
     private var previewTask: Task<Void, Never>?
+    private var thumbnailTask: Task<Void, Never>?
     private var playbackTask: Task<Void, Never>?
     private var previewGeneration = 0
     private var audioPlayer: AVPlayer?
@@ -97,19 +103,26 @@ final class EditorModel: ObservableObject {
         history = EditHistory(document: document)
         variantID = document.variants[0].id
         selectedSceneID = document.scenes.first?.id
-        selectedClipID = document.scenes.first?.clips.first?.id
+        selectedClipID = nil
         requestPreview(); refreshThumbnails()
     }
     var plan: RenderPlan { RenderPlan.compile(document: document, variantID: variantID) }
     var variant: OutputVariant { plan.variant }
     var selectedClip: Clip? { document.clip(selectedClipID) }
+    var selectionKind: EditorSelectionKind {
+        guard let clip = selectedClip else { return .none }
+        if clip.kind == .text { return .text }
+        if clip.kind == .audio { return .audio }
+        if clip.kind == .shape || clip.layer > 0 { return .overlay }
+        return .video
+    }
     var selectedScene: Scene? { document.scenes.first { $0.id == selectedSceneID } }
     var presentation: Presentation { selectedClip.map { variant.overrides[$0.id.uuidString] ?? $0.presentation } ?? .init() }
     var duration: Double { document.duration.seconds }
     var isReplacingPendingImport: Bool { pendingReplacement != nil }
     var suggestedImportPlacement: ImportPlacement { pendingOverlay ? .overlay : .append }
     func releaseDerivedCaches() {
-        stop(); previewGeneration += 1; previewTask?.cancel(); thumbnails.removeAll()
+        stop(); previewGeneration += 1; previewTask?.cancel(); thumbnailTask?.cancel(); thumbnails.removeAll(); assetThumbnails.removeAll(); clipThumbnails.removeAll()
         Task { await renderer.clearCaches(); requestPreview() }
     }
     func edit(_ name: String, _ change: (inout ProjectDocument) throws -> Void) {
@@ -138,7 +151,7 @@ final class EditorModel: ObservableObject {
         playhead = min(playhead, max(0, duration - 1 / 30))
         saved = false; saveTask?.cancel()
         saveTask = Task { try? await Task.sleep(for: .milliseconds(350)); if !Task.isCancelled { save() } }
-        thumbnails.removeAll(); requestPreview(); refreshThumbnails()
+        thumbnails.removeAll(); assetThumbnails.removeAll(); clipThumbnails.removeAll(); requestPreview(); refreshThumbnails()
     }
     func undo() { stop(); selectionRedo.append((selectedClipID, selectedSceneID, playhead)); history.undo(); if let s = selectionUndo.popLast() { (selectedClipID, selectedSceneID, playhead) = s }; sync() }
     func redo() { stop(); selectionUndo.append((selectedClipID, selectedSceneID, playhead)); history.redo(); if let s = selectionRedo.popLast() { (selectedClipID, selectedSceneID, playhead) = s }; sync() }
@@ -148,6 +161,34 @@ final class EditorModel: ObservableObject {
         seek(plan.scenes.first { $0.id == scene.id }?.start.seconds ?? 0)
     }
     func selectClip(_ clip: RenderClip) { selectedClipID = clip.id; selectedSceneID = clip.sceneID; seek(clip.globalStart.seconds) }
+    func clearSelection() { selectedClipID = nil; inspector = nil }
+    func displayName(for clip: Clip) -> String {
+        if !clip.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return clip.text }
+        guard let asset = document.asset(clip.assetID) else { return fallbackName(for: clip.kind) }
+        return displayName(for: asset)
+    }
+    func displayName(for asset: MediaAsset) -> String {
+        let raw = asset.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        var component = URL(fileURLWithPath: raw).deletingPathExtension().lastPathComponent
+        let generatedSuffix = #"(?i)(?:[-_ ]?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"#
+        let beforeSuffix = component
+        component = component.replacingOccurrences(of: generatedSuffix, with: "", options: .regularExpression)
+        if component != beforeSuffix {
+            component = component.replacingOccurrences(of: #"(?:[-_ ]+\d+){2,}$"#, with: "", options: .regularExpression)
+        }
+        component = component.replacingOccurrences(of: "_", with: " ").trimmingCharacters(in: CharacterSet(charactersIn: "- "))
+        if !component.isEmpty, UUID(uuidString: component) == nil { return component.prefix(1).uppercased() + component.dropFirst() }
+        return fallbackName(for: asset.kind)
+    }
+    private func fallbackName(for kind: ClipKind) -> String {
+        switch kind {
+        case .video: return L("Vidéo")
+        case .image: return L("Photo")
+        case .audio: return L("Audio")
+        case .text: return L("Texte")
+        case .shape: return L("Forme")
+        }
+    }
     func seek(_ seconds: Double) { stop(); playhead = min(max(0, seconds), max(0, duration - 1 / 120)); requestPreview() }
     func changeVariant(_ id: UUID) { stop(); variantID = id; requestPreview() }
     func setFullScreenPreview(_ enabled: Bool) {
@@ -171,11 +212,30 @@ final class EditorModel: ObservableObject {
     }
     func refreshThumbnails() {
         let snapshot = document, root = rootURL
-        Task {
+        thumbnailTask?.cancel()
+        thumbnailTask = Task {
+            let p = RenderPlan.compile(document: snapshot, variantID: snapshot.variants.first?.id)
             for scene in snapshot.scenes where thumbnails[scene.id] == nil {
-                guard document.revision == snapshot.revision else { return }
-                let p = RenderPlan.compile(document: snapshot, variantID: snapshot.variants.first?.id)
+                guard !Task.isCancelled, document.revision == snapshot.revision else { return }
                 if let span = p.scenes.first(where: { $0.id == scene.id }), let image = try? await renderer.render(plan: p, time: span.start + .init(seconds: min(0.4, span.duration.seconds / 2)), rootURL: root, size: CGSize(width: 128, height: 160)) { if document.revision == snapshot.revision { thumbnails[scene.id] = image } }
+            }
+            for asset in snapshot.assets where asset.kind == .video || asset.kind == .image {
+                guard !Task.isCancelled, document.revision == snapshot.revision else { return }
+                if assetThumbnails[asset.id] == nil,
+                   let image = try? await MediaImporter.shared.thumbnail(asset: asset, rootURL: root, maxSize: 180),
+                   document.revision == snapshot.revision {
+                    assetThumbnails[asset.id] = image
+                }
+            }
+            for item in p.clips where item.clip.kind == .video || item.clip.kind == .image {
+                guard !Task.isCancelled, document.revision == snapshot.revision,
+                      clipThumbnails[item.id] == nil,
+                      let asset = snapshot.asset(item.clip.assetID) else { continue }
+                let sampleCount = asset.kind == .video ? min(24, max(3, Int(ceil(item.duration.seconds / 0.7)))) : 1
+                if let frames = try? await MediaImporter.shared.timelineThumbnails(asset: asset, clip: item.clip, rootURL: root, sampleCount: sampleCount),
+                   !Task.isCancelled, document.revision == snapshot.revision {
+                    clipThumbnails[item.id] = frames
+                }
             }
         }
     }
@@ -294,7 +354,7 @@ final class EditorModel: ObservableObject {
                             selectedClipID = clip.id
                         } else {
                             let clip = Clip(assetID: asset.id, kind: asset.kind, duration: dur, sourceDuration: dur)
-                            let scene = Scene(title: asset.name, duration: dur, clips: [clip])
+                            let scene = Scene(title: displayName(for: asset), duration: dur, clips: [clip])
                             if placement == .afterSelection {
                                 d.scenes.insert(scene, at: min(insertionIndex, d.scenes.count)); insertionIndex += 1
                             } else { d.scenes.append(scene) }

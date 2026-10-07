@@ -11,7 +11,7 @@ struct ImportReviewSheet: View {
                     Text(L("Réordonnez les médias ou retirez ceux que vous ne voulez pas ajouter.")).font(.subheadline).foregroundStyle(.secondary)
                 }
                 Section(L("Médias sélectionnés")) {
-                    ForEach(model.pendingImports) { asset in MediaAssetRow(asset: asset, rootURL: model.rootURL) }
+                    ForEach(model.pendingImports) { asset in MediaAssetRow(asset: asset, rootURL: model.rootURL, displayName: model.displayName(for: asset)) }
                         .onMove { source, target in model.pendingImports.move(fromOffsets: source, toOffset: target) }
                         .onDelete { model.pendingImports.remove(atOffsets: $0) }
                 }
@@ -53,7 +53,7 @@ struct MediaLibrarySheet: View {
         NavigationStack { List {
             Section { Picker(L("Filtre"), selection: $filter) { Text(L("Tous")).tag(ClipKind?.none); Text(L("Vidéo")).tag(ClipKind?.some(.video)); Text(L("Image")).tag(ClipKind?.some(.image)); Text(L("Son")).tag(ClipKind?.some(.audio)) }.pickerStyle(.segmented); Toggle(L("Ajouter en superposition"), isOn: $overlay).disabled(model.selectedScene == nil) }
             ForEach(model.document.assets.filter { filter == nil || $0.kind == filter }) { asset in
-                Button { model.importFiles([model.rootURL.appendingPathComponent(asset.relativePath)], asOverlay: overlay); dismiss() } label: { MediaAssetRow(asset: asset, rootURL: model.rootURL) }.accessibilityIdentifier("resource-\(asset.id)")
+                Button { model.importFiles([model.rootURL.appendingPathComponent(asset.relativePath)], asOverlay: overlay); dismiss() } label: { MediaAssetRow(asset: asset, rootURL: model.rootURL, displayName: model.displayName(for: asset)) }.accessibilityIdentifier("resource-\(asset.id)")
             }
         }.navigationTitle(L("Ressources locales")).toolbar { Button(L("Fermer")) { dismiss() } } }.preferredColorScheme(.dark)
     }
@@ -61,11 +61,12 @@ struct MediaLibrarySheet: View {
 struct MediaAssetRow: View {
     let asset: MediaAsset
     let rootURL: URL
+    var displayName: String? = nil
     @State private var thumbnail: CGImage?
     var body: some View {
         HStack(spacing: 12) {
             ZStack { RoundedRectangle(cornerRadius: 8).fill(DesignTokens.panel); if let thumbnail { Image(decorative: thumbnail, scale: 1).resizable().scaledToFill() } else { Image(systemName: clipSymbol(asset.kind)).foregroundStyle(DesignTokens.amber) } }.frame(width: 64, height: 52).clipped().clipShape(RoundedRectangle(cornerRadius: 8))
-            VStack(alignment: .leading, spacing: 5) { Text(asset.name).font(.subheadline).lineLimit(1); Text(asset.kind == .image ? "\(asset.width) × \(asset.height)" : timeLabel(asset.duration.seconds)).font(.caption.monospacedDigit()).foregroundStyle(.secondary) }
+            VStack(alignment: .leading, spacing: 5) { Text(displayName ?? asset.name).font(.subheadline).lineLimit(1); Text(asset.kind == .image ? "\(asset.width) × \(asset.height)" : timeLabel(asset.duration.seconds)).font(.caption.monospacedDigit()).foregroundStyle(.secondary) }
         }.frame(minHeight: 56).task { if asset.kind != .audio { thumbnail = try? await MediaImporter.shared.thumbnail(asset: asset, rootURL: rootURL, maxSize: 180) } }
     }
 }

@@ -3,6 +3,9 @@ import UIKit
 
 struct TimelinePanel: View {
     @ObservedObject var model: EditorModel
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    var showStory: () -> Void = {}
+    var showCaptions: () -> Void = {}
     @State private var zoom = 35.0
     @State private var snapping = true
     @State private var follow = true
@@ -10,23 +13,47 @@ struct TimelinePanel: View {
     @State private var startRequest = 0
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 5) {
+            HStack(spacing: 7) {
                 Button {
                     model.stop()
                     model.seek(0)
                     startRequest &+= 1
                 } label: {
-                    Image(systemName: "backward.end.fill").frame(width: 36, height: 32)
+                    Image(systemName: "backward.end.fill").frame(width: 40, height: 36)
                 }
                 .foregroundStyle(DesignTokens.amber)
                 .accessibilityLabel(L("Revenir au début"))
                 .accessibilityIdentifier("timelineStart")
-                Image(systemName: "minus.magnifyingglass").foregroundStyle(.secondary)
-                Slider(value: $zoom, in: 12...160).accessibilityLabel(L("Zoom temporel"))
-                Image(systemName: "plus.magnifyingglass").foregroundStyle(.secondary)
+                if horizontalSizeClass != .compact {
+                    Text(L("Timeline")).font(.caption.weight(.semibold)).foregroundStyle(.white.opacity(0.86))
+                }
+                Spacer(minLength: 0)
+                if model.plan.clips.contains(where: { $0.clip.isCaption }) {
+                    Button(action: showCaptions) {
+                        Image(systemName: "captions.bubble").frame(width: 40, height: 36)
+                    }
+                    .foregroundStyle(DesignTokens.amber)
+                    .accessibilityLabel(L("Modifier les sous-titres"))
+                    .accessibilityIdentifier("openCaptions")
+                }
+                Button(action: showStory) {
+                    if horizontalSizeClass == .compact {
+                        Image(systemName: "rectangle.stack")
+                            .frame(width: 40, height: 36)
+                    } else {
+                        Label(L("Scénario"), systemImage: "rectangle.stack")
+                            .font(.caption.weight(.semibold)).frame(minHeight: 36)
+                    }
+                }
+                .foregroundStyle(.white.opacity(0.74))
+                .accessibilityLabel(L("Scénario"))
+                .accessibilityIdentifier("openStory")
+                Button { zoom = max(12, zoom / 1.35) } label: { Image(systemName: "minus.magnifyingglass").frame(width: 38, height: 36) }
+                    .accessibilityLabel(L("Réduire le zoom temporel"))
+                Button { zoom = min(160, zoom * 1.35) } label: { Image(systemName: "plus.magnifyingglass").frame(width: 38, height: 36) }
+                    .accessibilityLabel(L("Augmenter le zoom temporel"))
                 Button { snapping.toggle() } label: { Image(systemName: "point.topleft.down.to.point.bottomright.curvepath").frame(width: 44, height: 32).foregroundStyle(snapping ? DesignTokens.amber : .secondary) }.accessibilityLabel(L("Aimantation")).accessibilityValue(snapping ? "On" : "Off")
-                Button { follow.toggle() } label: { Image(systemName: follow ? "location.fill" : "location").frame(width: 36, height: 32) }.accessibilityLabel(L("Suivre la lecture"))
-            }.font(.caption).padding(.horizontal, 18)
+            }.font(.caption).padding(.horizontal, 8).frame(height: 38)
             TimelineCanvas(model: model, zoom: $zoom, snapping: snapping, follow: follow, waves: waves, startRequest: startRequest)
                 .frame(minHeight: 40)
                 .task(id: model.document.assets.count) {
@@ -48,7 +75,8 @@ struct TimelineCanvas: UIViewRepresentable {
     func makeUIView(context: Context) -> TimelineScrollView { let view = TimelineScrollView(); view.model = model; view.zoomChanged = { zoom = $0 }; return view }
     func updateUIView(_ view: TimelineScrollView, context: Context) {
         view.model = model; view.pointsPerSecond = zoom; view.snapping = snapping; view.waves = waves
-        view.canvas.plan = model.plan; view.canvas.selectedID = model.selectedClipID; view.canvas.playhead = model.playhead; view.canvas.thumbnails = model.thumbnails; view.canvas.waves = waves
+        view.canvas.plan = model.plan; view.canvas.selectedID = model.selectedClipID; view.canvas.playhead = model.playhead; view.canvas.assetThumbnails = model.assetThumbnails; view.canvas.clipThumbnails = model.clipThumbnails; view.canvas.waves = waves
+        view.canvas.clipNames = Dictionary(uniqueKeysWithValues: model.plan.clips.map { ($0.id, model.displayName(for: $0.clip)) })
         view.refresh(follow: follow && model.playing)
         view.showStart(request: startRequest)
     }
@@ -94,12 +122,12 @@ final class TimelineScrollView: UIScrollView, UIScrollViewDelegate, UIGestureRec
     func refresh(follow: Bool) {
         canvas.pointsPerSecond = pointsPerSecond
         canvas.beatMarkers = model?.document.rhythmMarkers ?? []
-        let width = max(bounds.width, (canvas.plan?.duration.seconds ?? 0) * pointsPerSecond + 90)
-        contentSize = CGSize(width: width, height: max(bounds.height, 53 + Double(canvas.trackKeys.count) * 43))
+        let width = max(bounds.width, (canvas.plan?.duration.seconds ?? 0) * pointsPerSecond + 54)
+        contentSize = CGSize(width: width, height: max(bounds.height, 45 + Double(canvas.trackKeys.count) * 47))
         canvas.frame = CGRect(origin: contentOffset, size: bounds.size)
         if follow {
-            let x = 54 + canvas.playhead * pointsPerSecond
-            if x - contentOffset.x > bounds.width * 0.8 || x < contentOffset.x + 54 { contentOffset.x = max(0, min(contentSize.width - bounds.width, x - bounds.width * 0.3)) }
+            let x = 18 + canvas.playhead * pointsPerSecond
+            if x - contentOffset.x > bounds.width * 0.8 || x < contentOffset.x + 18 { contentOffset.x = max(0, min(contentSize.width - bounds.width, x - bounds.width * 0.3)) }
         }
         canvas.visibleRect = CGRect(origin: contentOffset, size: bounds.size)
         canvas.setNeedsDisplay()
@@ -130,15 +158,20 @@ final class TimelineScrollView: UIScrollView, UIScrollViewDelegate, UIGestureRec
     }
     @objc private func tapped(_ gesture: UITapGestureRecognizer) {
         let point = canvasPoint(gesture)
-        if let clip = hit(point) { model?.selectClip(clip) }
-        else { model?.seek(max(0, (point.x - 54) / pointsPerSecond)) }
+        if let clip = hit(point) {
+            model?.selectClip(clip)
+            UISelectionFeedbackGenerator().selectionChanged()
+        } else {
+            model?.clearSelection()
+            model?.seek(max(0, (point.x - 18) / pointsPerSecond))
+        }
     }
     @objc private func pinched(_ gesture: UIPinchGestureRecognizer) {
         switch gesture.state {
-        case .began: initialZoom = pointsPerSecond; pinchAnchor = max(0, (canvasPoint(gesture).x - 54) / pointsPerSecond); initialOffset = gesture.location(in: self).x - contentOffset.x
+        case .began: initialZoom = pointsPerSecond; pinchAnchor = max(0, (canvasPoint(gesture).x - 18) / pointsPerSecond); initialOffset = gesture.location(in: self).x - contentOffset.x
         case .changed:
             let value = min(160, max(12, initialZoom * gesture.scale)); pointsPerSecond = value; zoomChanged?(value); refresh(follow: false)
-            contentOffset.x = max(0, min(contentSize.width - bounds.width, pinchAnchor * value + 54 - initialOffset))
+            contentOffset.x = max(0, min(contentSize.width - bounds.width, pinchAnchor * value + 18 - initialOffset))
         default: break
         }
     }
@@ -147,7 +180,7 @@ final class TimelineScrollView: UIScrollView, UIScrollViewDelegate, UIGestureRec
         let point = canvasPoint(gesture); lastLocation = point
         switch gesture.state {
         case .began:
-            if point.y < 44 { scrubMode = true; model.seek(max(0, (point.x-54)/pointsPerSecond)); return }
+            if point.y < 40 { scrubMode = true; model.seek(max(0, (point.x-18)/pointsPerSecond)); return }
             guard let c = hit(point) else { return }
             gestureOrigin = c.clip; gestureClip = c; initialX = point.x
             let r = canvas.rect(for: c)
@@ -164,7 +197,7 @@ final class TimelineScrollView: UIScrollView, UIScrollViewDelegate, UIGestureRec
             }
             startAutoscroll()
         case .changed:
-            if scrubMode { model.seek(max(0, (point.x-54)/pointsPerSecond)) }
+            if scrubMode { model.seek(max(0, (point.x-18)/pointsPerSecond)) }
             else if moveMode { applyMove(at: point.x) }
             else { applyTrim(at: point.x) }
         case .ended: if !scrubMode { model.endGesture() }; resetGesture()
@@ -260,12 +293,16 @@ final class TimelineScrollView: UIScrollView, UIScrollViewDelegate, UIGestureRec
         guard let plan = canvas.plan else { return }
         accessibilityElements = plan.clips.filter { canvas.rect(for: $0).intersects(canvas.visibleRect) }.map { clip in
             let element = TimelineAccessibility(container: self)
-            element.accessibilityLabel = "\(clip.clip.text.isEmpty ? clip.clip.kind.rawValue : clip.clip.text), \(String(format: "%.2f", clip.globalStart.seconds)), \(String(format: "%.2f", clip.duration.seconds)) s"
+            let name = canvas.clipNames[clip.id] ?? L(clip.clip.kind.rawValue)
+            element.accessibilityLabel = "\(name), \(String(format: "%.2f", clip.globalStart.seconds)), \(String(format: "%.2f", clip.duration.seconds)) s"
             element.accessibilityTraits = clip.id == model?.selectedClipID ? [.button, .selected] : .button
+            let semanticKind = clip.clip.isCaption ? "caption" : clip.clip.kind == .text ? "text" : clip.clip.kind == .audio ? "audio" : (clip.clip.kind == .shape || clip.clip.layer > 0 ? "overlay" : "video")
+            element.accessibilityIdentifier = "timelineClip-\(semanticKind)-\(clip.id.uuidString)"
             element.accessibilityFrameInContainerSpace = canvas.rect(for: clip).offsetBy(dx: -contentOffset.x, dy: -contentOffset.y)
-            element.activate = { [weak self] in self?.model?.selectClip(clip) }
+            element.activate = { [weak self] in
+                self?.model?.selectClip(clip)
+            }
             if clip.clip.isCaption {
-                element.accessibilityIdentifier = "captionSegment-\(clip.id.uuidString)"
                 element.accessibilityCustomActions = [
                     UIAccessibilityCustomAction(name: L("Supprimer ce segment")) { [weak self] _ in self?.model?.deleteClip(clip.id); return true },
                     UIAccessibilityCustomAction(name: L("Supprimer toute la piste")) { [weak self] _ in self?.confirmCaptionTrackDeletion(); return true }
@@ -286,7 +323,9 @@ final class TimelineDrawingView: UIView {
     var selectedID: UUID?
     var pointsPerSecond = 35.0
     var playhead = 0.0
-    var thumbnails: [UUID: CGImage] = [:]
+    var assetThumbnails: [UUID: CGImage] = [:]
+    var clipThumbnails: [UUID: [CGImage]] = [:]
+    var clipNames: [UUID: String] = [:]
     var waves: [UUID: [Float]] = [:]
     var visibleRect = CGRect.zero
         override init(frame: CGRect) { super.init(frame: frame); backgroundColor = .clear; isOpaque = false }
@@ -295,29 +334,42 @@ final class TimelineDrawingView: UIView {
     var trackKeys: [String] { Array(Set(plan?.clips.map { trackKey($0) } ?? [])).sorted() }
     func lane(_ clip: RenderClip) -> Int { trackKeys.firstIndex(of: trackKey(clip)) ?? 0 }
     func colorIndex(_ clip: Clip) -> Int { clip.kind == .audio ? 3 : clip.kind == .text ? 2 : clip.layer > 0 ? 1 : 0 }
-    func rect(for clip: RenderClip) -> CGRect { CGRect(x: 54 + clip.globalStart.seconds * pointsPerSecond, y: 47 + Double(lane(clip)) * 43, width: max(4, clip.duration.seconds * pointsPerSecond - 2), height: 36) }
+    func rect(for clip: RenderClip) -> CGRect { CGRect(x: 18 + clip.globalStart.seconds * pointsPerSecond, y: 43 + Double(lane(clip)) * 47, width: max(5, clip.duration.seconds * pointsPerSecond - 2), height: 40) }
+    private func drawAspectFill(_ image: CGImage, in target: CGRect) {
+        let size = CGSize(width: image.width, height: image.height)
+        guard size.width > 0, size.height > 0 else { return }
+        let scale = max(target.width / size.width, target.height / size.height)
+        let drawSize = CGSize(width: size.width * scale, height: size.height * scale)
+        UIImage(cgImage: image).draw(in: CGRect(x: target.midX - drawSize.width / 2, y: target.midY - drawSize.height / 2, width: drawSize.width, height: drawSize.height))
+    }
     override func draw(_ rect: CGRect) {
         guard let context = UIGraphicsGetCurrentContext(), let plan else { return }
         context.translateBy(x: -visibleRect.minX, y: -visibleRect.minY)
         let visible = visibleRect.insetBy(dx: -10, dy: 0)
         let caption: [NSAttributedString.Key: Any] = [.font: UIFont.monospacedSystemFont(ofSize: 9, weight: .medium), .foregroundColor: UIColor(white: 0.6, alpha: 1)]
         let step = pointsPerSecond < 20 ? 5.0 : pointsPerSecond < 60 ? 2.0 : 1.0
-        let first = max(0, floor((visible.minX-54)/pointsPerSecond/step)*step)
-        let last = min(plan.duration.seconds, (visible.maxX-54)/pointsPerSecond)
+        let first = max(0, floor((visible.minX-18)/pointsPerSecond/step)*step)
+        let last = min(plan.duration.seconds, (visible.maxX-18)/pointsPerSecond)
         for marker in beatMarkers where marker.time.seconds <= plan.duration.seconds {
-            let x = 54 + marker.time.seconds * pointsPerSecond
+            let x = 18 + marker.time.seconds * pointsPerSecond
             guard x >= visible.minX, x <= visible.maxX else { continue }
             context.setFillColor(UIColor.systemTeal.cgColor)
             context.move(to: CGPoint(x: x - 4, y: 18)); context.addLine(to: CGPoint(x: x + 4, y: 18)); context.addLine(to: CGPoint(x: x, y: 24)); context.closePath(); context.fillPath()
             context.setStrokeColor(UIColor.systemTeal.withAlphaComponent(0.3).cgColor); context.setLineDash(phase: 0, lengths: [2, 3]); context.move(to: CGPoint(x: x, y: 24)); context.addLine(to: CGPoint(x: x, y: 53 + Double(trackKeys.count) * 43)); context.strokePath(); context.setLineDash(phase: 0, lengths: [])
         }
-        if first <= last { for second in stride(from: first, through: last, by: step) { let x = 54 + second*pointsPerSecond; (timeLabel(second) as NSString).draw(at: CGPoint(x: x+3, y: 4), withAttributes: caption); context.setStrokeColor(UIColor.white.withAlphaComponent(0.08).cgColor); context.move(to: CGPoint(x: x,y: 21)); context.addLine(to: CGPoint(x: x,y: 220)); context.strokePath() } }
+        if first <= last { for second in stride(from: first, through: last, by: step) { let x = 18 + second*pointsPerSecond; (timeLabel(second) as NSString).draw(at: CGPoint(x: x+3, y: 4), withAttributes: caption); context.setStrokeColor(UIColor.white.withAlphaComponent(0.08).cgColor); context.move(to: CGPoint(x: x,y: 21)); context.addLine(to: CGPoint(x: x,y: 260)); context.strokePath() } }
         for (index, scene) in plan.scenes.enumerated() {
-            let x = 54 + scene.start.seconds*pointsPerSecond
+            let x = 18 + scene.start.seconds*pointsPerSecond
             if x + scene.duration.seconds*pointsPerSecond < visible.minX || x > visible.maxX { continue }
             context.setFillColor(UIColor(red: 0.92, green: 0.65, blue: 0.35, alpha: 0.12).cgColor); context.fill(CGRect(x: x, y: 23, width: scene.duration.seconds*pointsPerSecond-2, height: 18))
             (String(format: "%02d", index+1) as NSString).draw(at: CGPoint(x: x+4,y: 26), withAttributes: caption)
-            if scene.transition.duration > .zero { let end = x+(scene.duration-scene.transition.duration).seconds*pointsPerSecond; context.setFillColor(UIColor.systemOrange.withAlphaComponent(0.4).cgColor); context.fill(CGRect(x: end,y: 24,width: scene.transition.duration.seconds*pointsPerSecond,height: 17)) }
+            if scene.transition.duration > .zero {
+                let end = x+(scene.duration-scene.transition.duration).seconds*pointsPerSecond
+                context.setFillColor(UIColor.systemOrange.withAlphaComponent(0.55).cgColor)
+                let marker = CGRect(x: end - 5, y: 23, width: max(12, scene.transition.duration.seconds*pointsPerSecond + 10), height: 18)
+                UIBezierPath(roundedRect: marker, cornerRadius: 4).fill()
+                ("◇" as NSString).draw(at: CGPoint(x: marker.midX - 5, y: 23), withAttributes: [.font:UIFont.systemFont(ofSize:11, weight:.bold),.foregroundColor:UIColor.white])
+            }
         }
         let colors = [UIColor(red: 0.44, green: 0.61, blue: 0.61, alpha: 1), UIColor(red: 0.51, green: 0.58, blue: 0.75, alpha: 1), UIColor(red: 0.9, green: 0.64, blue: 0.35, alpha: 1), UIColor(red: 0.55, green: 0.69, blue: 0.54, alpha: 1)]
         for rc in plan.clips {
@@ -334,23 +386,32 @@ final class TimelineDrawingView: UIView {
                     let height = max(1, Double(wave[index])*15)
                     context.move(to: CGPoint(x: x,y:r.midY-height)); context.addLine(to: CGPoint(x:x,y:r.midY+height))
                 }; context.strokePath() }
-            } else if rc.clip.kind != .text, let sceneID = rc.sceneID, let thumbnail = thumbnails[sceneID] {
-                UIImage(cgImage: thumbnail).draw(in: CGRect(x: r.minX, y: r.minY, width: 30, height: 36))
+            } else if rc.clip.kind != .text, let assetID = rc.clip.assetID, let fallback = assetThumbnails[assetID] {
+                let frames = clipThumbnails[rc.id].flatMap { $0.isEmpty ? nil : $0 } ?? [fallback]
+                var x = r.minX
+                while x < r.maxX {
+                    let tile = CGRect(x: x, y: r.minY, width: min(50, r.maxX - x), height: r.height)
+                    let progress = min(0.999_999, max(0, (tile.midX - r.minX) / max(1, r.width)))
+                    let index = min(frames.count - 1, Int(progress * Double(frames.count)))
+                    drawAspectFill(frames[index], in: tile)
+                    context.setFillColor(UIColor.black.withAlphaComponent(0.16).cgColor); context.fill(tile)
+                    x += 50
+                }
             }
-            let label = rc.clip.text.isEmpty ? (rc.sceneID == nil ? "⌖ " : "") + (plan.assets.first { $0.id == rc.clip.assetID }?.name ?? rc.clip.kind.rawValue) : rc.clip.text
-            (label as NSString).draw(in: CGRect(x:r.minX+6, y:r.minY+11,width:r.width-12,height:16), withAttributes: [.font:UIFont.systemFont(ofSize:9, weight:.semibold),.foregroundColor:UIColor.white])
+            let label = (rc.sceneID == nil ? "⌖ " : "") + (clipNames[rc.id] ?? L(rc.clip.kind.rawValue))
+            (label as NSString).draw(in: CGRect(x:r.minX+7, y:r.minY+13,width:r.width-14,height:16), withAttributes: [.font:UIFont.systemFont(ofSize:10, weight:.semibold),.foregroundColor:UIColor.white])
             context.restoreGState()
-            if rc.id == selectedID { UIColor(red:0.92,green:0.65,blue:0.35,alpha:1).setStroke(); let p=UIBezierPath(roundedRect:r.insetBy(dx:1,dy:1),cornerRadius:5); p.lineWidth=2; p.stroke(); context.setFillColor(UIColor.white.cgColor); for x in [r.minX+4,r.maxX-6] { context.fill(CGRect(x:x,y:r.midY-7,width:2,height:14)) } }
+            if rc.id == selectedID {
+                UIColor(red:0.92,green:0.65,blue:0.35,alpha:1).setStroke(); let p=UIBezierPath(roundedRect:r.insetBy(dx:1,dy:1),cornerRadius:5); p.lineWidth=3; p.stroke()
+                context.setFillColor(UIColor(red:0.92,green:0.65,blue:0.35,alpha:1).cgColor)
+                for x in [r.minX,r.maxX-7] { UIBezierPath(roundedRect: CGRect(x:x,y:r.minY,width:7,height:r.height), cornerRadius:3).fill() }
+                context.setFillColor(UIColor.white.cgColor)
+                for x in [r.minX+3,r.maxX-4] { context.fill(CGRect(x:x-0.75,y:r.midY-8,width:1.5,height:16)) }
+            }
             for key in rc.clip.keyframes where key.property == .scale { let x = r.minX+(key.time-rc.clip.animationOffset).seconds*pointsPerSecond; if r.contains(CGPoint(x:x,y:r.midY)) { context.setFillColor(UIColor.white.cgColor); context.fillEllipse(in:CGRect(x:x-2,y:r.maxY-6,width:4,height:4)) } }
         }
-        let x=54+playhead*pointsPerSecond; context.setStrokeColor(UIColor.white.cgColor); context.setLineWidth(1.5); context.move(to:CGPoint(x:x,y:18)); context.addLine(to:CGPoint(x:x,y:225)); context.strokePath()
-        context.setFillColor(UIColor.white.cgColor); context.fill(CGRect(x:x-4,y:16,width:8,height:5))
-        // Fixed track headers and a viewport-sized canvas keep memory independent of duration.
-        context.setFillColor(UIColor(red: 0.06, green: 0.075, blue: 0.1, alpha: 1).cgColor)
-        context.fill(CGRect(x: visibleRect.minX, y: visibleRect.minY, width: 48, height: visibleRect.height))
-        for (index,key) in trackKeys.enumerated() {
-            let title = key.hasPrefix("3") ? L("Son") : key.hasPrefix("2") ? L("Texte") : key.hasPrefix("1") ? L("Calque") : L("Image")
-            (title as NSString).draw(at: CGPoint(x: visibleRect.minX + 5, y: 60 + Double(index) * 43), withAttributes: caption)
-        }
+        let x=18+playhead*pointsPerSecond; context.setStrokeColor(UIColor(red:0.92,green:0.65,blue:0.35,alpha:1).cgColor); context.setLineWidth(2); context.move(to:CGPoint(x:x,y:16)); context.addLine(to:CGPoint(x:x,y:280)); context.strokePath()
+        context.setFillColor(UIColor(red:0.92,green:0.65,blue:0.35,alpha:1).cgColor)
+        context.move(to: CGPoint(x:x-5,y:16)); context.addLine(to: CGPoint(x:x+5,y:16)); context.addLine(to: CGPoint(x:x,y:23)); context.closePath(); context.fillPath()
     }
 }

@@ -1,5 +1,12 @@
 import Foundation
 
+struct TranscribedWord: Equatable, Sendable {
+    var text: String
+    var start: Double
+    var duration: Double
+    var confidence: Float
+}
+
 struct CaptionSegment: Codable, Identifiable, Equatable, Sendable {
     var id: UUID = UUID()
     var start: MediaTime

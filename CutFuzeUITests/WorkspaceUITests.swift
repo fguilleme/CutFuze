@@ -2,12 +2,9 @@ import XCTest
 
 final class WorkspaceUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
+
     @MainActor func testPauseDoesNotPresentCancellationError() throws {
-        let app = XCUIApplication()
-        app.launchArguments = ["-AppleLanguages", "(fr)", "-AppleLocale", "fr_FR"]
-        app.launch()
-        XCTAssertTrue(app.buttons["openDemo"].waitForExistence(timeout: 10))
-        app.buttons["openDemo"].tap()
+        let app = launchDemo()
         let playback = app.buttons["play"]
         XCTAssertTrue(playback.waitForExistence(timeout: 10))
         playback.tap()
@@ -18,11 +15,7 @@ final class WorkspaceUITests: XCTestCase {
     }
 
     @MainActor func testFullScreenPreviewPlaybackAndDismissal() throws {
-        let app = XCUIApplication()
-        app.launchArguments = ["-AppleLanguages", "(fr)", "-AppleLocale", "fr_FR"]
-        app.launch()
-        XCTAssertTrue(app.buttons["openDemo"].waitForExistence(timeout: 10))
-        app.buttons["openDemo"].tap()
+        let app = launchDemo()
         XCTAssertTrue(app.buttons["fullScreenPreview"].waitForExistence(timeout: 10))
         app.buttons["fullScreenPreview"].tap()
         XCTAssertTrue(app.buttons["closeFullScreenPreview"].waitForExistence(timeout: 5))
@@ -34,107 +27,205 @@ final class WorkspaceUITests: XCTestCase {
         XCTAssertTrue(app.buttons["fullScreenPreview"].waitForExistence(timeout: 5))
     }
 
-    @MainActor func testLayerTextFieldShowsKeyboardWithoutMovingEditor() throws {
-        let app = XCUIApplication()
-        app.launchArguments = ["-AppleLanguages", "(fr)", "-AppleLocale", "fr_FR"]
-        app.launch()
-        XCTAssertTrue(app.buttons["openDemo"].waitForExistence(timeout: 10))
-        app.buttons["openDemo"].tap()
-        XCTAssertTrue(app.buttons["Texte"].waitForExistence(timeout: 10))
-        app.buttons["Texte"].tap()
-        if app.buttons["Texte libre"].waitForExistence(timeout: 2) { app.buttons["Texte libre"].tap() }
-        let field = app.descendants(matching: .any)["layerTextField"]
-        XCTAssertTrue(field.waitForExistence(timeout: 5))
-        let editorTop = app.buttons["Scénario"].frame.minY
-        field.tap()
-        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
-        XCTAssertEqual(app.buttons["Scénario"].frame.minY, editorTop, accuracy: 2)
-        XCTAssertTrue(app.buttons["Terminé"].waitForExistence(timeout: 2))
-        app.buttons["Terminé"].tap()
-        XCTAssertFalse(app.keyboards.firstMatch.waitForExistence(timeout: 2))
-        XCTAssertFalse(app.buttons["collapseEditingArea"].exists)
-        app.buttons["Scénario"].tap()
-        XCTAssertTrue(app.buttons["collapseEditingArea"].waitForExistence(timeout: 2))
-        app.buttons["collapseEditingArea"].tap()
-        XCTAssertFalse(app.buttons["collapseEditingArea"].exists)
+    @MainActor func testContextualToolbarTracksVideoTextAudioAndEmptySelection() throws {
+        let app = launchDemo()
+        XCTAssertTrue(app.buttons["addMedia"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Audio"].exists)
+        XCTAssertTrue(app.buttons["Texte"].exists)
+        XCTAssertTrue(app.buttons["Overlay"].exists)
+        XCTAssertTrue(app.buttons["Effets"].exists)
+        XCTAssertTrue(app.buttons["formatTool"].exists)
+
+        let video = firstTimelineClip(app, kind: "video")
+        XCTAssertTrue(video.waitForExistence(timeout: 5)); video.tap()
+        XCTAssertTrue(app.buttons["action-Split"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["tool-Vitesse"].exists)
+        XCTAssertTrue(app.buttons["tool-Ajuster"].exists)
+        capture("editor-video-selection")
+
+        let text = firstTimelineClip(app, kind: "text")
+        XCTAssertTrue(text.waitForExistence(timeout: 5)); text.tap()
+        XCTAssertTrue(app.buttons["tool-Modifier"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["tool-Style"].exists)
+        XCTAssertTrue(app.buttons["tool-Police"].exists)
+        capture("editor-text-selection")
+
+        let audio = firstTimelineClip(app, kind: "audio")
+        XCTAssertTrue(audio.waitForExistence(timeout: 5)); audio.tap()
+        XCTAssertTrue(app.buttons["tool-Volume"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["tool-Fondu"].exists)
+        capture("editor-audio-selection")
+
+        let timeline = app.scrollViews["timelineScroll"]
+        timeline.coordinate(withNormalizedOffset: CGVector(dx: 0.96, dy: 0.05)).tap()
+        XCTAssertTrue(app.buttons["addMedia"].waitForExistence(timeout: 3))
     }
 
-    @MainActor func testLibraryStoryTimelineVariantsUndoReopenAndLandscape() throws {
+    @MainActor func testTimelineSplitProducesUndoAndCompactSpeedPanel() throws {
+        let app = launchDemo()
+        let video = firstTimelineClip(app, kind: "video")
+        XCTAssertTrue(video.waitForExistence(timeout: 10)); video.tap()
+
+        app.buttons["tool-Vitesse"].tap()
+        XCTAssertTrue(app.buttons["closeContextTool"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.sliders["Vitesse"].exists)
+        capture("editor-speed-panel")
+        app.buttons["closeContextTool"].tap()
+
+        app.buttons["play"].tap()
+        Thread.sleep(forTimeInterval: 0.35)
+        app.buttons["play"].tap()
+        app.buttons["action-Split"].tap()
+        let undo = app.buttons["Annuler la modification"]
+        XCTAssertTrue(undo.isEnabled)
+        undo.tap()
+    }
+
+    @MainActor func testTextKeyboardDoesNotMoveTimelineAndStoryIsSecondary() throws {
+        let app = launchDemo()
+        let text = firstTimelineClip(app, kind: "text")
+        XCTAssertTrue(text.waitForExistence(timeout: 10)); text.tap()
+        app.buttons["tool-Modifier"].tap()
+        let field = app.descendants(matching: .any)["layerTextField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        let timelineTop = app.buttons["timelineStart"].frame.minY
+        field.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["timelineStart"].frame.minY, timelineTop, accuracy: 2)
+        app.buttons["Terminé"].tap()
+        XCTAssertFalse(app.keyboards.firstMatch.waitForExistence(timeout: 2))
+
+        app.buttons["closeContextTool"].tap()
+        app.buttons["openStory"].tap()
+        XCTAssertTrue(app.buttons["closeStory"].waitForExistence(timeout: 5))
+        capture("editor-story-secondary")
+        app.buttons["closeStory"].tap()
+        XCTAssertTrue(app.scrollViews["timelineScroll"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor func testViewerTimelineDividerResizesBothZones() throws {
+        let app = launchDemo()
+        let divider = app.otherElements["viewerTimelineDivider"]
+        XCTAssertTrue(divider.waitForExistence(timeout: 5))
+        XCTAssertGreaterThanOrEqual(divider.frame.height, 20)
+        let before = app.buttons["timelineStart"].frame.minY
+        let origin = divider.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let destination = origin.withOffset(CGVector(dx: 0, dy: 70))
+        origin.press(forDuration: 0.05, thenDragTo: destination)
+        let after = app.buttons["timelineStart"].frame.minY
+        XCTAssertGreaterThan(after, before + 15)
+        capture("viewer-height-resized")
+    }
+
+    @MainActor func testCaptionTapSelectsAndLongPressOffersBothDeletionScopes() throws {
+        let app = launchDemo()
+        let caption = firstTimelineClip(app, kind: "caption")
+        XCTAssertTrue(caption.waitForExistence(timeout: 10))
+        caption.tap()
+        XCTAssertTrue(app.buttons["action-EditCaptions"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["Modifier ce segment"].waitForExistence(timeout: 1))
+
+        XCTAssertTrue(caption.waitForExistence(timeout: 5))
+        caption.press(forDuration: 0.8)
+        XCTAssertTrue(app.buttons["Supprimer ce segment"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Supprimer toute la piste"].exists)
+    }
+
+    @MainActor func testTextStylePanelFitsCompactViewport() throws {
+        let app = launchDemo()
+        let caption = firstTimelineClip(app, kind: "caption")
+        XCTAssertTrue(caption.waitForExistence(timeout: 10))
+        caption.tap()
+        XCTAssertTrue(app.buttons["tool-Style"].waitForExistence(timeout: 3))
+        app.buttons["tool-Style"].tap()
+
+        let size = app.sliders["Taille"]
+        let outline = app.sliders["Contour"]
+        let background = app.sliders["Fond"]
+        XCTAssertTrue(size.waitForExistence(timeout: 3))
+        XCTAssertTrue(outline.exists)
+        XCTAssertTrue(background.exists)
+        XCTAssertLessThan(background.frame.maxX, app.frame.maxX - 8)
+        XCTAssertGreaterThanOrEqual(outline.frame.minX, 0)
+        let before = size.value as? String
+        app.buttons["increase-Taille"].tap()
+        XCTAssertNotEqual(size.value as? String, before)
+        capture("editor-text-style-compact")
+    }
+
+    @MainActor func testCaptionEditorKeepsEditingAboveKeyboardAndChangesSize() throws {
+        let app = launchDemo()
+        let caption = firstTimelineClip(app, kind: "caption")
+        XCTAssertTrue(caption.waitForExistence(timeout: 10))
+        caption.tap()
+        XCTAssertTrue(app.buttons["action-EditCaptions"].waitForExistence(timeout: 3))
+        app.buttons["action-EditCaptions"].tap()
+
+        let field = app.descendants(matching: .any)["captionTextField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        app.segmentedControls.buttons["Style"].tap()
+        let size = app.sliders["Taille"]
+        XCTAssertTrue(size.waitForExistence(timeout: 3))
+        let before = size.value as? String
+        app.buttons["increase-Taille"].tap()
+        XCTAssertNotEqual(size.value as? String, before)
+        capture("caption-editor-style")
+
+        app.segmentedControls.buttons["Texte"].tap()
+        let edit = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "editCaption-")).firstMatch
+        XCTAssertTrue(edit.waitForExistence(timeout: 3))
+        edit.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 3))
+        XCTAssertLessThanOrEqual(field.frame.maxY, app.keyboards.firstMatch.frame.minY + 1)
+        capture("caption-editor-keyboard")
+        app.buttons["Terminé"].tap()
+    }
+
+    @MainActor func testPrimaryEditorStatesFormatImportAndExport() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-AppleLanguages", "(fr)", "-AppleLocale", "fr_FR"]
         app.launch()
         XCTAssertTrue(app.buttons["openDemo"].waitForExistence(timeout: 10))
         capture("01-library")
         app.buttons["openDemo"].tap()
-        XCTAssertTrue(app.buttons["Timeline"].waitForExistence(timeout: 10))
-        capture("02-story")
-        // Reorder via the actual scene contextual menu, keeping the project music visible.
-        let second = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "02, Trouver son rythme")).firstMatch
-        XCTAssertTrue(second.exists)
-        app.buttons["sceneMenu-1"].tap()
-        let earlier = app.buttons["Déplacer avant"].exists ? app.buttons["Déplacer avant"] : app.buttons["Move earlier"]
-        XCTAssertTrue(earlier.waitForExistence(timeout: 3)); earlier.tap()
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "01, Trouver son rythme")).firstMatch.waitForExistence(timeout: 3))
-        let undo = app.buttons["Annuler la modification"].exists ? app.buttons["Annuler la modification"] : app.buttons["Undo edit"]
-        XCTAssertTrue(undo.isEnabled); undo.tap()
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "01, Lever les yeux")).firstMatch.waitForExistence(timeout: 3))
-        app.buttons["Timeline"].tap()
-        capture("03-timeline")
-        let square = app.buttons.matching(NSPredicate(format: "label ENDSWITH %@", "Carré")).firstMatch
-        XCTAssertTrue(square.exists); square.tap()
-        app.buttons["Image"].tap()
-        capture("04-square-inspector")
-        // A real image drag creates one document transaction in the active output variant.
-        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.24))
-        start.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.56, dy: 0.24)))
-        XCTAssertTrue(undo.isEnabled)
-        undo.tap()
-        let redo = app.buttons["Rétablir"].exists ? app.buttons["Rétablir"] : app.buttons["Redo"]
-        XCTAssertTrue(redo.isEnabled); redo.tap()
-        XCUIDevice.shared.orientation = .landscapeLeft
-        Thread.sleep(forTimeInterval: 1.2)
-        capture("05-landscape")
-        XCUIDevice.shared.orientation = .portrait
-        Thread.sleep(forTimeInterval: 1.2)
-        if app.buttons["closeInspector"].exists { app.buttons["closeInspector"].tap() } // close inspector
-        let compare = app.buttons["Comparer les formats"].exists ? app.buttons["Comparer les formats"] : app.buttons["Compare formats"]
-        compare.tap(); capture("06-variants")
-        let close = app.buttons["closeComparison"]
-        close.tap()
-        app.buttons["export"].tap()
-        capture("07-export-settings")
+        XCTAssertTrue(app.scrollViews["timelineScroll"].waitForExistence(timeout: 10))
+        capture("02-timeline-default")
+
+        app.buttons["formatTool"].tap()
+        let compare = app.buttons["Comparer les formats"]
+        XCTAssertTrue(compare.waitForExistence(timeout: 3)); compare.tap()
+        capture("03-format-comparison")
+        app.buttons["closeComparison"].tap()
+
+        app.buttons["export"].tap(); XCTAssertTrue(app.buttons["closeExport"].waitForExistence(timeout: 5))
+        capture("04-export-settings")
         app.buttons["closeExport"].tap()
-        app.buttons["editorBack"].tap()
-        XCTAssertTrue(app.buttons["newProject"].waitForExistence(timeout: 5))
-        let project = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Trente secondes de lumière")).firstMatch
-        XCTAssertTrue(project.exists); project.tap()
-        XCTAssertTrue(app.buttons["Timeline"].waitForExistence(timeout: 5))
-        capture("08-reopened")
-        app.buttons["addMedia"].tap()
-        app.buttons["Ressources locales"].tap()
+
+        app.buttons["addMedia"].tap(); app.buttons["Ressources locales"].tap()
         let resource = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "resource-")).firstMatch
         XCTAssertTrue(resource.waitForExistence(timeout: 5)); resource.tap()
-        XCTAssertTrue(app.buttons["Insérer"].waitForExistence(timeout: 10))
-        capture("09-import-review")
+        XCTAssertTrue(app.buttons["Ajouter"].waitForExistence(timeout: 15))
+        capture("05-import-review")
         app.buttons["Annuler"].tap()
-        app.buttons["Texte"].tap()
-        app.buttons["Modifier les sous-titres"].tap()
-        XCTAssertTrue(app.buttons["closeCaptions"].waitForExistence(timeout: 5))
-        capture("10-captions")
-        let saveCaption = app.buttons["saveCaption"]
-        for _ in 0..<5 { if saveCaption.isHittable { break }; app.swipeUp() }
-        XCTAssertTrue(saveCaption.isHittable)
-        capture("10b-caption-editor")
-        app.buttons["closeCaptions"].tap()
-        if app.buttons["closeInspector"].exists { app.buttons["closeInspector"].tap() }
-        app.buttons["export"].tap()
-        let package = app.buttons["Exporter le projet complet"]
-        for _ in 0..<4 { if package.isHittable { break }; app.swipeUp() }
-        XCTAssertTrue(package.isHittable); package.tap()
-        let file = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", ".cutlabproject")).firstMatch
-        XCTAssertTrue(file.waitForExistence(timeout: 15))
-        capture("11-portable-project")
-        app.buttons["closeExport"].tap()
     }
-    @MainActor private func capture(_ name: String) { Thread.sleep(forTimeInterval: 0.3); let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment) }
+
+    @MainActor private func launchDemo() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(fr)", "-AppleLocale", "fr_FR"]
+        app.launch()
+        XCTAssertTrue(app.buttons["openDemo"].waitForExistence(timeout: 10))
+        app.buttons["openDemo"].tap()
+        XCTAssertTrue(app.scrollViews["timelineScroll"].waitForExistence(timeout: 10))
+        return app
+    }
+
+    private func firstTimelineClip(_ app: XCUIApplication, kind: String) -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "timelineClip-\(kind)-")).firstMatch
+    }
+
+    @MainActor private func capture(_ name: String) {
+        Thread.sleep(forTimeInterval: 0.35)
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+    }
 }

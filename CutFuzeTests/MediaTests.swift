@@ -198,6 +198,13 @@ import ImageIO
         let imported = try await MediaImporter().importFile(url: sourceURL, to: root)
         XCTAssertEqual(imported.kind, .video); XCTAssertFalse(imported.hasAudio)
         var video = Clip(assetID: imported.id, kind: .video, duration: .init(seconds: 1), sourceDuration: .init(seconds: 1))
+        let forwardFilmstrip = try await MediaImporter().timelineThumbnails(asset: imported, clip: video, rootURL: root, sampleCount: 4)
+        XCTAssertEqual(forwardFilmstrip.count, 4)
+        XCTAssertNotEqual(forwardFilmstrip.first?.dataProvider?.data as Data?, forwardFilmstrip.last?.dataProvider?.data as Data?, "Timeline thumbnails must advance with video time")
+        var reversedFilmstripClip = video; reversedFilmstripClip.reversed = true
+        let reverseFilmstrip = try await MediaImporter().timelineThumbnails(asset: imported, clip: reversedFilmstripClip, rootURL: root, sampleCount: 4)
+        XCTAssertEqual(reverseFilmstrip.count, 4)
+        XCTAssertEqual(forwardFilmstrip.first?.dataProvider?.data as Data?, reverseFilmstrip.last?.dataProvider?.data as Data?, "Reverse clips must display their source frames in reverse order")
         let renderer = FrameRenderer()
         func document(_ clip: Clip) -> ProjectDocument { ProjectDocument(assets: [imported], scenes: [.init(duration: clip.duration, clips: [clip])]) }
         let forward = try await renderer.render(plan: .compile(document: document(video), variantID: nil), time: .init(seconds: 0.2), rootURL: root, size: CGSize(width: 160, height: 160))

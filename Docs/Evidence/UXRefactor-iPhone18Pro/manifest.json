@@ -1,0 +1,35 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "02AA245B-F612-4768-847B-3AEC918D991F.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "editor-audio-selection_0_8DB6BC70-F1EC-44A7-90A9-F6C4794893B1.png",
+        "timestamp" : 1791373811.287
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "49A0B16A-ED54-4206-B709-12BF1772572E.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "editor-text-selection_0_CED25F90-4B20-4485-A834-08E69F8AB1D6.png",
+        "timestamp" : 1791373808.327
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "54862354-1D17-4265-ADBA-103680431563.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "editor-video-selection_0_A28B2BF3-407B-4086-9DF0-D7E5DA0611E0.png",
+        "timestamp" : 1791373805.25
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testContextualToolbarTracksVideoTextAudioAndEmptySelection()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testContextualToolbarTracksVideoTextAudioAndEmptySelection"
+  }
+]

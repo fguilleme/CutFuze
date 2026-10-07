@@ -129,13 +129,6 @@ private final class SpeechBufferWriter: @unchecked Sendable {
     }
 }
 
-struct TranscribedWord: Equatable, Sendable {
-    var text: String
-    var start: Double
-    var duration: Double
-    var confidence: Float
-}
-
 /// Uses only on-device recognition. Unavailable resources cause an error, never a cloud fallback.
 @MainActor
 final class LocalTranscriber: ObservableObject {

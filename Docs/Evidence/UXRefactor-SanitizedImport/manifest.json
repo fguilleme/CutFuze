@@ -1,0 +1,53 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "48FE542F-6DF8-458A-9B61-76F0B58AD7A5.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "05-import-review_0_EBDC8579-B70F-42A9-9492-CFDF3FFA015E.png",
+        "timestamp" : 1791375724.541
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "D15907A7-5EBA-4F4C-B98E-F5B4B19F1553.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "04-export-settings_0_D1419933-930C-468A-BA34-FDCF8BA5B2B1.png",
+        "timestamp" : 1791375716.55
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "AEF18F22-2243-4DAC-ACCB-499D40BA8A05.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "03-format-comparison_0_3587C23D-3FCC-4F8D-A447-DC2EC5D25AA0.png",
+        "timestamp" : 1791375713.739
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "36F6C657-0A6D-4723-9BA2-A628627BD0C3.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "02-timeline-default_0_67D7DF91-1AA3-4211-99CF-070FA865CB30.png",
+        "timestamp" : 1791375709.666
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "7E0EA4FE-410F-4B07-B725-1C1E7FCC6D87.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "01-library_0_45ABFBCD-C869-4292-9FC1-C591C0FD4FA9.png",
+        "timestamp" : 1791375706.55
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testPrimaryEditorStatesFormatImportAndExport()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testPrimaryEditorStatesFormatImportAndExport"
+  }
+]

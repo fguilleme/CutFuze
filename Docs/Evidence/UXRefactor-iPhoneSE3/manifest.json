@@ -1,0 +1,35 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E62C098B-FFC5-432E-875B-BAE47B972329",
+        "deviceName" : "CutFuze Compact",
+        "exportedFileName" : "37665EDB-0E10-408F-A965-E8F9B095DDA9.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "editor-audio-selection_0_6B3D2384-6486-44FD-8303-46B05A85D242.png",
+        "timestamp" : 1791375592.665
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E62C098B-FFC5-432E-875B-BAE47B972329",
+        "deviceName" : "CutFuze Compact",
+        "exportedFileName" : "5977363A-C7BC-423A-A0A7-E4EFE3096205.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "editor-text-selection_0_4C328C1C-FEF0-4192-BE95-52FAFE84430A.png",
+        "timestamp" : 1791375589.777
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E62C098B-FFC5-432E-875B-BAE47B972329",
+        "deviceName" : "CutFuze Compact",
+        "exportedFileName" : "15F110FE-72F7-4BE8-AA65-37E384695DD5.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "editor-video-selection_0_83617CED-B1F7-4890-8EC6-C16B3AE525F3.png",
+        "timestamp" : 1791375586.805
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testContextualToolbarTracksVideoTextAudioAndEmptySelection()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testContextualToolbarTracksVideoTextAudioAndEmptySelection"
+  }
+]

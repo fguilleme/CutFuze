@@ -136,6 +136,38 @@ extension MediaImporter {
         return try await generator.image(at: .zero).image
     }
 
+    /// Produces temporally representative frames for one timeline clip. Sampling is
+    /// performed in output time, then mapped back through trims, reverse playback and
+    /// speed ramps so the filmstrip matches what the user sees while scrubbing.
+    func timelineThumbnails(asset: MediaAsset, clip: Clip, rootURL: URL, sampleCount: Int, maxSize: Int = 180) async throws -> [CGImage] {
+        guard asset.kind == .video else {
+            return [try await thumbnail(asset: asset, rootURL: rootURL, maxSize: maxSize)]
+        }
+        let url = try MediaFiles.checkedURL(relativePath: asset.relativePath, root: rootURL)
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: maxSize, height: maxSize)
+        generator.dynamicRangePolicy = .forceSDR
+        generator.requestedTimeToleranceBefore = CMTime(seconds: 1.0 / 15.0, preferredTimescale: 60_000)
+        generator.requestedTimeToleranceAfter = CMTime(seconds: 1.0 / 15.0, preferredTimescale: 60_000)
+
+        let count = max(1, min(24, sampleCount))
+        let outputDuration = max(1.0 / 120.0, TimeMapping.outputDuration(clip: clip).seconds)
+        var images: [CGImage] = []
+        images.reserveCapacity(count)
+        for index in 0..<count {
+            try Task.checkCancellation()
+            let localSeconds = outputDuration * (Double(index) + 0.5) / Double(count)
+            let sourceTime = TimeMapping.sourceTime(for: .init(seconds: localSeconds), clip: clip)
+            let safeSeconds = min(max(0, sourceTime.seconds), max(0, asset.duration.seconds - 1.0 / 600.0))
+            if let image = try? await generator.image(at: CMTime(seconds: safeSeconds, preferredTimescale: 60_000)).image {
+                images.append(image)
+            }
+        }
+        if images.isEmpty { images.append(try await generator.image(at: .zero).image) }
+        return images
+    }
+
     func waveform(asset: MediaAsset, rootURL: URL, sampleCount: Int = 240) async throws -> [Float] {
         let url = try MediaFiles.checkedURL(relativePath: asset.relativePath, root: rootURL)
         return try await waveform(url: url, bins: sampleCount)
