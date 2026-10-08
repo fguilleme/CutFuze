@@ -67,7 +67,8 @@ final class EditorModel: ObservableObject {
     @Published var playhead = 0.0
     @Published var mode: EditorMode = .timeline
     @Published var inspector: InspectorTab?
-    @Published var localScope = true
+    @Published var localScope = false
+    @Published var captionWholeTrack = false
     @Published var preview: CGImage?
     @Published var playing = false
     @Published private(set) var isFullScreenPreview = false
@@ -135,11 +136,20 @@ final class EditorModel: ObservableObject {
             sync()
         } catch { self.error = error.localizedDescription }
     }
-    func beginGesture(_ name: String) { stop(); gestureActive = true; transactionSelection = (selectedClipID, selectedSceneID, playhead); history.beginTransaction(name: name) }
+    @discardableResult
+    func beginGesture(_ name: String) -> Bool {
+        guard !gestureActive else { return false }
+        stop()
+        gestureActive = true
+        transactionSelection = (selectedClipID, selectedSceneID, playhead)
+        history.beginTransaction(name: name)
+        return true
+    }
     func updateGesture(_ change: (inout ProjectDocument) throws -> Void) {
         do { try history.updateTransaction(change); document = history.document; requestPreview() } catch { self.error = error.localizedDescription }
     }
     func endGesture() {
+        guard gestureActive else { return }
         gestureActive = false
         do { let revision = history.document.revision; try history.commitTransaction(); if revision != history.document.revision, let selection = transactionSelection { selectionUndo.append(selection); selectionRedo.removeAll() }; transactionSelection = nil; sync() } catch { self.error = error.localizedDescription }
     }
@@ -160,7 +170,18 @@ final class EditorModel: ObservableObject {
         selectedSceneID = scene.id; selectedClipID = scene.clips.first(where: { $0.kind != .audio })?.id
         seek(plan.scenes.first { $0.id == scene.id }?.start.seconds ?? 0)
     }
-    func selectClip(_ clip: RenderClip) { selectedClipID = clip.id; selectedSceneID = clip.sceneID; seek(clip.globalStart.seconds) }
+    func selectClip(_ clip: RenderClip, movePlayhead: Bool = false) {
+        selectedClipID = clip.id
+        selectedSceneID = clip.sceneID
+        if movePlayhead { seek(clip.globalStart.seconds) }
+        else { stop() }
+    }
+    func selectClipFromPreview(_ id: UUID) {
+        guard let clip = plan.clips.first(where: { $0.id == id }), clip.isActive(at: .init(seconds: playhead)), clip.clip.kind != .audio else { return }
+        stop()
+        selectedClipID = id
+        selectedSceneID = clip.sceneID
+    }
     func clearSelection() { selectedClipID = nil; inspector = nil }
     func displayName(for clip: Clip) -> String {
         if !clip.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return clip.text }
@@ -196,18 +217,22 @@ final class EditorModel: ObservableObject {
         isFullScreenPreview = enabled
         requestPreview()
     }
-    func requestPreview() {
+    func requestPreview(immediate: Bool = false) {
         previewGeneration += 1
         let generation = previewGeneration, plan = self.plan, seconds = playhead, root = rootURL
         previewTask?.cancel()
         previewTask = Task {
             do {
-                try await Task.sleep(for: .milliseconds(25))
+                if !immediate { try await Task.sleep(for: .milliseconds(25)) }
                 let edge: Double = isFullScreenPreview ? 1280 : 640
                 let size = CGSize(width: plan.variant.ratio >= 1 ? edge : edge * plan.variant.ratio, height: plan.variant.ratio >= 1 ? edge / plan.variant.ratio : edge)
                 let image = try await renderer.render(plan: plan, time: .init(seconds: seconds), rootURL: root, size: size)
                 if !Task.isCancelled && generation == previewGeneration { preview = image }
-            } catch is CancellationError { } catch { if generation == previewGeneration { self.error = error.localizedDescription } }
+            } catch is CancellationError { } catch {
+                // AVFoundation sometimes wraps cancellation in an NSError instead of
+                // CancellationError. It is expected while a live gesture replaces frames.
+                if !Task.isCancelled, generation == previewGeneration { self.error = error.localizedDescription }
+            }
         }
     }
     func refreshThumbnails() {
@@ -290,10 +315,67 @@ final class EditorModel: ObservableObject {
         let local = localScope, variantID = variantID
         let mutation: (inout ProjectDocument) -> Void = { d in
             guard let clip = d.clip(id) else { return }
-            if local, let i = d.variants.firstIndex(where: { $0.id == variantID }) { var p = d.variants[i].overrides[id.uuidString] ?? clip.presentation; change(&p); d.variants[i].overrides[id.uuidString] = p }
-            else { d.updateClip(id) { change(&$0.presentation) } }
+            if local, let i = d.variants.firstIndex(where: { $0.id == variantID }) {
+                var p = d.variants[i].overrides[id.uuidString] ?? clip.presentation
+                change(&p)
+                d.variants[i].overrides[id.uuidString] = p
+            } else {
+                d.updateClip(id) { change(&$0.presentation) }
+                // Overrides store a complete presentation. Keep format-specific framing,
+                // but apply common edits to them too so the visible format updates now.
+                for index in d.variants.indices {
+                    guard var override = d.variants[index].overrides[id.uuidString] else { continue }
+                    change(&override)
+                    d.variants[index].overrides[id.uuidString] = override
+                }
+            }
         }
         if gestureActive { updateGesture(mutation) } else { edit(L("Propriétés"), mutation) }
+    }
+    func setMediaFill(_ fill: Bool) {
+        changePresentation {
+            $0.fill = fill
+            $0.scale = 1
+        }
+    }
+    func changeSelectedTextPresentation(_ change: (inout Presentation) -> Void) {
+        if selectedClip?.isCaption == true, captionWholeTrack { changeCaptionPresentations(change) }
+        else { changePresentation(change) }
+    }
+    func movePreviewElement(toX x: Double, y: Double) {
+        guard let selectedClip else { return }
+        let ids = selectedClip.isCaption && captionWholeTrack ? document.allClips.filter(\.isCaption).map(\.id) : [selectedClip.id]
+        let deltaX = x - presentation.x, deltaY = y - presentation.y
+        let local = localScope, activeVariantID = variantID
+        let mutation: (inout ProjectDocument) -> Void = { document in
+            for id in ids {
+                guard let clip = document.clip(id) else { continue }
+                if local, let index = document.variants.firstIndex(where: { $0.id == activeVariantID }) {
+                    var override = document.variants[index].overrides[id.uuidString] ?? clip.presentation
+                    override.x += deltaX; override.y += deltaY
+                    document.variants[index].overrides[id.uuidString] = override
+                } else {
+                    document.updateClip(id) { clip in
+                        clip.presentation.x += deltaX; clip.presentation.y += deltaY
+                        // Move the motion path with the element, not only its baseline.
+                        for index in clip.keyframes.indices {
+                            if clip.keyframes[index].property == .x { clip.keyframes[index].value += deltaX }
+                            if clip.keyframes[index].property == .y { clip.keyframes[index].value += deltaY }
+                        }
+                    }
+                    for index in document.variants.indices {
+                        guard var override = document.variants[index].overrides[id.uuidString] else { continue }
+                        override.x += deltaX; override.y += deltaY
+                        document.variants[index].overrides[id.uuidString] = override
+                    }
+                }
+            }
+        }
+        if gestureActive { updateGesture(mutation) } else { edit(L("Position"), mutation) }
+    }
+    func togglePersonBackgroundRemoval() {
+        guard let clip = selectedClip, clip.kind == .image || clip.kind == .video else { return }
+        changePresentation { $0.removePersonBackground.toggle() }
     }
     func changeCaptionPresentations(_ change: (inout Presentation) -> Void) {
         guard selectedClip?.isCaption == true else { return }
@@ -308,7 +390,17 @@ final class EditorModel: ObservableObject {
                     document.variants[variantIndex].overrides[id.uuidString] = presentation
                 }
             } else {
-                for id in ids { document.updateClip(id) { change(&$0.presentation) } }
+                for id in ids {
+                    document.updateClip(id) { change(&$0.presentation) }
+                    // A common style edit must also remain visible in formats that
+                    // already own a complete presentation override. Apply only the
+                    // requested property mutation so format-specific framing survives.
+                    for variantIndex in document.variants.indices {
+                        guard var override = document.variants[variantIndex].overrides[id.uuidString] else { continue }
+                        change(&override)
+                        document.variants[variantIndex].overrides[id.uuidString] = override
+                    }
+                }
             }
         }
         if gestureActive { updateGesture(mutation) } else { edit(L("Style des sous-titres"), mutation) }
@@ -338,16 +430,38 @@ final class EditorModel: ObservableObject {
     func insertPendingImports(placement requestedPlacement: ImportPlacement? = nil) {
         let assets = pendingImports, replaceID = pendingReplacement
         let placement = requestedPlacement ?? suggestedImportPlacement
+        let targetSceneID = selectedSceneID
+        let activeVariantID = variantID
                 edit(L("Ajouter")) { d in
-                    var insertionIndex = d.scenes.firstIndex(where: { $0.id == selectedSceneID }).map { $0 + 1 } ?? d.scenes.count
+                    let initialPlan = RenderPlan.compile(document: d, variantID: activeVariantID)
+                    var montageEnd = initialPlan.duration
+                    let targetSpan = initialPlan.scenes.first { $0.id == targetSceneID }
+                    var afterSelectionTime = targetSpan?.end ?? montageEnd
+                    let overlayTime = targetSpan?.start ?? .zero
+                    var insertionIndex = d.scenes.firstIndex(where: { $0.id == targetSceneID }).map { $0 + 1 } ?? d.scenes.count
                     for asset in assets {
                         if !d.assets.contains(where: { $0.id == asset.id }) { d.assets.append(asset) }
                         let dur = asset.kind == .image ? MediaTime(seconds: 5) : asset.duration
                         if let id = replaceID {
                             d.updateClip(id) { clip in clip.assetID = asset.id; clip.kind = asset.kind; clip.sourceStart = .zero; if asset.kind == .image { clip.sourceDuration = clip.duration } else { clip.sourceDuration = min(clip.sourceDuration, dur); clip.duration = min(clip.duration, dur / clip.speed) } }
                         } else if asset.kind == .audio {
-                            d.globalClips.append(Clip(assetID: asset.id, kind: .audio, duration: dur, sourceDuration: dur, layer: 0))
-                        } else if placement == .overlay, let i = d.scenes.firstIndex(where: { $0.id == selectedSceneID }) {
+                            let start: MediaTime
+                            switch placement {
+                            case .append:
+                                // "À la suite du montage" is anchored to the complete
+                                // document, not to the end of an initially empty audio track.
+                                start = montageEnd
+                                montageEnd = montageEnd + dur
+                            case .afterSelection:
+                                start = afterSelectionTime
+                                afterSelectionTime = afterSelectionTime + dur
+                            case .overlay:
+                                start = overlayTime
+                            }
+                            let clip = Clip(assetID: asset.id, kind: .audio, start: start, duration: dur, sourceDuration: dur, layer: 0)
+                            d.globalClips.append(clip)
+                            selectedClipID = clip.id
+                        } else if placement == .overlay, let i = d.scenes.firstIndex(where: { $0.id == targetSceneID }) {
                             var clip = Clip(assetID: asset.id, kind: asset.kind, duration: min(dur, d.scenes[i].duration), sourceDuration: min(dur, d.scenes[i].duration), layer: 5)
                             clip.presentation.scale = 0.45
                             d.scenes[i].clips.append(clip)
@@ -357,7 +471,10 @@ final class EditorModel: ObservableObject {
                             let scene = Scene(title: displayName(for: asset), duration: dur, clips: [clip])
                             if placement == .afterSelection {
                                 d.scenes.insert(scene, at: min(insertionIndex, d.scenes.count)); insertionIndex += 1
-                            } else { d.scenes.append(scene) }
+                            } else {
+                                d.scenes.append(scene)
+                                montageEnd = montageEnd + dur
+                            }
                             selectedSceneID = scene.id; selectedClipID = clip.id
                         }
                     }

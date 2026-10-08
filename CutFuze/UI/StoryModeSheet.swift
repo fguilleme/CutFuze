@@ -60,7 +60,7 @@ struct StoryModeSheet: View {
             }.buttonStyle(.plain)
             Menu { sceneMenu(scene, index: index) } label: {
                 Image(systemName: "ellipsis").frame(width: 44, height: 44).contentShape(Rectangle())
-            }.accessibilityLabel(L("Propriétés")).accessibilityIdentifier("sceneMenu-\(index)")
+            }.accessibilityLabel(L("Réglages de la scène")).accessibilityIdentifier("sceneMenu-\(index)")
         }
         .padding(10)
         .background(model.selectedSceneID == scene.id ? DesignTokens.panel : DesignTokens.panel.opacity(0.48), in: RoundedRectangle(cornerRadius: 14))
@@ -68,11 +68,11 @@ struct StoryModeSheet: View {
     }
 
     @ViewBuilder private func sceneMenu(_ scene: Scene, index: Int) -> some View {
-        Button(L("Propriétés"), systemImage: "slider.horizontal.3") { model.selectScene(scene); showSceneEdit = true }
+        Button(L("Réglages de la scène"), systemImage: "slider.horizontal.3") { model.selectScene(scene); showSceneEdit = true }
         Menu(L("Calques")) {
             ForEach(scene.clips) { clip in
                 Button(model.displayName(for: clip), systemImage: clipSymbol(clip.kind)) {
-                    if let rendered = model.plan.clips.first(where: { $0.id == clip.id }) { model.selectClip(rendered); dismiss() }
+                    if let rendered = model.plan.clips.first(where: { $0.id == clip.id }) { model.selectClip(rendered, movePlayhead: true); dismiss() }
                 }
             }
         }
@@ -97,7 +97,7 @@ struct StoryModeSheet: View {
             Label(L("Projet entier"), systemImage: "pin.fill").font(.caption.weight(.semibold)).foregroundStyle(DesignTokens.teal)
             ForEach(model.document.globalClips) { clip in
                 Button {
-                    if let rendered = model.plan.clips.first(where: { $0.id == clip.id }) { model.selectClip(rendered); dismiss() }
+                    if let rendered = model.plan.clips.first(where: { $0.id == clip.id }) { model.selectClip(rendered, movePlayhead: true); dismiss() }
                 } label: {
                     HStack { Image(systemName: clipSymbol(clip.kind)); Text(model.displayName(for: clip)).lineLimit(1); Spacer(); Text(timeLabel(clip.duration.seconds)).monospacedDigit() }
                         .font(.caption).frame(minHeight: 44)

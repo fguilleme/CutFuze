@@ -1,0 +1,44 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "D69B6DF8-7E1C-4525-9AD9-F41B1E7E0DAE.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "animation-opacity-new-point_0_57106242-FC07-4E55-8539-168CC9051AE4.png",
+        "timestamp" : 1791492658.006
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "006C6F19-85FB-4656-B4CB-A7A49ACBCED2.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "animation-point-moved_0_97280A71-29BC-4539-B154-1F8BFF0E6A53.png",
+        "timestamp" : 1791492652.538
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "2AC098B7-07F6-4007-ACB5-EDF16E5E0DEF.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "animation-curve-point-selected_0_17904213-5667-4E0D-BF38-E6C3500B1A36.png",
+        "timestamp" : 1791492650.8
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "A4972B95-5E78-42AF-88EC-1404E6102987.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "animation-curve-overview_0_AA35DC8F-C8A3-4FAB-BC1B-69FA25067052.png",
+        "timestamp" : 1791492647.545
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testVisualKeyframeEditorSelectsMovesScrubsAndUndoes()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testVisualKeyframeEditorSelectsMovesScrubsAndUndoes"
+  }
+]

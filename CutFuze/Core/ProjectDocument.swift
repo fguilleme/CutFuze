@@ -43,7 +43,13 @@ enum ClipKind: String, Codable, CaseIterable, Sendable { case video, image, audi
 enum BlendMode: String, Codable, CaseIterable, Sendable { case normal, multiply, screen, overlay, lighten, darken }
 enum MaskKind: String, Codable, CaseIterable, Sendable { case none, ellipse, rectangle, roundedRectangle, linear, band }
 enum TransitionKind: String, Codable, CaseIterable, Sendable { case none, dissolve, black, white, slide, wipe, zoom, blur, glitch }
-enum EffectKind: String, Codable, CaseIterable, Sendable { case exposure, brightness, contrast, saturation, temperature, tint, highlights, shadows, sharpness, vignette, grain, fade, blur, glow, rgbSplit, pixelate, shake, retro }
+enum EffectKind: String, Codable, CaseIterable, Sendable {
+    case exposure, brightness, contrast, saturation, temperature, tint, highlights, shadows, sharpness
+    case vignette, grain, fade, blur, glow, rgbSplit, pixelate, shake, retro
+    case skinSmooth, skinGlow
+    case bulge, pinch, twirl, kaleidoscope
+    case comic, crystallize
+}
 enum KeyframeProperty: String, Codable, CaseIterable, Sendable { case x, y, scale, rotation, opacity }
 enum KeyframeEasing: String, Codable, CaseIterable, Sendable { case linear, easeIn, easeOut, easeInOut }
 

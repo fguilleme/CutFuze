@@ -41,6 +41,40 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(plan.clips.first { $0.id == firstChild }?.globalStart, .init(seconds: 4))
         XCTAssertEqual(doc.globalClips, global); XCTAssertEqual(plan.clips.first { $0.id == global[0].id }?.globalStart, .init(seconds: 3))
     }
+    func testTimelineMoveCanTransferClipIntoEarlierScene() throws {
+        var doc = document()
+        let movedID = try XCTUnwrap(doc.scenes[1].clips.first?.id)
+
+        try DocumentEditor.moveClip(movedID, toGlobalStart: .init(seconds: 3), in: &doc)
+
+        XCTAssertFalse(doc.scenes[1].clips.contains { $0.id == movedID })
+        let moved = try XCTUnwrap(doc.scenes[0].clips.first { $0.id == movedID })
+        XCTAssertEqual(moved.start, .init(seconds: 3))
+        XCTAssertEqual(RenderPlan.compile(document: doc, variantID: nil).clips.first { $0.id == movedID }?.globalStart, .init(seconds: 3))
+        try doc.validate()
+    }
+    func testTimelineMoveKeepsProjectOwnedClipOnAbsoluteTimeline() throws {
+        var doc = document()
+        let movedID = try XCTUnwrap(doc.globalClips.first?.id)
+
+        try DocumentEditor.moveClip(movedID, toGlobalStart: .init(seconds: 1), in: &doc)
+
+        XCTAssertEqual(doc.globalClips.first { $0.id == movedID }?.start, .init(seconds: 1))
+        XCTAssertEqual(RenderPlan.compile(document: doc, variantID: nil).clips.first { $0.id == movedID }?.globalStart, .init(seconds: 1))
+        try doc.validate()
+    }
+    func testTimelineMoveDoesNotStretchDestinationSceneOrProject() throws {
+        var doc = document()
+        let movedID = doc.scenes[0].clips[0].id
+        let durationBefore = doc.duration
+
+        try DocumentEditor.moveClip(movedID, toGlobalStart: .init(seconds: 3), in: &doc)
+
+        XCTAssertTrue(doc.globalClips.contains { $0.id == movedID && $0.start == .init(seconds: 3) })
+        XCTAssertEqual(doc.scenes[0].duration, .init(seconds: 10))
+        XCTAssertEqual(doc.duration, durationBefore)
+        try doc.validate()
+    }
     func testSceneDuplicateSharesMediaAndCopiesVariantOverrides() throws {
         var doc = document(); let original = doc.scenes[0]
         var square = original.clips[0].presentation; square.x = 0.25
@@ -97,6 +131,148 @@ final class CoreTests: XCTestCase {
         try history.commitTransaction(); XCTAssertTrue(history.canUndo)
         history.undo(); XCTAssertEqual(history.document.scenes, original.scenes); XCTAssertFalse(history.canUndo)
     }
+
+    @MainActor func testCaptionTrackCommonStyleUpdatesExistingFormatOverrides() throws {
+        var doc = document()
+        let captionID = try XCTUnwrap(doc.allClips.first(where: \.isCaption)?.id)
+        for index in doc.variants.indices {
+            var override = try XCTUnwrap(doc.clip(captionID)?.presentation)
+            override.x = Double(index) * 0.1
+            override.textSize = 0.045
+            doc.variants[index].overrides[captionID.uuidString] = override
+        }
+        let originalX = doc.variants.map { $0.overrides[captionID.uuidString]?.x }
+        let root = try temporaryRoot()
+        let model = EditorModel(document: doc, store: ProjectStore(rootURL: root), rootURL: root)
+        model.selectedClipID = captionID
+
+        model.changeCaptionPresentations { $0.textSize = 0.065 }
+
+        XCTAssertEqual(model.document.clip(captionID)?.presentation.textSize, 0.065)
+        XCTAssertEqual(model.document.variants.map { $0.overrides[captionID.uuidString]?.textSize }, Array(repeating: 0.065, count: doc.variants.count))
+        XCTAssertEqual(model.document.variants.map { $0.overrides[captionID.uuidString]?.x }, originalX)
+    }
+
+    @MainActor func testTimelineSelectionPreservesPlayheadAndExplicitNavigationMovesIt() throws {
+        let root = try temporaryRoot()
+        let model = EditorModel(document: document(), store: ProjectStore(rootURL: root), rootURL: root)
+        let clip = try XCTUnwrap(model.plan.clips.first)
+        model.seek(5)
+
+        model.selectClip(clip)
+        XCTAssertEqual(model.playhead, 5, accuracy: 0.001)
+
+        model.selectClip(clip, movePlayhead: true)
+        XCTAssertEqual(model.playhead, clip.globalStart.seconds, accuracy: 0.001)
+    }
+
+    @MainActor func testCaptionTrackPositionPreservesOffsetsFormatsAndSingleUndo() throws {
+        var doc = document()
+        let first = try XCTUnwrap(doc.allClips.first(where: \.isCaption))
+        var second = first; second.id = UUID(); second.presentation.x = 0.3; second.presentation.y = 0.7
+        doc.scenes[1].clips.append(second)
+        doc.scenes[1].duration = second.end
+        var square = first.presentation; square.x = 0.4; square.y = 0.6
+        doc.variants[1].overrides[first.id.uuidString] = square
+        let root = try temporaryRoot()
+        let model = EditorModel(document: doc, store: ProjectStore(rootURL: root), rootURL: root)
+        model.selectedClipID = first.id
+        model.captionWholeTrack = true
+        model.beginGesture("Position des sous-titres")
+        model.movePreviewElement(toX: 0.55, y: 0.55)
+        model.movePreviewElement(toX: 0.6, y: 0.6)
+        model.endGesture()
+        XCTAssertEqual(try XCTUnwrap(model.document.clip(first.id)).presentation.x, 0.6, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(model.document.clip(second.id)).presentation.x, 0.4, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(model.document.clip(second.id)).presentation.y, 0.8, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(model.document.variants[1].overrides[first.id.uuidString]).x, 0.5, accuracy: 0.001)
+        XCTAssertEqual(model.document.clip(first.id)?.start, first.start)
+        XCTAssertEqual(model.document.clip(second.id)?.duration, second.duration)
+        let moved = try XCTUnwrap(model.plan.clips.first { $0.id == first.id })
+        let original = try XCTUnwrap(RenderPlan.compile(document: doc, variantID: model.variantID).clips.first { $0.id == first.id })
+        XCTAssertEqual(moved.evaluatedPresentation(at: .init(seconds: 3)).x, original.evaluatedPresentation(at: .init(seconds: 3)).x + 0.1, accuracy: 0.001)
+        XCTAssertEqual(model.document.clip(first.id)?.keyframes.map(\.time), first.keyframes.map(\.time))
+        model.undo()
+        XCTAssertEqual(model.document.scenes, doc.scenes)
+        XCTAssertEqual(model.document.variants, doc.variants)
+        XCTAssertFalse(model.canUndo)
+        model.redo()
+        model.captionWholeTrack = false
+        model.movePreviewElement(toX: 0.7, y: 0.4)
+        XCTAssertEqual(try XCTUnwrap(model.document.clip(second.id)).presentation.x, 0.4, accuracy: 0.001)
+    }
+
+    @MainActor func testCaptionFontAppliesToTrackAndExistingFormatOverrides() throws {
+        var doc = document()
+        let first = try XCTUnwrap(doc.allClips.first(where: \.isCaption))
+        var second = first; second.id = UUID()
+        doc.scenes[0].clips.append(second)
+        doc.variants[1].overrides[first.id.uuidString] = first.presentation
+        let root = try temporaryRoot()
+        let model = EditorModel(document: doc, store: ProjectStore(rootURL: root), rootURL: root)
+        model.selectedClipID = first.id; model.captionWholeTrack = true
+        model.changeSelectedTextPresentation { $0.textFont = "AvenirNextCondensed-Heavy" }
+        XCTAssertEqual(model.document.clip(second.id)?.presentation.textFont, "AvenirNextCondensed-Heavy")
+        XCTAssertEqual(model.document.variants[1].overrides[first.id.uuidString]?.textFont, "AvenirNextCondensed-Heavy")
+        XCTAssertEqual(model.document.scenes[0].clips[0].presentation, doc.scenes[0].clips[0].presentation)
+        model.undo()
+        XCTAssertEqual(model.document.scenes, doc.scenes)
+    }
+
+    @MainActor func testRemovingBackgroundOnlyChangesSelectedPhoto() throws {
+        let asset = MediaAsset(relativePath: "Assets/photo.png", kind: .image, name: "Photo", duration: .init(seconds: 5), width: 1080, height: 1920)
+        let first = Clip(assetID: asset.id, kind: .image, duration: .init(seconds: 5), sourceDuration: .init(seconds: 5))
+        var second = Clip(assetID: asset.id, kind: .image, duration: .init(seconds: 5), sourceDuration: .init(seconds: 5), layer: 1)
+        second.presentation.x = 0.7
+        let doc = ProjectDocument(assets: [asset], scenes: [.init(duration: .init(seconds: 5), clips: [first, second])])
+        let root = try temporaryRoot()
+        let model = EditorModel(document: doc, store: ProjectStore(rootURL: root), rootURL: root)
+        model.selectedClipID = second.id
+
+        model.togglePersonBackgroundRemoval()
+
+        XCTAssertFalse(try XCTUnwrap(model.document.clip(first.id)).presentation.removePersonBackground)
+        XCTAssertTrue(try XCTUnwrap(model.document.clip(second.id)).presentation.removePersonBackground)
+        XCTAssertTrue(model.presentation.removePersonBackground)
+        model.undo()
+        XCTAssertFalse(try XCTUnwrap(model.document.clip(second.id)).presentation.removePersonBackground)
+    }
+
+    func testPreviewInteractionSelectsTopmostVisibleElementAndSnapsMovement() throws {
+        let asset = MediaAsset(relativePath: "Assets/source.png", kind: .image, name: "Fond", duration: .init(seconds: 5), width: 1600, height: 900)
+        let background = Clip(assetID: asset.id, kind: .image, duration: .init(seconds: 5), sourceDuration: .init(seconds: 5))
+        var title = Clip(kind: .text, duration: .init(seconds: 5), text: "Titre", layer: 10)
+        title.presentation.x = 0.3
+        title.presentation.y = 0.4
+        title.presentation.rotation = 20
+        var caption = Clip(kind: .text, duration: .init(seconds: 5), text: "Sous-titre", layer: 20, isCaption: true)
+        caption.presentation.x = 0.3
+        caption.presentation.y = 0.4
+        let document = ProjectDocument(assets: [asset], scenes: [.init(duration: .init(seconds: 5), clips: [background, title, caption])])
+        let plan = RenderPlan.compile(document: document, variantID: document.variants[0].id)
+        let size = CGSize(width: 180, height: 320)
+        let layouts = PreviewInteractionGeometry.layouts(plan: plan, time: .init(seconds: 1), canvasSize: size)
+
+        XCTAssertEqual(layouts.count, 3)
+        XCTAssertEqual(PreviewInteractionGeometry.hitTest(CGPoint(x: 54, y: 128), layouts: layouts), caption.id)
+        XCTAssertTrue(try XCTUnwrap(layouts.first { $0.id == title.id }).contains(CGPoint(x: 54, y: 128)))
+
+        var origin = Presentation()
+        origin.x = 0.42
+        origin.y = 0.62
+        let moved = PreviewInteractionGeometry.movedPresentation(from: origin, translation: CGSize(width: 13, height: -37), canvasSize: size)
+        XCTAssertEqual(moved.presentation.x, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(moved.presentation.y, 0.5, accuracy: 0.0001)
+        XCTAssertTrue(moved.snappedX)
+        XCTAssertTrue(moved.snappedY)
+
+        let contained = PreviewInteractionGeometry.containedHandlePosition(
+            CGPoint(x: 4, y: 316),
+            canvasSize: size
+        )
+        XCTAssertEqual(contained.x, 22, accuracy: 0.001)
+        XCTAssertEqual(contained.y, 298, accuracy: 0.001)
+    }
     func testFailedCommandLeavesDocumentAndHistoryIntact() throws {
         let original = document(), history = EditHistory(document: document())
         let before = history.document
@@ -142,6 +318,28 @@ final class CoreTests: XCTestCase {
         let id = doc.scenes[0].clips[0].id, global = doc.globalClips
         try DocumentEditor.trimClip(id, from: .init(seconds: 1), to: .init(seconds: 3), ripple: true, in: &doc)
         XCTAssertEqual(doc.scenes[0].duration, .init(seconds: 8)); XCTAssertEqual(doc.scenes[0].clips[1].start, .init(seconds: 2)); XCTAssertEqual(doc.globalClips, global)
+    }
+
+    func testTimelineBoundaryResizeCanTrimAndReextendMedia() throws {
+        let asset = MediaAsset(relativePath: "Assets/source.mov", kind: .video, name: "Plan", duration: .init(seconds: 10), width: 1920, height: 1080)
+        let clip = Clip(assetID: asset.id, kind: .video, start: .init(seconds: 1), duration: .init(seconds: 6), sourceStart: .init(seconds: 2), sourceDuration: .init(seconds: 6))
+        var document = ProjectDocument(assets: [asset], scenes: [.init(duration: .init(seconds: 8), clips: [clip])])
+
+        try DocumentEditor.resizeClip(clip.id, edge: .trailing, by: .init(seconds: -2), in: &document)
+        var resized = try XCTUnwrap(document.clip(clip.id))
+        XCTAssertEqual(resized.duration.seconds, 4, accuracy: 0.001)
+        XCTAssertEqual(resized.sourceDuration.seconds, 4, accuracy: 0.001)
+
+        try DocumentEditor.resizeClip(clip.id, edge: .trailing, by: .init(seconds: 1.5), in: &document)
+        resized = try XCTUnwrap(document.clip(clip.id))
+        XCTAssertEqual(resized.duration.seconds, 5.5, accuracy: 0.001)
+        XCTAssertEqual(resized.sourceDuration.seconds, 5.5, accuracy: 0.001)
+
+        try DocumentEditor.resizeClip(clip.id, edge: .leading, by: .init(seconds: -1), in: &document)
+        resized = try XCTUnwrap(document.clip(clip.id))
+        XCTAssertEqual(resized.start.seconds, 0, accuracy: 0.001)
+        XCTAssertEqual(resized.duration.seconds, 6.5, accuracy: 0.001)
+        XCTAssertEqual(resized.sourceStart.seconds, 1, accuracy: 0.001)
     }
     func testKeyframeHalfOpenBoundsAndCaptionSRT() throws {
         let clip = RenderPlan.compile(document: document(), variantID: nil).clips[0]
@@ -191,6 +389,25 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(model.document.scenes[1].duration, .init(seconds: 3))
         XCTAssertEqual(model.document.scenes[2].duration, .init(seconds: 5))
         XCTAssertTrue(model.pendingImports.isEmpty)
+    }
+
+    @MainActor func testPendingAudioAppendsAfterWholeMontageWhenAudioTrackIsEmpty() throws {
+        var original = document()
+        original.globalClips.removeAll { $0.kind == .audio }
+        let originalEnd = original.duration
+        let root = try temporaryRoot()
+        let model = EditorModel(document: original, store: ProjectStore(rootURL: root), rootURL: root)
+        let first = MediaAsset(relativePath: "Assets/music-1.m4a", kind: .audio, name: "Musique 1", duration: .init(seconds: 3))
+        let second = MediaAsset(relativePath: "Assets/music-2.m4a", kind: .audio, name: "Musique 2", duration: .init(seconds: 2))
+
+        model.pendingImports = [first, second]
+        model.insertPendingImports(placement: .append)
+
+        let audio = model.document.globalClips.filter { $0.kind == .audio }
+        XCTAssertEqual(audio.count, 2)
+        XCTAssertEqual(audio[0].start, originalEnd)
+        XCTAssertEqual(audio[1].start, originalEnd + first.duration)
+        XCTAssertEqual(model.document.duration, originalEnd + first.duration + second.duration)
     }
     @MainActor func testVisibleMediaNamesHideGeneratedIdentifiersAndPaths() throws {
         let root = try temporaryRoot()
@@ -445,6 +662,57 @@ final class CoreTests: XCTestCase {
         try AnimationEditing.upsert(clipID: second, property: .rotation, at: .init(seconds: 6), displayedValue: 22, variantID: nil, easing: .easeOut, in: &doc)
         XCTAssertEqual(doc.clip(second)?.keyframes.first { $0.property == .rotation }?.time, .init(seconds: 6))
         XCTAssertThrowsError(try AnimationEditing.upsert(clipID: second, property: .x, at: .init(seconds: 4), displayedValue: 0.5, variantID: nil, easing: .linear, in: &doc))
+    }
+
+    func testMovingKeyframePreservesIdentitySplitOffsetAndFormatConversion() throws {
+        var doc = document(); let original = doc.scenes[0].clips[0].id
+        doc.scenes[0].clips[0].keyframes = [.init(time: .init(seconds: 7), property: .scale, value: 1.2), .init(time: .init(seconds: 9), property: .scale, value: 1.5)]
+        let second = try DocumentEditor.splitClip(original, at: .init(seconds: 5), in: &doc)
+        let key = try XCTUnwrap(doc.clip(second)?.keyframes.first)
+        var framed = doc.clip(second)!.presentation; framed.scale = 2
+        let variant = doc.variants[1].id; doc.variants[1].overrides[second.uuidString] = framed
+        let before = doc
+        try AnimationEditing.move(keyframeID: key.id, clipID: second, to: .init(seconds: 8), displayedValue: 3, variantID: variant, easing: .easeOut, in: &doc)
+        let edited = try XCTUnwrap(doc.clip(second)?.keyframes.first { $0.id == key.id })
+        XCTAssertEqual(edited.time, .init(seconds: 8)); XCTAssertEqual(edited.value, 1.5, accuracy: 0.000001)
+        XCTAssertEqual(edited.easing, .easeOut); XCTAssertEqual(doc.clip(second)?.keyframes.count, 2)
+        XCTAssertEqual(doc.clip(original), before.clip(original)); XCTAssertEqual(doc.variants, before.variants)
+        let rendered = try XCTUnwrap(RenderPlan.compile(document: doc, variantID: variant).clips.first { $0.id == second })
+        XCTAssertEqual(rendered.evaluatedPresentation(at: .init(seconds: 8)).scale, 3, accuracy: 0.000001)
+        let saved = doc
+        XCTAssertThrowsError(try AnimationEditing.move(keyframeID: key.id, clipID: second, to: .init(seconds: 9), displayedValue: 2, variantID: variant, easing: .linear, in: &doc))
+        XCTAssertEqual(doc, saved)
+        XCTAssertThrowsError(try AnimationEditing.move(keyframeID: key.id, clipID: second, to: .init(seconds: 4), displayedValue: 2, variantID: variant, easing: .linear, in: &doc))
+        XCTAssertEqual(doc, saved); try doc.validate()
+        let history = EditHistory(document: before)
+        try history.perform(name: "Déplacer le point") { $0 = saved }
+        history.undo(); XCTAssertEqual(history.document.scenes, before.scenes)
+        history.redo(); XCTAssertEqual(history.document.scenes, saved.scenes)
+    }
+
+    func testMotionAnimationPresetsCreateIntentionalZones() throws {
+        let firstID = UUID(), secondID = UUID()
+        let first = Clip(id: firstID, kind: .image, duration: .init(seconds: 4), sourceDuration: .init(seconds: 4))
+        let second = Clip(id: secondID, kind: .image, start: .init(seconds: 4), duration: .init(seconds: 4), sourceDuration: .init(seconds: 4))
+        var document = ProjectDocument(scenes: [.init(duration: .init(seconds: 8), clips: [first, second])])
+
+        try AnimationEditing.applyPreset(.fade, zone: .entrance, clipID: firstID, in: &document)
+        var edited = try XCTUnwrap(document.clip(firstID))
+        let fade = edited.keyframes.filter { $0.property == .opacity }.sorted { $0.time < $1.time }
+        XCTAssertEqual(fade.map(\.time), [.zero, .init(seconds: 0.6)])
+        XCTAssertEqual(fade.map(\.value), [0, 1])
+
+        try AnimationEditing.applyPreset(.slide, zone: .exit, clipID: firstID, in: &document)
+        edited = try XCTUnwrap(document.clip(firstID))
+        let slide = edited.keyframes.filter { $0.property == .x }.sorted { $0.time < $1.time }
+        XCTAssertEqual(slide.map(\.time), [.init(seconds: 3.4), .init(seconds: 4)])
+        XCTAssertEqual(slide.first?.value, 0.5)
+        XCTAssertEqual(try XCTUnwrap(slide.last).value, 0.78, accuracy: 0.000_001)
+
+        try AnimationEditing.applyPreset(.pulse, zone: .loop, clipID: firstID, in: &document)
+        edited = try XCTUnwrap(document.clip(firstID))
+        XCTAssertGreaterThan(edited.keyframes.filter { $0.property == .scale }.count, 4)
+        XCTAssertTrue(document.clip(secondID)?.keyframes.isEmpty == true)
     }
     func testFadePresetPreservesManualKeysAndUndo() throws {
         var doc = document(); let id = doc.scenes[0].clips[0].id

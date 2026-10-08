@@ -1,5 +1,10 @@
 import Foundation
 
+enum ClipTrimEdge {
+    case leading
+    case trailing
+}
+
 enum DocumentError: LocalizedError, Equatable {
     case invalid(String), missing(String), unsupportedVersion(Int), corrupt(String), cancelled
     var errorDescription: String? {
@@ -189,6 +194,70 @@ enum DocumentEditor {
         }
         CaptionBindingUpdater.refresh(&document)
     }
+
+    /// Moves one visible timeline boundary. Contrary to `trimClip`, this operation can
+    /// re-extend a previously trimmed media clip while source pixels/samples remain.
+    static func resizeClip(_ id: UUID, edge: ClipTrimEdge, by delta: MediaTime, in document: inout ProjectDocument) throws {
+        guard var clip = document.clip(id) else { throw DocumentError.missing("Clip") }
+        let original = clip
+        let minimumDuration = 1.0 / 30.0
+        var requestedDuration = edge == .leading
+            ? original.duration.seconds - delta.seconds
+            : original.duration.seconds + delta.seconds
+        if edge == .leading { requestedDuration = min(requestedDuration, original.duration.seconds + original.start.seconds) }
+        requestedDuration = max(minimumDuration, requestedDuration)
+
+        if (clip.kind == .video || clip.kind == .audio), let asset = document.asset(clip.assetID) {
+            let currentLow = clip.sourceStart.seconds
+            let currentHigh = currentLow + clip.sourceDuration.seconds
+            let assetHigh = max(currentHigh, asset.duration.seconds)
+            let changesLowBoundary = (edge == .leading && !clip.reversed) || (edge == .trailing && clip.reversed)
+            let lowerBoundary = changesLowBoundary ? 0.0 : currentLow
+            let upperBoundary = changesLowBoundary ? currentHigh : assetHigh
+
+            func candidate(_ boundary: Double) -> Clip {
+                var value = original
+                if changesLowBoundary {
+                    value.sourceStart = .init(seconds: boundary)
+                    value.sourceDuration = .init(seconds: max(0, currentHigh - boundary))
+                } else {
+                    value.sourceStart = .init(seconds: currentLow)
+                    value.sourceDuration = .init(seconds: max(0, boundary - currentLow))
+                }
+                return value
+            }
+
+            let lowDuration = TimeMapping.outputDuration(clip: candidate(lowerBoundary)).seconds
+            let highDuration = TimeMapping.outputDuration(clip: candidate(upperBoundary)).seconds
+            let target = min(max(requestedDuration, min(lowDuration, highDuration)), max(lowDuration, highDuration))
+            var low = lowerBoundary
+            var high = upperBoundary
+            for _ in 0..<48 {
+                let middle = (low + high) * 0.5
+                let duration = TimeMapping.outputDuration(clip: candidate(middle)).seconds
+                if lowDuration <= highDuration {
+                    if duration < target { low = middle } else { high = middle }
+                } else {
+                    if duration > target { low = middle } else { high = middle }
+                }
+            }
+            clip = candidate((low + high) * 0.5)
+            clip.duration = TimeMapping.outputDuration(clip: clip)
+        } else {
+            clip.duration = .init(seconds: requestedDuration)
+        }
+
+        if edge == .leading {
+            clip.start = original.end - clip.duration
+            let phaseDelta = clip.start - original.start
+            clip.animationOffset = .init(seconds: max(0, original.animationOffset.seconds + phaseDelta.seconds))
+        }
+        try updateClip(id, in: &document) { $0 = clip }
+        if let sceneIndex = document.scenes.firstIndex(where: { $0.clips.contains(where: { $0.id == id }) }) {
+            document.scenes[sceneIndex].duration = max(document.scenes[sceneIndex].duration, clip.end)
+        }
+        CaptionBindingUpdater.refresh(&document)
+    }
     static func updateClip(_ id: UUID, in document: inout ProjectDocument, _ update: (inout Clip) -> Void) throws {
         for si in document.scenes.indices {
             if let ci = document.scenes[si].clips.firstIndex(where: { $0.id == id }) { update(&document.scenes[si].clips[ci]); return }
@@ -203,6 +272,45 @@ enum DocumentEditor {
         try replaceClip(id, in: &document, with: [])
         if let sceneID, let index = document.scenes.firstIndex(where: { $0.id == sceneID }) { document.scenes[index].clips.append(clip) }
         else { document.globalClips.append(clip) }
+    }
+    /// Places a clip at a composition time. Scene ownership is an implementation detail:
+    /// crossing a scene boundary during a Timeline drag transfers the clip instead of
+    /// clamping it to the beginning of its original scene.
+    static func moveClip(_ id: UUID, toGlobalStart globalStart: MediaTime, in document: inout ProjectDocument) throws {
+        guard var clip = document.clip(id), globalStart >= .zero else { throw DocumentError.missing("Clip") }
+        let plan = RenderPlan.compile(document: document, variantID: nil)
+        let sourceIsGlobal = document.globalClips.contains { $0.id == id }
+
+        if sourceIsGlobal {
+            clip.start = globalStart
+            try replaceClip(id, in: &document, with: [clip])
+            CaptionBindingUpdater.refresh(&document)
+            return
+        }
+
+        // In transition overlaps, the later scene is the intuitive destination: its
+        // visible content has already begun. Outside the montage, use the nearest edge.
+        let destination = plan.scenes.last(where: { $0.start <= globalStart && globalStart < $0.end })
+            ?? (globalStart < (plan.scenes.first?.start ?? .zero) ? plan.scenes.first : plan.scenes.last)
+        guard let destination, let destinationIndex = document.scenes.firstIndex(where: { $0.id == destination.id }) else {
+            clip.start = globalStart
+            try replaceClip(id, in: &document, with: [])
+            document.globalClips.append(clip)
+            CaptionBindingUpdater.refresh(&document)
+            return
+        }
+
+        clip.start = max(.zero, globalStart - destination.start)
+        try replaceClip(id, in: &document, with: [])
+        if clip.end <= document.scenes[destinationIndex].duration {
+            document.scenes[destinationIndex].clips.append(clip)
+        } else {
+            // A free Timeline move must not stretch a scene and shift everything that
+            // follows. Keep the exact composition time as a project-owned clip.
+            clip.start = globalStart
+            document.globalClips.append(clip)
+        }
+        CaptionBindingUpdater.refresh(&document)
     }
     static func setPresentation(_ presentation: Presentation?, clipID: UUID, variantID: UUID?, in document: inout ProjectDocument) throws {
         guard document.clip(clipID) != nil else { throw DocumentError.missing("Clip") }

@@ -4,6 +4,7 @@ import UIKit
 private enum CaptionWorkspaceTab: String, CaseIterable, Identifiable {
     case text = "Texte"
     case style = "Style"
+    case font = "Police"
     case effects = "Effets"
     var id: String { rawValue }
 }
@@ -21,7 +22,6 @@ struct CaptionEditorSheet: View {
     @State private var firstText = ""
     @State private var secondText = ""
     @State private var scopeLocal = false
-    @State private var styleWholeTrack = true
     @State private var editingEffect: EffectInstance?
     @State private var localError: String?
     @State private var confirmDeleteTrack = false
@@ -117,11 +117,7 @@ struct CaptionEditorSheet: View {
             case .style:
                 VStack(spacing: 7) {
                     HStack(spacing: 8) {
-                        Picker(L("Sous-titres concernés"), selection: $styleWholeTrack) {
-                            Text(L("Ce segment")).tag(false)
-                            Text(L("Toute la piste")).tag(true)
-                        }
-                        .pickerStyle(.segmented)
+                        CaptionScopePicker(model: model)
                         Menu {
                             Button(L("Tous les formats")) { scopeLocal = false }
                             Button("\(Int(model.variant.widthRatio)):\(Int(model.variant.heightRatio)) \(L("seulement"))") { scopeLocal = true }
@@ -130,23 +126,22 @@ struct CaptionEditorSheet: View {
                         }
                         .accessibilityLabel(L("Formats concernés"))
                     }
-                    CompactValueSlider(title: L("Taille"), value: style(\.textSize), range: 0.02...0.2, step: 0.01, editing: styleGesture)
-                    HStack(spacing: 4) {
-                        ForEach(["#FFFFFF", "#15191F", "#EBA65A", "#A0C9BD"], id: \.self) { hex in
-                            Button { changeStyle { $0.color = hex } } label: {
-                                Circle().fill(Color(hex: hex)).frame(width: 24, height: 24)
-                                    .overlay { Circle().strokeBorder(model.presentation.color == hex ? DesignTokens.amber : .white.opacity(0.35), lineWidth: 2) }
-                                    .frame(width: 38, height: 38)
+                    HStack(spacing: 6) {
+                        CompactTextSizeStepper(title: L("Taille"), value: style(\.textSize), range: 0.02...0.2)
+                        Spacer(minLength: 0)
+                        HStack(spacing: 1) {
+                            ForEach(["#FFFFFF", "#15191F", "#EBA65A", "#A0C9BD"], id: \.self) { hex in
+                                Button { changeStyle { $0.color = hex } } label: {
+                                    Circle().fill(Color(hex: hex)).frame(width: 24, height: 24)
+                                        .overlay { Circle().strokeBorder(model.presentation.color == hex ? DesignTokens.amber : .white.opacity(0.35), lineWidth: 2) }
+                                        .frame(width: 38, height: 38)
+                                }
+                                .accessibilityLabel(hex)
                             }
-                            .accessibilityLabel(hex)
                         }
-                        Spacer()
-                        Menu {
-                            Button(L("Système")) { changeStyle { $0.textFont = "system" } }
-                            ForEach(["Georgia", "Georgia-Bold", "Menlo-Regular", "Menlo-Bold"].filter { UIFont(name: $0, size: 16) != nil }, id: \.self) { font in
-                                Button(font) { changeStyle { $0.textFont = font } }
-                            }
-                        } label: {
+                    }
+                    HStack(spacing: 8) {
+                        Button { activeTab = .font } label: {
                             Label(L("Police"), systemImage: "textformat.size").font(.caption).frame(minHeight: 38)
                         }
                         Menu {
@@ -157,8 +152,12 @@ struct CaptionEditorSheet: View {
                             Image(systemName: "text.alignleft").frame(width: 38, height: 38)
                         }
                         .accessibilityLabel(L("Alignement"))
+                        Spacer(minLength: 0)
                     }
                 }
+            case .font:
+                CaptionScopePicker(model: model)
+                TextFontPicker(selectedFont: Binding(get: { model.presentation.textFont }, set: { font in changeStyle { $0.textFont = font } }))
             case .effects:
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
@@ -272,7 +271,7 @@ struct CaptionEditorSheet: View {
     }
 
     private func select(_ caption: RenderClip) {
-        selectedID = caption.id; model.selectClip(caption)
+        selectedID = caption.id; model.selectClip(caption, movePlayhead: true)
         text = caption.clip.text; start = caption.globalStart.seconds; end = caption.end.seconds; splitTime = (start + end) / 2
         firstText = text; secondText = ""; localError = nil
     }
@@ -294,13 +293,7 @@ struct CaptionEditorSheet: View {
     }
 
     private func changeStyle(_ change: (inout Presentation) -> Void) {
-        if styleWholeTrack { model.changeCaptionPresentations(change) }
-        else { model.changePresentation(change) }
-    }
-
-    private func styleGesture(_ active: Bool) {
-        if active { model.beginGesture(L("Style des sous-titres")) }
-        else { model.endGesture() }
+        model.changeSelectedTextPresentation(change)
     }
 
     private func perform(_ name: String, _ operation: (inout ProjectDocument) throws -> Void) {

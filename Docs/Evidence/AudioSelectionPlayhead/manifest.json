@@ -1,0 +1,17 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "audio-selection-keeps-playhead.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "audio-selection-keeps-playhead_0_64941347-7D00-439B-9AB2-272377A73734.png",
+        "timestamp" : 1791411798.013
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testSelectingAudioPreservesPlayheadForSplit()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testSelectingAudioPreservesPlayheadForSplit"
+  }
+]

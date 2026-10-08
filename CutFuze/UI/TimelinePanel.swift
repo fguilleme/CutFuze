@@ -90,6 +90,7 @@ final class TimelineScrollView: UIScrollView, UIScrollViewDelegate, UIGestureRec
     let canvas = TimelineDrawingView()
     private var gestureOrigin: Clip?
     private var gestureClip: RenderClip?
+    private var gestureDocument: ProjectDocument?
     private var scrubMode = false
     private var trimEdge: Bool?
     private var initialX = 0.0
@@ -142,6 +143,22 @@ final class TimelineScrollView: UIScrollView, UIScrollViewDelegate, UIGestureRec
     func scrollViewDidScroll(_ scrollView: UIScrollView) { canvas.frame = CGRect(origin: contentOffset, size: bounds.size); canvas.visibleRect = CGRect(origin: contentOffset, size: bounds.size); canvas.setNeedsDisplay() }
     private func canvasPoint(_ gesture: UIGestureRecognizer) -> CGPoint { let p = gesture.location(in: canvas); return CGPoint(x: p.x + contentOffset.x, y: p.y + contentOffset.y) }
     private func hit(_ point: CGPoint) -> RenderClip? { canvas.plan?.clips.reversed().first { canvas.rect(for: $0).insetBy(dx: -8, dy: -3).contains(point) } }
+    private func trimTarget(_ point: CGPoint) -> (clip: RenderClip, leading: Bool)? {
+        guard let plan = canvas.plan else { return nil }
+        var ordered = Array(plan.clips.reversed())
+        if let selected = model?.selectedClipID, let index = ordered.firstIndex(where: { $0.id == selected }) {
+            ordered.insert(ordered.remove(at: index), at: 0)
+        }
+        for clip in ordered {
+            let rect = canvas.rect(for: clip)
+            guard point.y >= rect.minY - 8, point.y <= rect.maxY + 8 else { continue }
+            let leadingDistance = abs(point.x - rect.minX)
+            let trailingDistance = abs(point.x - rect.maxX)
+            guard min(leadingDistance, trailingDistance) <= 22 else { continue }
+            return (clip, leadingDistance <= trailingDistance)
+        }
+        return nil
+    }
     override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         if gestureRecognizer == moveLongPress {
             // Captions reserve the long press for their deletion menu. Other media keep
@@ -153,6 +170,7 @@ final class TimelineScrollView: UIScrollView, UIScrollViewDelegate, UIGestureRec
         let velocity = pan.velocity(in: self)
         guard abs(velocity.x) >= abs(velocity.y) else { return false }
         if p.y < 44 { return true }
+        if trimTarget(p) != nil { return true }
         guard let c = hit(p), c.id == model?.selectedClipID else { return false }
         return true
     }
@@ -181,16 +199,17 @@ final class TimelineScrollView: UIScrollView, UIScrollViewDelegate, UIGestureRec
         switch gesture.state {
         case .began:
             if point.y < 40 { scrubMode = true; model.seek(max(0, (point.x-18)/pointsPerSecond)); return }
-            guard let c = hit(point) else { return }
-            gestureOrigin = c.clip; gestureClip = c; initialX = point.x
-            let r = canvas.rect(for: c)
-            let leadingDistance = abs(point.x-r.minX), trailingDistance = abs(point.x-r.maxX)
-            let edgeWidth = min(14.0, max(6.0, r.width * 0.18))
-            if r.width >= 28, min(leadingDistance, trailingDistance) <= edgeWidth {
-                trimEdge = leadingDistance <= trailingDistance
+            if let target = trimTarget(point) {
+                let c = target.clip
+                model.selectedClipID = c.id
+                model.selectedSceneID = c.sceneID
+                gestureOrigin = c.clip; gestureClip = c; gestureDocument = model.document; initialX = point.x
+                trimEdge = target.leading
                 moveMode = false
                 model.beginGesture(L("Précision temporelle"))
             } else {
+                guard let c = hit(point), c.id == model.selectedClipID else { return }
+                gestureOrigin = c.clip; gestureClip = c; gestureDocument = model.document; initialX = point.x
                 trimEdge = nil
                 moveMode = true
                 model.beginGesture(L("Déplacer le segment"))
@@ -206,35 +225,29 @@ final class TimelineScrollView: UIScrollView, UIScrollViewDelegate, UIGestureRec
         }
     }
     private func applyTrim(at x: Double) {
-        guard let model, let origin = gestureOrigin, let rc = gestureClip, let leading = trimEdge else { return }
+        guard let model, let origin = gestureOrigin, let rc = gestureClip, let originalDocument = gestureDocument, let leading = trimEdge else { return }
         var delta = (x - initialX) / pointsPerSecond
         let boundary = leading ? rc.globalStart.seconds : rc.end.seconds
         if snapping { delta = snapped(boundary + delta, ignoring: origin.id) - boundary }
-        // Trimming a handle only removes source; use the timing inspector to extend.
-        let cut = min(max(0, leading ? delta : -delta), max(0, origin.duration.seconds - 1 / 30))
         model.updateGesture { d in
-            d.updateClip(origin.id) { $0 = origin }
-            try DocumentEditor.trimClip(origin.id, from: .init(seconds: leading ? cut : 0), to: .init(seconds: leading ? origin.duration.seconds : origin.duration.seconds - cut), in: &d)
+            d = originalDocument
+            try DocumentEditor.resizeClip(origin.id, edge: leading ? .leading : .trailing, by: .init(seconds: delta), in: &d)
         }
     }
     private func applyMove(at x: Double) {
-        guard let model, let origin = gestureOrigin, let rc = gestureClip else { return }
+        guard let model, let origin = gestureOrigin, let rc = gestureClip, let originalDocument = gestureDocument else { return }
         let global = max(0, rc.globalStart.seconds + (x-initialX)/pointsPerSecond)
         let target = snapping ? snapped(global, ignoring: rc.id) : global
-        let base = rc.globalStart.seconds - origin.start.seconds
         model.updateGesture { document in
-            let local = max(0, target-base)
-            document.updateClip(origin.id) { $0.start = .init(seconds: local) }
-            if let index = document.scenes.firstIndex(where: { $0.id == rc.sceneID }) {
-                document.scenes[index].duration = max(document.scenes[index].duration, .init(seconds: local) + origin.duration)
-            }
+            document = originalDocument
+            try DocumentEditor.moveClip(origin.id, toGlobalStart: .init(seconds: target), in: &document)
         }
     }
     @objc private func moved(_ gesture: UILongPressGestureRecognizer) {
         guard let model else { return }; let point = canvasPoint(gesture); lastLocation = point
         switch gesture.state {
         case .began:
-            guard let c = hit(point) else { return }; gestureOrigin = c.clip; gestureClip = c; initialX = point.x; model.selectedClipID = c.id; model.selectedSceneID = c.sceneID
+            guard let c = hit(point) else { return }; gestureOrigin = c.clip; gestureClip = c; gestureDocument = model.document; initialX = point.x; model.selectedClipID = c.id; model.selectedSceneID = c.sceneID
             moveMode = true; model.beginGesture(L("Déplacer le segment")); startAutoscroll()
         case .changed:
             applyMove(at: point.x)
@@ -287,11 +300,11 @@ final class TimelineScrollView: UIScrollView, UIScrollViewDelegate, UIGestureRec
         if moveMode { applyMove(at: lastLocation.x) }
         else if trimEdge != nil { applyTrim(at: lastLocation.x) }
     }
-    private func resetGesture() { scrubMode = false; moveMode = false; gestureOrigin = nil; gestureClip = nil; trimEdge = nil; autoScrollLink?.invalidate(); autoScrollLink = nil }
+    private func resetGesture() { scrubMode = false; moveMode = false; gestureOrigin = nil; gestureClip = nil; gestureDocument = nil; trimEdge = nil; autoScrollLink?.invalidate(); autoScrollLink = nil }
     override func didMoveToWindow() { super.didMoveToWindow(); if window == nil { autoScrollLink?.invalidate(); autoScrollLink = nil } }
     private func updateAccessibility() {
         guard let plan = canvas.plan else { return }
-        accessibilityElements = plan.clips.filter { canvas.rect(for: $0).intersects(canvas.visibleRect) }.map { clip in
+        var elements: [UIAccessibilityElement] = plan.clips.filter { canvas.rect(for: $0).intersects(canvas.visibleRect) }.map { clip in
             let element = TimelineAccessibility(container: self)
             let name = canvas.clipNames[clip.id] ?? L(clip.clip.kind.rawValue)
             element.accessibilityLabel = "\(name), \(String(format: "%.2f", clip.globalStart.seconds)), \(String(format: "%.2f", clip.duration.seconds)) s"
@@ -310,6 +323,18 @@ final class TimelineScrollView: UIScrollView, UIScrollViewDelegate, UIGestureRec
             }
             return element
         }
+        if let selected = plan.clips.first(where: { $0.id == model?.selectedClipID }) {
+            let rect = canvas.rect(for: selected).offsetBy(dx: -contentOffset.x, dy: -contentOffset.y)
+            for (leading, x, name) in [(true, rect.minX, L("Poignée de début")), (false, rect.maxX, L("Poignée de fin"))] {
+                let handle = UIAccessibilityElement(accessibilityContainer: self)
+                handle.accessibilityLabel = name
+                handle.accessibilityTraits = [.adjustable]
+                handle.accessibilityIdentifier = "timelineTrim\(leading ? "Leading" : "Trailing")-\(selected.id.uuidString)"
+                handle.accessibilityFrameInContainerSpace = CGRect(x: x - 22, y: rect.minY - 4, width: 44, height: rect.height + 8)
+                elements.append(handle)
+            }
+        }
+        accessibilityElements = elements
     }
 }
 final class TimelineAccessibility: UIAccessibilityElement {

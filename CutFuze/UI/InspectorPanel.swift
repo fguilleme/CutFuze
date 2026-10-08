@@ -113,8 +113,7 @@ struct InspectorPanel: View {
                 }
                 textProperty("Taille", \.textSize, 0.02...0.2, clip: clip)
                 Picker(L("Police"), selection: Binding(get: { model.presentation.textFont }, set: { font in changeTextPresentation(clip) { $0.textFont = font } })) {
-                    Text(L("Système")).tag("system")
-                    ForEach(["Georgia", "Georgia-Bold", "Menlo-Regular", "Menlo-Bold"].filter { UIFont(name: $0, size: 16) != nil }, id: \.self) { Text($0).tag($0) }
+                    ForEach(EditorFontCatalog.available) { Text(L($0.title)).font($0.font).tag($0.id) }
                 }.font(.caption)
                 if model.presentation.textFont == "system" { Toggle(L("Gras"), isOn: textPresentationBool(\.textBold, clip: clip)).font(.caption) }
                 else if UIFont(name: model.presentation.textFont, size: 16) == nil { Text(L("Police indisponible : choisissez un remplacement installé.")).font(.caption).foregroundStyle(.orange) }
@@ -176,9 +175,10 @@ struct ValueSlider: View {
     var editing: (Bool) -> Void = { _ in }
     var body: some View {
         VStack(spacing: 2) { HStack { Text(title); Spacer(); Text(String(format: "%.2f", value) + suffix).monospacedDigit().foregroundStyle(DesignTokens.amber) }.font(.caption); Slider(value: $value, in: range, onEditingChanged: editing).accessibilityLabel(title).accessibilityValue(String(format: "%.2f", value) + suffix) }
+            .frame(minHeight: 48)
     }
 }
 func effectLabel(_ value: String) -> String {
-    let names = ["none":"Aucun", "dissolve":"Fondu enchaîné", "black":"Noir", "white":"Blanc", "slide":"Glissement", "wipe":"Balayage", "zoom":"Zoom", "blur":"Flou", "glitch":"Fragmentation", "exposure":"Exposition", "brightness":"Luminosité", "contrast":"Contraste", "saturation":"Saturation", "temperature":"Température", "tint":"Teinte", "highlights":"Hautes lumières", "shadows":"Ombres", "sharpness":"Netteté", "vignette":"Vignette", "grain":"Grain", "fade":"Noirs adoucis", "glow":"Lueur", "rgbSplit":"Séparation RGB", "pixelate":"Pixelisation", "shake":"Tremblement", "retro":"Rétro", "ellipse":"Ellipse", "rectangle":"Rectangle", "roundedRectangle":"Rectangle arrondi", "linear":"Séparation", "band":"Bande", "normal":"Normal", "multiply":"Produit", "screen":"Écran", "overlay":"Superposition", "lighten":"Éclaircir", "darken":"Assombrir"]
+    let names = ["none":"Aucun", "dissolve":"Fondu enchaîné", "black":"Noir", "white":"Blanc", "slide":"Glissement", "wipe":"Balayage", "zoom":"Zoom", "blur":"Flou", "glitch":"Fragmentation", "exposure":"Exposition", "brightness":"Luminosité", "contrast":"Contraste", "saturation":"Saturation", "temperature":"Température", "tint":"Teinte", "highlights":"Hautes lumières", "shadows":"Ombres", "sharpness":"Netteté", "vignette":"Vignette", "grain":"Grain", "fade":"Noirs adoucis", "glow":"Lueur", "rgbSplit":"Séparation RGB", "pixelate":"Pixelisation", "shake":"Tremblement", "retro":"Rétro", "skinSmooth":"Lissage peau", "skinGlow":"Éclat du teint", "bulge":"Bombement", "pinch":"Pincement", "twirl":"Tourbillon", "kaleidoscope":"Kaléidoscope", "comic":"BD", "crystallize":"Cristallisation", "ellipse":"Ellipse", "rectangle":"Rectangle", "roundedRectangle":"Rectangle arrondi", "linear":"Séparation", "band":"Bande", "normal":"Normal", "multiply":"Produit", "screen":"Écran", "overlay":"Superposition", "lighten":"Éclaircir", "darken":"Assombrir"]
     return L(names[value] ?? value)
 }

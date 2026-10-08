@@ -1,0 +1,17 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "42F573DA-6793-4D2C-AF74-7A102C011BCF.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "preview-video-drag-controls_0_D3096FAC-B7B2-47DA-89D7-0D08A8376BA7.png",
+        "timestamp" : 1791393151.022
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testPreviewVideoDragDoesNotShowErrorAndHandlesStayTappable()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testPreviewVideoDragDoesNotShowErrorAndHandlesStayTappable"
+  }
+]

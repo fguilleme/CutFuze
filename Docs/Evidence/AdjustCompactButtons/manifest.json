@@ -1,0 +1,17 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "88CC7BC8-C104-4880-9D3C-E35D93A3AA10.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "fit-fill-working_0_2A8A4346-8486-4467-8DC0-22B4B660B6DA.png",
+        "timestamp" : 1791393413.367
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testFitAndFillUpdateSelectedState()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testFitAndFillUpdateSelectedState"
+  }
+]

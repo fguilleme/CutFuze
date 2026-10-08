@@ -1,0 +1,17 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "timeline-move-earlier.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "timeline-move-earlier_0_864ED8A2-00D5-48F2-A495-2214D2A82EF8.png",
+        "timestamp" : 1791408066.04
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testTimelineClipCanMoveIntoEarlierScene()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testTimelineClipCanMoveIntoEarlierScene"
+  }
+]

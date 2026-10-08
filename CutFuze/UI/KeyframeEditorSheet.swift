@@ -13,6 +13,7 @@ struct KeyframeEditorSheet: View {
     @State private var fadeDuration = 0.5
     @State private var preview: CGImage?
     @State private var localError: String?
+    @State private var renderError: String?
     private var rendered: RenderClip? { model.plan.clips.first { $0.id == clipID } }
     private var draftTime: MediaTime {
         if let rendered, let key = rendered.clip.keyframes.first(where: { $0.id == selectedKeyID && $0.property == property }) {
@@ -21,16 +22,64 @@ struct KeyframeEditorSheet: View {
         }
         return .init(seconds: globalSeconds)
     }
-    private var previous: MediaTime? { rendered.flatMap { AnimationEditing.neighbor(in: $0, from: draftTime, forward: false) } }
-    private var next: MediaTime? { rendered.flatMap { AnimationEditing.neighbor(in: $0, from: draftTime, forward: true) } }
+    private var propertyTimes: [MediaTime] { rendered.map { item in
+        item.clip.keyframes.filter { $0.property == property }.map { item.globalStart + $0.time - item.clip.animationOffset }.filter { $0 >= item.globalStart && $0 <= item.end }.sorted()
+    } ?? [] }
+    private var previous: MediaTime? { propertyTimes.last { $0 < draftTime } }
+    private var next: MediaTime? { propertyTimes.first { $0 > draftTime } }
+    private var draftRendered: RenderClip? {
+        var candidate = model.document
+        do { try mutatePoint(in: &candidate) } catch { return rendered }
+        return RenderPlan.compile(document: candidate, variantID: model.variantID).clips.first { $0.id == clipID }
+    }
+    private var graphRange: ClosedRange<Double> {
+        guard let rendered else { return range }
+        let values = (0...100).map { AnimationEditing.value(property, in: rendered.evaluatedPresentation(at: rendered.globalStart + MediaTime(seconds: rendered.duration.seconds * Double($0) / 100))) }
+        let lower = values.min() ?? displayedValue, upper = values.max() ?? displayedValue
+        let padding = max((upper - lower) * 0.15, property == .rotation ? 15 : 0.15)
+        return max(range.lowerBound, lower - padding)...max(max(range.lowerBound, lower - padding) + 0.01, min(max(range.upperBound, upper), upper + padding))
+    }
     private var signature: String { "\(clipID?.uuidString ?? "")|\(property.rawValue)|\(globalSeconds)|\(displayedValue)|\(easing.rawValue)|\(model.document.revision)" }
     var body: some View {
         NavigationStack {
+            VStack(spacing: 0) {
+                if let rendered {
+                    VStack(spacing: 5) {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 5) {
+                                ForEach(KeyframeProperty.allCases, id: \.self) { item in
+                                    Button { property = item; selectedKeyID = nil; loadValue() } label: {
+                                        Text(animationPropertyLabel(item)).font(.caption.weight(.semibold)).padding(.horizontal, 10).frame(height: 44)
+                                            .background(property == item ? DesignTokens.amber.opacity(0.2) : Color.clear, in: RoundedRectangle(cornerRadius: 9))
+                                    }.buttonStyle(.plain).accessibilityIdentifier("keyframeProperty-\(item.rawValue)")
+                                        .accessibilityAddTraits(property == item ? .isSelected : [])
+                                }
+                            }
+                        }
+                        KeyframeGraph(clip: draftRendered ?? rendered, property: property, globalTime: globalSeconds, selectedID: selectedKeyID, valueRange: graphRange,
+                                      pointIDs: Set(rendered.clip.keyframes.map(\.id)),
+                                      onScrub: selectTime, onSelect: select, onMove: movePoint)
+                        Slider(value: Binding(get: { globalSeconds }, set: { selectTime(.init(seconds: $0)) }), in: rendered.globalStart.seconds...max(rendered.globalStart.seconds + 0.001, rendered.end.seconds))
+                            .tint(DesignTokens.amber).accessibilityLabel(L("Parcourir l’animation")).accessibilityIdentifier("keyframeTimeSlider")
+                        HStack {
+                            Button { savePoint() } label: {
+                                Label(L(selectedKeyID == nil ? "Ajouter un point" : "Enregistrer le point"), systemImage: selectedKeyID == nil ? "plus.diamond" : "checkmark")
+                                    .font(.caption.weight(.semibold)).frame(minHeight: 44)
+                            }.buttonStyle(.plain).foregroundStyle(DesignTokens.amber).accessibilityIdentifier("saveKeyframe")
+                            Spacer()
+                            if let key = rendered.clip.keyframes.first(where: { $0.id == selectedKeyID }) {
+                                Button(role: .destructive) { remove(key) } label: { Image(systemName: "trash").frame(width: 44, height: 44) }
+                                    .buttonStyle(.plain).accessibilityLabel(L("Supprimer le point")).accessibilityIdentifier("deleteSelectedKeyframe")
+                            }
+                        }
+                        if let message = localError ?? renderError {
+                            Label(message, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.red)
+                        }
+                    }.padding(.horizontal, 16).padding(.bottom, 6).background(DesignTokens.ink)
+                }
             Form {
                 Section(L("Point d’animation")) {
-                    Text(L("L’animation est commune aux formats. Les valeurs affichées tiennent compte du cadrage actif.")).font(.caption).foregroundStyle(.secondary)
-                    Picker(L("Propriété"), selection: $property) { ForEach(KeyframeProperty.allCases, id: \.self) { Text(animationPropertyLabel($0)).tag($0) } }.onChange(of: property) { _, _ in loadValue() }
-                    HStack { Text(L("Instant") + " (s)"); TextField(L("Instant"), value: $globalSeconds, format: .number.precision(.fractionLength(0...4))).multilineTextAlignment(.trailing).keyboardType(.decimalPad) }
+                    HStack { Text(L("Instant") + " (s)"); TextField(L("Instant"), value: Binding(get: { globalSeconds - (rendered?.globalStart.seconds ?? 0) }, set: { globalSeconds = $0 + (rendered?.globalStart.seconds ?? 0) }), format: .number.precision(.fractionLength(0...4))).multilineTextAlignment(.trailing).keyboardType(.decimalPad) }
                     HStack {
                         Button { if let previous { selectTime(previous) } } label: { Label(L("Point précédent"), systemImage: "backward.end") }.disabled(previous == nil)
                         Spacer()
@@ -40,7 +89,6 @@ struct KeyframeEditorSheet: View {
                     HStack { Text(L("Valeur")); TextField(L("Valeur"), value: $displayedValue, format: .number.precision(.fractionLength(0...4))).multilineTextAlignment(.trailing).keyboardType(.numbersAndPunctuation) }
                     Picker(L("Interpolation"), selection: $easing) { ForEach(KeyframeEasing.allCases, id: \.self) { Text(animationEasingLabel($0)).tag($0) } }
                     Text(L("L’interpolation choisie décrit l’arrivée sur ce point depuis le précédent.")).font(.caption).foregroundStyle(.secondary)
-                    Button(L("Ajouter ou mettre à jour le point")) { savePoint() }.accessibilityIdentifier("saveKeyframe")
                 }
                 Section(L("Fondus d’entrée et de sortie")) {
                     Picker(L("Animation"), selection: $preset) { Text(L("Entrée")).tag(FadeAnimationPreset.entrance); Text(L("Sortie")).tag(FadeAnimationPreset.exit); Text(L("Entrée et sortie")).tag(FadeAnimationPreset.combination) }.pickerStyle(.segmented)
@@ -50,7 +98,7 @@ struct KeyframeEditorSheet: View {
                 }
                 Section(L("Images clés")) {
                     if let rendered {
-                        ForEach(rendered.clip.keyframes.filter { $0.time >= rendered.clip.animationOffset && $0.time <= rendered.clip.animationOffset + rendered.duration }.sorted { $0.time == $1.time ? $0.property.rawValue < $1.property.rawValue : $0.time < $1.time }) { key in
+                        ForEach(rendered.clip.keyframes.filter { $0.property == property && $0.time >= rendered.clip.animationOffset && $0.time <= rendered.clip.animationOffset + rendered.duration }.sorted { $0.time < $1.time }) { key in
                             HStack {
                                 Button { select(key) } label: {
                                     VStack(alignment: .leading, spacing: 3) {
@@ -64,18 +112,23 @@ struct KeyframeEditorSheet: View {
                         }
                     }
                 }
-                if let localError { Section { Text(localError).foregroundStyle(.red) } }
-            }.pinnedPreview(preview ?? model.preview).navigationTitle(L("Images clés")).navigationBarTitleDisplayMode(.inline)
+                Section { Text(L("L’animation est commune aux formats. Les valeurs affichées tiennent compte du cadrage actif.")).font(.caption).foregroundStyle(.secondary) }
+            }.buttonStyle(.borderless).scrollDismissesKeyboard(.interactively)
+            }.pinnedPreview(preview ?? model.preview).navigationTitle(L("Éditer les points")).navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button(L("Fermer")) { dismiss() } }
                     ToolbarItemGroup(placement: .topBarTrailing) {
-                        Button { model.undo(); loadValue() } label: { Image(systemName: "arrow.uturn.backward") }.disabled(!model.canUndo).accessibilityLabel(L("Annuler la modification"))
-                        Button { model.redo(); loadValue() } label: { Image(systemName: "arrow.uturn.forward") }.disabled(!model.canRedo).accessibilityLabel(L("Rétablir"))
+                        Button { model.undo(); loadValue() } label: { Image(systemName: "arrow.uturn.backward") }.disabled(!model.canUndo).accessibilityLabel(L("Annuler la modification")).accessibilityIdentifier("keyframeUndo")
+                        Button { model.redo(); loadValue() } label: { Image(systemName: "arrow.uturn.forward") }.disabled(!model.canRedo).accessibilityLabel(L("Rétablir")).accessibilityIdentifier("keyframeRedo")
                     }
                 }
                 .onAppear {
                     model.stop(); clipID = model.selectedClipID
-                    if let rendered { globalSeconds = min(max(model.playhead, rendered.globalStart.seconds), rendered.end.seconds); fadeDuration = min(0.5, rendered.duration.seconds / 3); loadValue() }
+                    if let rendered {
+                        globalSeconds = min(max(model.playhead, rendered.globalStart.seconds), rendered.end.seconds)
+                        if !rendered.clip.keyframes.contains(where: { $0.property == property }), let first = rendered.clip.keyframes.sorted(by: { $0.time < $1.time }).first { property = first.property }
+                        fadeDuration = min(0.5, rendered.duration.seconds / 3); loadValue()
+                    }
                 }
                 .task(id: signature) { await renderDraft() }
         }.preferredColorScheme(.dark)
@@ -100,10 +153,28 @@ struct KeyframeEditorSheet: View {
         displayedValue = AnimationEditing.value(property, in: rendered.evaluatedPresentation(at: draftTime))
         let local = draftTime - rendered.globalStart + rendered.clip.animationOffset
         if let key = rendered.clip.keyframes.first(where: { $0.time == local && $0.property == property }) { selectedKeyID = key.id; easing = key.easing }
+        else { selectedKeyID = nil }
+    }
+    private func movePoint(_ key: Keyframe, _ time: MediaTime, _ value: Double, _ finished: Bool) {
+        selectedKeyID = key.id; globalSeconds = time.seconds; displayedValue = value; easing = key.easing
+        if finished {
+            savePoint()
+            if localError != nil, let original = rendered?.clip.keyframes.first(where: { $0.id == key.id }) { select(original) }
+            else { loadValue() }
+        }
+    }
+    private func mutatePoint(in candidate: inout ProjectDocument) throws {
+        guard let clipID else { return }
+        if let selectedKeyID {
+            try AnimationEditing.move(keyframeID: selectedKeyID, clipID: clipID, to: draftTime, displayedValue: displayedValue, variantID: model.variantID, easing: easing, in: &candidate)
+        } else {
+            try AnimationEditing.upsert(clipID: clipID, property: property, at: draftTime, displayedValue: displayedValue, variantID: model.variantID, easing: easing, in: &candidate)
+        }
     }
     private func savePoint() {
-        guard let clipID, globalSeconds.isFinite else { return }
-        perform(L("Images clés")) { try AnimationEditing.upsert(clipID: clipID, property: property, at: draftTime, displayedValue: displayedValue, variantID: model.variantID, easing: easing, in: &$0) }
+        guard clipID != nil, globalSeconds.isFinite else { return }
+        perform(L("Images clés")) { try mutatePoint(in: &$0) }
+        if localError == nil { loadValue() }
     }
     private func applyPreset() {
         guard let clipID, fadeDuration.isFinite else { return }
@@ -120,17 +191,17 @@ struct KeyframeEditorSheet: View {
         catch { localError = error.localizedDescription }
     }
     private func renderDraft() async {
-        guard let clipID, let rendered, globalSeconds.isFinite else { return }
+        guard clipID != nil, let rendered, globalSeconds.isFinite else { return }
         do {
             try await Task.sleep(for: .milliseconds(140))
             var candidate = model.document
-            try AnimationEditing.upsert(clipID: clipID, property: property, at: draftTime, displayedValue: displayedValue, variantID: model.variantID, easing: easing, in: &candidate)
+            try mutatePoint(in: &candidate)
             try candidate.validate()
             let plan = RenderPlan.compile(document: candidate, variantID: model.variantID), ratio = model.variant.ratio
             let time = min(max(draftTime, rendered.globalStart), rendered.end - .init(value: 1))
             let image = try await model.renderer.render(plan: plan, time: time, rootURL: model.rootURL, size: CGSize(width: ratio >= 1 ? 350 : 350 * ratio, height: ratio >= 1 ? 350 / ratio : 350))
-            if !Task.isCancelled { preview = image; localError = nil }
-        } catch is CancellationError { } catch { if !Task.isCancelled { localError = error.localizedDescription } }
+            if !Task.isCancelled { preview = image; renderError = nil }
+        } catch is CancellationError { } catch { if !Task.isCancelled { renderError = error.localizedDescription } }
     }
 }
 

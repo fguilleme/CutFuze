@@ -117,9 +117,13 @@ actor FrameRenderer {
                 let sourceTime = TimeMapping.sourceTime(for: time - item.globalStart, clip: clip)
                 // The source interval is half-open, including during reverse playback.
                 let sourceSeconds = min(max(0, sourceTime.seconds), max(0, asset.duration.seconds - 1 / max(asset.nominalFrameRate, 600)))
-                let generated = try await withTaskCancellationHandler {
-                    try await generator.image(at: CMTime(seconds: sourceSeconds, preferredTimescale: 60_000))
-                } onCancel: { generator.cancelAllCGImageGeneration() }
+                // The generator is cached and shared by consecutive preview renders.
+                // `cancelAllCGImageGeneration()` here also cancels the replacement render
+                // that starts during a drag, which AVFoundation reports as a generic
+                // "operation impossible" error. Let the async request finish, then honor
+                // this task's cancellation without invalidating the next request.
+                let generated = try await generator.image(at: CMTime(seconds: sourceSeconds, preferredTimescale: 60_000))
+                try Task.checkCancellation()
                 image = CIImage(cgImage: generated.image)
             }
         }
@@ -193,6 +197,27 @@ actor FrameRenderer {
         case .shake: return image.transformed(by: CGAffineTransform(translationX: sin(time * 47) * a * 12 * radius, y: cos(time * 61) * a * 9 * radius))
         case .retro:
             let stylized = image.applyingFilter("CIPhotoEffectProcess")
+            return alpha(stylized, min(1, abs(a))).composited(over: image)
+        case .skinSmooth:
+            let softened = image.applyingFilter("CINoiseReduction", parameters: ["inputNoiseLevel": 0.02 + abs(a) * 0.08, "inputSharpness": 0.35])
+            return alpha(softened, min(0.9, abs(a))).composited(over: image)
+        case .skinGlow:
+            let warm = image.applyingFilter("CITemperatureAndTint", parameters: ["inputNeutral": CIVector(x: 6500 + abs(a) * 700, y: 0), "inputTargetNeutral": CIVector(x: 6500, y: 0)])
+                .applyingFilter("CIBloom", parameters: [kCIInputRadiusKey: 4 + abs(a) * 14 * radius, kCIInputIntensityKey: 0.15 + abs(a) * 0.5])
+            return alpha(warm, min(0.75, abs(a))).composited(over: image)
+        case .bulge:
+            return image.applyingFilter("CIBumpDistortion", parameters: [kCIInputCenterKey: CIVector(x: rect.midX, y: rect.midY), kCIInputRadiusKey: min(rect.width, rect.height) * 0.55, kCIInputScaleKey: a * 0.65]).cropped(to: rect)
+        case .pinch:
+            return image.applyingFilter("CIPinchDistortion", parameters: [kCIInputCenterKey: CIVector(x: rect.midX, y: rect.midY), kCIInputRadiusKey: min(rect.width, rect.height) * 0.65, kCIInputScaleKey: a * 0.8]).cropped(to: rect)
+        case .twirl:
+            return image.applyingFilter("CITwirlDistortion", parameters: [kCIInputCenterKey: CIVector(x: rect.midX, y: rect.midY), kCIInputRadiusKey: min(rect.width, rect.height) * 0.7, kCIInputAngleKey: a * .pi * 2]).cropped(to: rect)
+        case .kaleidoscope:
+            return image.applyingFilter("CIKaleidoscope", parameters: ["inputCount": 3 + Int(abs(a) * 9), kCIInputCenterKey: CIVector(x: rect.midX, y: rect.midY), kCIInputAngleKey: a * .pi]).cropped(to: rect)
+        case .comic:
+            let stylized = image.applyingFilter("CIComicEffect")
+            return alpha(stylized, min(1, abs(a))).composited(over: image)
+        case .crystallize:
+            let stylized = image.applyingFilter("CICrystallize", parameters: [kCIInputRadiusKey: 2 + abs(a) * 30 * radius, kCIInputCenterKey: CIVector(x: rect.midX, y: rect.midY)]).cropped(to: rect)
             return alpha(stylized, min(1, abs(a))).composited(over: image)
         case .rgbSplit:
             let shift = abs(a) * 16 * radius

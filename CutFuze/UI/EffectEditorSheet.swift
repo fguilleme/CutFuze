@@ -73,6 +73,9 @@ private func EFL(_ french: String, _ english: String) -> String { Locale.current
                             }
                         }
                         Button(L("Retirer les points")) { let amount = currentAmount; draft?.amountKeyframes = nil; draft?.amount = amount; selectedKeyID = nil }.disabled(keys.isEmpty)
+                        Divider()
+                        Button(L("Supprimer l’effet"), role: .destructive) { removeEffect() }
+                            .frame(maxWidth: .infinity, minHeight: 44)
                     }
                     if let error { Text(error).foregroundStyle(.red).font(.footnote) }
                 }.padding(20)
@@ -118,6 +121,11 @@ private func EFL(_ french: String, _ english: String) -> String { Locale.current
     private func apply() {
         guard let effect = draft, model.document.revision == snapshot?.revision, model.selectedClipID == clipID else { error = EFL("Le montage a changé. Rouvrez l’effet.", "The edit changed. Reopen this effect."); return }
         model.changeClip(L("Effets")) { clip in if let index = clip.effects.firstIndex(where: { $0.id == effectID }) { clip.effects[index] = effect } }
+        dismiss()
+    }
+    private func removeEffect() {
+        guard model.document.revision == snapshot?.revision, model.selectedClipID == clipID else { error = EFL("Le montage a changé. Rouvrez l’effet.", "The edit changed. Reopen this effect."); return }
+        model.changeClip(L("Supprimer l’effet")) { $0.effects.removeAll { $0.id == effectID } }
         dismiss()
     }
 }

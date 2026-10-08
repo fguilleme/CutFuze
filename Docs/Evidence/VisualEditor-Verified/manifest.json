@@ -1,0 +1,59 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "389AA074-DFFB-4EDC-922C-BF30A7C4E8E1.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "caption-list-handwritten-fonts_0_16908ACC-5A72-4603-99ED-F13C56571FB0.png",
+        "timestamp" : 1791492371.445
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testCaptionListOffersFontGalleryAndSharedTrackScope()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testCaptionListOffersFontGalleryAndSharedTrackScope"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "DC1B9076-183F-4451-8FF3-DFE708E0A400.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "animation-opacity-new-point_0_BDBD8C77-DCD7-4ACE-9DAB-9B36FE4BEB30.png",
+        "timestamp" : 1791492393.22
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "A34ADDD0-C48A-47CF-B926-F7BBC5D8BA88.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "animation-point-moved_0_DCC10F1E-B73D-4466-B023-BB05CD3F88CF.png",
+        "timestamp" : 1791492387.743
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "D033891B-4111-430C-895F-2FD92A466330.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "animation-curve-point-selected_0_0736B70A-5D53-4D5E-8BEB-30D35EB47264.png",
+        "timestamp" : 1791492386.03
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "C61DCDE3-6D0D-4BDC-ACE8-234840ECD2B3.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "animation-curve-overview_0_BB78AB59-D3DB-49CA-A410-3247B4994EB7.png",
+        "timestamp" : 1791492382.766
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testVisualKeyframeEditorSelectsMovesScrubsAndUndoes()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testVisualKeyframeEditorSelectsMovesScrubsAndUndoes"
+  }
+]

@@ -29,8 +29,6 @@ struct EditorScreen: View {
     @State private var importingOverlay = false
     @State private var replaceID: UUID?
     @State private var activeTool: ContextTool?
-    @State private var previewTransform: Presentation?
-    @State private var previewDrag: Presentation?
     @State private var viewerHeight: CGFloat?
     @State private var viewerHeightAtDragStart: CGFloat?
     @State private var viewerDividerIsDragging = false
@@ -42,7 +40,16 @@ struct EditorScreen: View {
             let landscape = geometry.size.width > geometry.size.height
             let defaultViewerHeight = landscape ? max(92, geometry.size.height * 0.27) : min(310, max(220, geometry.size.height * 0.40))
             let minimumViewerHeight: CGFloat = landscape ? 80 : 130
-            let reservedHeight: CGFloat = (compact ? 44 : 50) + (compact ? 36 : 40) + (compact ? 56 : 62) + (compact ? 110 : 170) + 22 + (activeTool == nil ? 0 : (compact ? 118 : 156))
+            let activeToolHeight: CGFloat = switch activeTool {
+            case nil: 0
+            case .transform?: compact ? 166 : 214
+            case .adjust?: compact ? 152 : 166
+            case .animation?, .effects?: compact ? 176 : 188
+            case .font?: compact ? 192 : 294
+            default: compact ? 118 : 156
+            }
+            let captionScopeHeight: CGFloat = model.selectedClip?.isCaption == true ? 42 : 0
+            let reservedHeight: CGFloat = (compact ? 44 : 50) + (compact ? 36 : 40) + (compact ? 56 : 62) + (compact ? 110 : 170) + 22 + activeToolHeight + captionScopeHeight
             let maximumViewerHeight = max(minimumViewerHeight, geometry.size.height - reservedHeight)
             let displayedViewerHeight = min(max(viewerHeight ?? defaultViewerHeight, minimumViewerHeight), maximumViewerHeight)
             VStack(spacing: 0) {
@@ -55,7 +62,7 @@ struct EditorScreen: View {
                     .frame(maxHeight: .infinity).layoutPriority(1)
                 if let activeTool {
                     ContextToolPanel(model: model, tool: activeTool, close: { self.activeTool = nil }, showTiming: { showTiming = true })
-                        .frame(height: compact ? 118 : 156)
+                        .frame(width: geometry.size.width, height: activeToolHeight)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
                 contextualBar
@@ -116,31 +123,25 @@ struct EditorScreen: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 14).fill(.black.opacity(0.55))
                 if let preview = model.preview {
-                    Image(decorative: preview, scale: 1).resizable().scaledToFit().padding(5)
-                        .gesture(DragGesture(minimumDistance: 6).onChanged { value in
-                            guard model.selectedClip != nil, previewTransform == nil else { return }
-                            if previewDrag == nil { previewDrag = model.presentation; model.beginGesture(L("Propriétés")) }
-                            guard let origin = previewDrag, let id = model.selectedClipID else { return }
-                            let ratio = model.variant.ratio
-                            let width = min(geo.size.width - 10, (geo.size.height - 10) * ratio), height = width / ratio
-                            var presentation = origin; presentation.x += value.translation.width / max(1, width); presentation.y += value.translation.height / max(1, height)
-                            let variantID = model.localScope ? model.variantID : nil
-                            model.updateGesture { try DocumentEditor.setPresentation(presentation, clipID: id, variantID: variantID, in: &$0) }
-                        }.onEnded { _ in if previewDrag != nil { model.endGesture(); previewDrag = nil } })
-                        .simultaneousGesture(SimultaneousGesture(MagnificationGesture(), RotationGesture()).onChanged { value in
-                            guard let id = model.selectedClipID else { return }
-                            if previewTransform == nil { if previewDrag != nil { model.endGesture(); previewDrag = nil }; previewTransform = model.presentation; model.beginGesture(L("Propriétés")) }
-                            guard var presentation = previewTransform else { return }
-                            presentation.scale = min(4, max(0.1, presentation.scale * (value.first ?? 1))); presentation.rotation += value.second?.degrees ?? 0
-                            let variantID = model.localScope ? model.variantID : nil
-                            model.updateGesture { try DocumentEditor.setPresentation(presentation, clipID: id, variantID: variantID, in: &$0) }
-                        }.onEnded { _ in if previewTransform != nil { model.endGesture(); previewTransform = nil } })
+                    let ratio = model.variant.ratio
+                    let width = min(max(1, geo.size.width - 10), max(1, geo.size.height - 10) * ratio)
+                    let height = width / ratio
+                    PreviewCanvasEditor(model: model, image: preview, edit: editPreviewClip)
+                        .frame(width: width, height: height)
                 } else if model.document.scenes.isEmpty {
                     VStack(spacing: 10) { FrameMark(); Text(L("Construisez votre première scène")).font(.subheadline).foregroundStyle(.white.opacity(0.62)); Button(L("Ajouter un média")) { importingOverlay = false; showPhotos = true }.buttonStyle(.bordered) }
                 } else { ProgressView() }
-                if previewDrag != nil { Path { path in path.move(to: CGPoint(x: geo.size.width/2, y: 0)); path.addLine(to: CGPoint(x: geo.size.width/2, y: geo.size.height)); path.move(to: CGPoint(x: 0, y: geo.size.height/2)); path.addLine(to: CGPoint(x: geo.size.width, y: geo.size.height/2)) }.stroke(DesignTokens.amber.opacity(0.75), style: StrokeStyle(lineWidth: 0.5, dash: [4, 4])).allowsHitTesting(false) }
             }
         }
+    }
+
+    private func editPreviewClip(_ clip: Clip) {
+        if clip.kind == .text {
+            if clip.isCaption { openCaptionEditor(initialID: clip.id) }
+            else { withAnimation(.easeOut(duration: 0.16)) { activeTool = .textEdit } }
+        } else if clip.kind == .shape || clip.layer > 0 {
+            withAnimation(.easeOut(duration: 0.16)) { activeTool = .transform } }
+        else { withAnimation(.easeOut(duration: 0.16)) { activeTool = .adjust } }
     }
 
     private var transport: some View {
@@ -157,6 +158,7 @@ struct EditorScreen: View {
                 Text(timeLabel(model.playhead))
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .foregroundStyle(.white)
+                    .accessibilityIdentifier("currentTimecode")
                 Text("/").font(.caption2).foregroundStyle(DesignTokens.muted)
                 Text(timeLabel(model.duration))
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
@@ -228,6 +230,11 @@ struct EditorScreen: View {
     }
 
     private var contextualBar: some View {
+        VStack(spacing: 0) {
+        if model.selectedClip?.isCaption == true {
+            CaptionScopePicker(model: model)
+                .padding(.horizontal, 14).padding(.vertical, 5)
+        }
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 5) {
                 switch model.selectionKind {
@@ -242,6 +249,7 @@ struct EditorScreen: View {
         .frame(height: compact ? 56 : 62).background(DesignTokens.panel.opacity(0.95))
         .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.06)).frame(height: 1) }
         .accessibilityIdentifier("contextualToolbar")
+        }.background(DesignTokens.panel.opacity(0.95))
     }
 
     @ViewBuilder private var noSelectionActions: some View {
@@ -255,7 +263,7 @@ struct EditorScreen: View {
 
     @ViewBuilder private var videoActions: some View {
         action("Diviser", "scissors", perform: splitSelected, identifier: "action-Split")
-        tool("Vitesse", "speedometer", .speed); tool("Volume", "speaker.wave.2", .volume); tool("Animation", "diamond", .animation); tool("Ajuster", "crop", .adjust); moreMenu
+        tool("Vitesse", "speedometer", .speed); tool("Volume", "speaker.wave.2", .volume); tool("Animation", "diamond", .animation); tool("Ajuster", "crop", .adjust); cutoutAction; moreMenu
     }
     @ViewBuilder private var textActions: some View {
         if model.selectedClip?.isCaption == true {
@@ -271,8 +279,24 @@ struct EditorScreen: View {
         action("Dupliquer", "doc.on.doc", perform: duplicateSelected); action("Supprimer", "trash", destructive: true, perform: model.deleteClip)
     }
     @ViewBuilder private var overlayActions: some View {
-        tool("Ajuster", "crop", .adjust); tool("Transformer", "move.3d", .transform); tool("Opacité", "circle.lefthalf.filled", .opacity); tool("Animation", "diamond", .animation); tool("Effets", "sparkles", .effects)
+        tool("Ajuster", "crop", .adjust); tool("Transformer", "move.3d", .transform)
+        if let clip = model.selectedClip, clip.kind == .image || clip.kind == .video { cutoutAction }
+        tool("Opacité", "circle.lefthalf.filled", .opacity); tool("Animation", "diamond", .animation); tool("Effets", "sparkles", .effects)
         action("Dupliquer", "doc.on.doc", perform: duplicateSelected); action("Supprimer", "trash", destructive: true, perform: model.deleteClip)
+    }
+
+    private var cutoutAction: some View {
+        let selected = model.presentation.removePersonBackground
+        return Button {
+            UISelectionFeedbackGenerator().selectionChanged()
+            model.togglePersonBackgroundRemoval()
+        } label: {
+            ContextActionLabel(title: "Détourer", symbol: "person.crop.rectangle")
+                .background(selected ? DesignTokens.amber.opacity(0.18) : .clear, in: RoundedRectangle(cornerRadius: 12))
+        }
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityValue(L(selected ? "Activé" : "Désactivé"))
+        .accessibilityIdentifier("action-RemoveBackground")
     }
 
     private func action(_ title: String, _ symbol: String, destructive: Bool = false, perform: @escaping () -> Void, identifier: String? = nil) -> some View {
@@ -292,9 +316,8 @@ struct EditorScreen: View {
     }
     private var moreMenu: some View {
         Menu {
-            Button(L("Filtres"), systemImage: "camera.filters") { activeTool = .effects }
+            Button(L("Effets visuels"), systemImage: "camera.filters") { activeTool = .effects }
             Button(L("Masque"), systemImage: "circle.dashed") { activeTool = .adjust }
-            Button(L("Détourer"), systemImage: "person.crop.rectangle") { model.changePresentation { $0.removePersonBackground.toggle() } }
             Button(L("Opacité"), systemImage: "circle.lefthalf.filled") { activeTool = .opacity }
             Button(L("Transformer"), systemImage: "move.3d") { activeTool = .transform }
             Button(L("Suivre un objet (Vision)"), systemImage: "viewfinder") { showVision = true }

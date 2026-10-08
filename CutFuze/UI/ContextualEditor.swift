@@ -16,6 +16,23 @@ enum ContextTool: String, Identifiable {
     var id: String { rawValue }
 }
 
+private enum EffectCategory: String, CaseIterable, Identifiable {
+    case beauty = "Beauté"
+    case geometry = "Géométrie"
+    case creative = "Créatif"
+    case light = "Lumière"
+    var id: String { rawValue }
+
+    var effects: [EffectKind] {
+        switch self {
+        case .beauty: [.skinSmooth, .skinGlow, .sharpness]
+        case .geometry: [.bulge, .pinch, .twirl, .kaleidoscope, .pixelate]
+        case .creative: [.comic, .crystallize, .glow, .rgbSplit, .shake, .retro, .grain, .vignette, .blur, .fade]
+        case .light: [.exposure, .brightness, .contrast, .saturation, .temperature, .tint, .highlights, .shadows]
+        }
+    }
+}
+
 struct ContextToolPanel: View {
     @ObservedObject var model: EditorModel
     let tool: ContextTool
@@ -25,17 +42,38 @@ struct ContextToolPanel: View {
     @State private var showCaptions = false
     @State private var showKeyframes = false
     @State private var editingEffect: EffectInstance?
+    @State private var animationZone: MotionAnimationZone = .entrance
+    @State private var effectCategory: EffectCategory = .beauty
     @FocusState private var textFocused: Bool
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    private var controlsViewportHeight: CGFloat {
+        if tool == .font { return verticalSizeClass == .compact ? 130 : 232 }
+        if tool == .transform { return verticalSizeClass == .compact ? 104 : 152 }
+        if tool == .adjust { return verticalSizeClass == .compact ? 90 : 104 }
+        if tool == .animation || tool == .effects { return verticalSizeClass == .compact ? 108 : 122 }
+        return verticalSizeClass == .compact ? 56 : 94
+    }
 
     var body: some View {
         VStack(spacing: 8) {
             HStack {
                 Text(L(tool.rawValue)).font(.subheadline.weight(.semibold))
+                Button(action: close) {
+                    Text("×")
+                        .font(.system(size: 28, weight: .light, design: .rounded))
+                        .foregroundStyle(.white)
+                        .frame(width: 44, height: 36)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L("Fermer"))
+                .accessibilityIdentifier("closeContextTool")
+                Spacer()
                 if model.localScope, tool == .adjust || tool == .opacity || tool == .transform {
                     Text("\(Int(model.variant.widthRatio)):\(Int(model.variant.heightRatio))")
                         .font(.caption2.weight(.bold)).foregroundStyle(DesignTokens.amber)
                 }
-                Spacer()
                 if tool == .adjust || tool == .opacity || tool == .transform {
                     Menu {
                         Button(L("Tous les formats")) { model.localScope = false }
@@ -44,16 +82,24 @@ struct ContextToolPanel: View {
                         Image(systemName: "rectangle.3.group").frame(width: 40, height: 36)
                     }.accessibilityLabel(L("Formats concernés"))
                 }
-                Button(action: close) { Image(systemName: "xmark").frame(width: 44, height: 36) }
-                    .accessibilityLabel(L("Fermer"))
-                    .accessibilityIdentifier("closeContextTool")
             }
-            Group {
-                if let clip = model.selectedClip { controls(for: clip) }
-                else { Text(L("Aucun élément sélectionné")).foregroundStyle(DesignTokens.muted) }
+            .frame(maxWidth: .infinity)
+            .frame(height: 36)
+            ScrollView(.vertical, showsIndicators: true) {
+                Group {
+                    if let clip = model.selectedClip { controls(for: clip) }
+                    else { Text(L("Aucun élément sélectionné")).foregroundStyle(DesignTokens.muted) }
+                }
+                .frame(maxWidth: .infinity, alignment: .top)
+                .padding(.bottom, 6)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .frame(maxWidth: .infinity)
+            .frame(height: controlsViewportHeight)
+            .clipped()
+            .scrollBounceBehavior(.basedOnSize)
+            .accessibilityIdentifier("contextToolScroll")
         }
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, 14).padding(.top, 8).padding(.bottom, 10)
         .background(DesignTokens.panel)
         .sheet(isPresented: $showCaptions) { CaptionEditorSheet(model: model) }
@@ -91,20 +137,61 @@ struct ContextToolPanel: View {
         case .adjust:
             VStack(spacing: 6) {
                 HStack(spacing: 8) {
-                    Button(L("Ajuster")) { model.changePresentation { $0.fill = false } }.buttonStyle(.bordered)
-                    Button(L("Remplir")) { model.changePresentation { $0.fill = true } }.buttonStyle(.bordered)
-                    Toggle(L("Miroir"), isOn: presentationBool(\.mirror)).font(.caption).frame(minHeight: 44)
-                    Spacer()
-                    Button(L("Réinitialiser"), action: model.resetPresentation).font(.caption).frame(minHeight: 44)
+                    mediaFitButton(fill: false, title: L("Ajuster"), identifier: "fitMedia")
+                    mediaFitButton(fill: true, title: L("Remplir"), identifier: "fillMedia")
+                    Toggle(L("Miroir"), isOn: presentationBool(\.mirror))
+                        .font(.caption2)
+                        .fixedSize()
+                        .frame(minHeight: 44)
+                    Spacer(minLength: 0)
+                    Button(action: model.resetPresentation) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel(L("Réinitialiser"))
                 }
                 ValueSlider(title: L("Échelle"), value: presentation(\.scale), range: 0.1...4, editing: gesture)
             }
         case .animation:
-            HStack(spacing: 10) {
-                Label("\(clip.keyframes.count)", systemImage: "diamond.fill").foregroundStyle(DesignTokens.amber)
-                Button(L("Ajouter ou mettre à jour la pose")) { upsertPose(clip) }.buttonStyle(.bordered).frame(minHeight: 44)
-                Button(L("Modifier les images clés")) { showKeyframes = true }.buttonStyle(.bordered).frame(minHeight: 44)
-            }.font(.caption)
+            VStack(spacing: 6) {
+                Picker(L("Moment de l’animation"), selection: $animationZone) {
+                    Text(L("Entrée")).tag(MotionAnimationZone.entrance)
+                    Text(L("Sortie")).tag(MotionAnimationZone.exit)
+                    Text(L("Boucle")).tag(MotionAnimationZone.loop)
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("animationZone")
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 7) {
+                        ForEach(AnimationEditing.presets(for: animationZone), id: \.self) { preset in
+                            Button {
+                                UISelectionFeedbackGenerator().selectionChanged()
+                                model.edit(L("Animation")) { try AnimationEditing.applyPreset(preset, zone: animationZone, clipID: clip.id, in: &$0) }
+                            } label: {
+                                Label(L(animationPresetLabel(preset)), systemImage: animationPresetSymbol(preset))
+                                    .font(.caption.weight(.semibold))
+                                    .padding(.horizontal, 10)
+                                    .frame(height: 38)
+                                    .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("animationPreset-\(preset.rawValue)")
+                        }
+                    }
+                }
+                HStack(spacing: 8) {
+                    Text(clip.keyframes.isEmpty ? L("Aucune animation") : "\(clip.keyframes.count) \(L("points d’animation"))")
+                        .font(.caption2).foregroundStyle(DesignTokens.muted)
+                    Spacer()
+                    if !clip.keyframes.isEmpty {
+                        Button(L("Effacer")) { model.changeClip(L("Animation")) { $0.keyframes.removeAll() } }
+                            .font(.caption).foregroundStyle(.red)
+                    }
+                    Button(L("Éditer les points")) { showKeyframes = true }
+                        .font(.caption.weight(.semibold))
+                        .accessibilityIdentifier("advancedAnimation")
+                }
+            }
         case .textEdit:
             VStack(spacing: 7) {
                 TextField(L("Texte du calque"), text: $textDraft, axis: .vertical)
@@ -119,57 +206,81 @@ struct ContextToolPanel: View {
                 }.font(.caption)
             }
         case .textStyle:
-            VStack(spacing: 6) {
-                CompactValueSlider(title: L("Taille"), value: presentation(\.textSize), range: 0.02...0.2, step: 0.01, editing: gesture)
-                HStack(alignment: .center, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(L("Couleur")).font(.caption2)
-                        HStack(spacing: 1) {
-                            ForEach(["#FFFFFF", "#15191F", "#EBA65A", "#A0C9BD"], id: \.self) { hex in
-                                Button { model.changePresentation { $0.color = hex } } label: {
-                                    Circle().fill(Color(hex: hex)).frame(width: 24, height: 24)
-                                        .overlay { Circle().strokeBorder(model.presentation.color == hex ? DesignTokens.amber : .white.opacity(0.35), lineWidth: 2) }
-                                        .frame(width: 38, height: 38)
-                                }.accessibilityLabel(hex)
-                            }
+            VStack(spacing: 4) {
+                HStack(spacing: 6) {
+                    CompactTextSizeStepper(title: L("Taille"), value: presentation(\.textSize), range: 0.02...0.2)
+                    Spacer(minLength: 0)
+                    HStack(spacing: 1) {
+                        ForEach(["#FFFFFF", "#15191F", "#EBA65A", "#A0C9BD"], id: \.self) { hex in
+                            Button { model.changeSelectedTextPresentation { $0.color = hex } } label: {
+                                Circle().fill(Color(hex: hex)).frame(width: 24, height: 24)
+                                    .overlay { Circle().strokeBorder(model.presentation.color == hex ? DesignTokens.amber : .white.opacity(0.35), lineWidth: 2) }
+                                    .frame(width: 38, height: 38)
+                            }.accessibilityLabel(hex)
                         }
                     }
-                    VStack(spacing: 4) {
-                        CompactInlineSlider(title: L("Contour"), value: presentation(\.textOutline), range: 0...0.1)
-                        CompactInlineSlider(title: L("Fond"), value: presentation(\.textBackgroundOpacity), range: 0...1)
-                    }
-                    .frame(maxWidth: .infinity)
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel(L("Couleur"))
+                }
+                HStack(spacing: 12) {
+                    CompactInlineSlider(title: L("Contour"), value: presentation(\.textOutline), range: 0...0.1)
+                    CompactInlineSlider(title: L("Fond"), value: presentation(\.textBackgroundOpacity), range: 0...1)
                 }
             }
         case .font:
             VStack(spacing: 8) {
-                Picker(L("Police"), selection: Binding(get: { model.presentation.textFont }, set: { value in model.changePresentation { $0.textFont = value } })) {
-                    Text(L("Système")).tag("system")
-                    ForEach(["Georgia", "Georgia-Bold", "Menlo-Regular", "Menlo-Bold"].filter { UIFont(name: $0, size: 16) != nil }, id: \.self) { Text($0).tag($0) }
-                }.pickerStyle(.menu)
+                TextFontPicker(selectedFont: Binding(get: { model.presentation.textFont }, set: { value in model.changeSelectedTextPresentation { $0.textFont = value } }))
                 HStack {
                     Toggle(L("Gras"), isOn: presentationBool(\.textBold)).frame(maxWidth: 110)
-                    Picker(L("Alignement"), selection: Binding(get: { model.presentation.textAlignment }, set: { value in model.changePresentation { $0.textAlignment = value } })) {
+                    Picker(L("Alignement"), selection: Binding(get: { model.presentation.textAlignment }, set: { value in model.changeSelectedTextPresentation { $0.textAlignment = value } })) {
                         Text(L("Gauche")).tag("left"); Text(L("Centre")).tag("center"); Text(L("Droite")).tag("right")
                     }.pickerStyle(.segmented)
                 }
             }
         case .effects:
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    Menu {
-                        ForEach(EffectKind.allCases, id: \.self) { kind in
-                            Button(effectLabel(kind.rawValue)) { model.changeClip(L("Effets")) { $0.effects.append(.init(kind: kind, amount: 0.3)) } }
-                        }
-                    } label: { Label(L("Ajouter"), systemImage: "plus").frame(minHeight: 44) }.buttonStyle(.bordered)
-                    ForEach(clip.effects) { effect in
-                        Button { editingEffect = effect } label: {
-                            HStack(spacing: 6) { Text(effectLabel(effect.kind.rawValue)); Text("\(Int(effect.amount * 100)) %").foregroundStyle(DesignTokens.amber) }
-                                .font(.caption.weight(.semibold)).padding(.horizontal, 12).frame(height: 44).background(DesignTokens.ink, in: RoundedRectangle(cornerRadius: 11))
+            VStack(spacing: 6) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(EffectCategory.allCases) { category in
+                            let count = clip.effects.filter { category.effects.contains($0.kind) }.count
+                            Button {
+                                withAnimation(.easeOut(duration: 0.14)) { effectCategory = category }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text(L(category.rawValue))
+                                    if count > 0 { Text("\(count)").monospacedDigit().foregroundStyle(DesignTokens.amber) }
+                                }
+                                .font(.caption.weight(effectCategory == category ? .bold : .medium))
+                                .padding(.horizontal, 10).frame(height: 30)
+                                .background(effectCategory == category ? Color.white.opacity(0.14) : Color.clear, in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityAddTraits(effectCategory == category ? .isSelected : [])
+                            .accessibilityIdentifier("effectCategory-\(category.rawValue)")
                         }
                     }
-                    if clip.effects.isEmpty { Text(L("Aucun effet appliqué")).font(.caption).foregroundStyle(DesignTokens.muted) }
                 }
+                .frame(maxWidth: .infinity)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 7) {
+                        ForEach(effectCategory.effects, id: \.self) { kind in
+                            let applied = clip.effects.first { $0.kind == kind }
+                            Button { selectEffect(kind, from: clip) } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: effectSymbol(kind))
+                                    Text(effectLabel(kind.rawValue))
+                                    if applied != nil { Image(systemName: "checkmark.circle.fill").foregroundStyle(DesignTokens.amber) }
+                                }
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 10).frame(height: 40)
+                                .background(applied == nil ? Color.white.opacity(0.07) : DesignTokens.amber.opacity(0.16), in: RoundedRectangle(cornerRadius: 10))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("effect-\(kind.rawValue)")
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
             }
         case .opacity:
             ValueSlider(title: L("Opacité"), value: presentation(\.opacity), range: 0...1, editing: gesture)
@@ -182,11 +293,39 @@ struct ContextToolPanel: View {
         }
     }
 
+    private func mediaFitButton(fill: Bool, title: String, identifier: String) -> some View {
+        let selected = model.presentation.fill == fill
+        return Button { model.setMediaFill(fill) } label: {
+            Text(title)
+                .font(.caption2.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .foregroundStyle(selected ? DesignTokens.ink : Color.white.opacity(0.88))
+                .frame(width: 68, height: 32)
+                .background(selected ? DesignTokens.amber : Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 9))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 9)
+                        .strokeBorder(selected ? Color.clear : Color.white.opacity(0.12), lineWidth: 1)
+                }
+                .frame(width: 68, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityIdentifier(identifier)
+    }
+
     private func presentation(_ key: WritableKeyPath<Presentation, Double>) -> Binding<Double> {
-        Binding(get: { model.presentation[keyPath: key] }, set: { value in model.changePresentation { $0[keyPath: key] = value } })
+        Binding(get: { model.presentation[keyPath: key] }, set: { value in
+            if tool == .textStyle { model.changeSelectedTextPresentation { $0[keyPath: key] = value } }
+            else { model.changePresentation { $0[keyPath: key] = value } }
+        })
     }
     private func presentationBool(_ key: WritableKeyPath<Presentation, Bool>) -> Binding<Bool> {
-        Binding(get: { model.presentation[keyPath: key] }, set: { value in model.changePresentation { $0[keyPath: key] = value } })
+        Binding(get: { model.presentation[keyPath: key] }, set: { value in
+            if tool == .font { model.changeSelectedTextPresentation { $0[keyPath: key] = value } }
+            else { model.changePresentation { $0[keyPath: key] = value } }
+        })
     }
     private func gesture(_ active: Bool) { if active { model.beginGesture(L(tool.rawValue)) } else { model.endGesture() } }
     private func upsertPose(_ clip: Clip) {
@@ -194,44 +333,114 @@ struct ContextToolPanel: View {
         let time = min(max(MediaTime(seconds: model.playhead), rendered.globalStart), rendered.end)
         model.edit(L("Images clés")) { try AnimationEditing.upsertCurrentPose(clipID: clip.id, at: time, variantID: model.variantID, in: &$0) }
     }
+
+    private func selectEffect(_ kind: EffectKind, from clip: Clip) {
+        if let applied = clip.effects.first(where: { $0.kind == kind }) {
+            editingEffect = applied
+            return
+        }
+        let effect = EffectInstance(kind: kind, amount: 0.45)
+        UISelectionFeedbackGenerator().selectionChanged()
+        model.changeClip(L("Effets")) { $0.effects.append(effect) }
+        DispatchQueue.main.async { editingEffect = effect }
+    }
 }
 
-struct CompactValueSlider: View {
+private func animationPresetLabel(_ preset: MotionAnimationPreset) -> String {
+    switch preset {
+    case .fade: "Fondu"
+    case .zoom: "Zoom"
+    case .slide: "Glissement"
+    case .float: "Flottement"
+    case .pulse: "Pulsation"
+    case .spin: "Rotation"
+    case .shake: "Tremblement"
+    }
+}
+
+private func animationPresetSymbol(_ preset: MotionAnimationPreset) -> String {
+    switch preset {
+    case .fade: "circle.lefthalf.filled"
+    case .zoom: "arrow.up.left.and.arrow.down.right"
+    case .slide: "arrow.right"
+    case .float: "arrow.up.and.down"
+    case .pulse: "waveform.path.ecg"
+    case .spin: "arrow.clockwise"
+    case .shake: "waveform.path"
+    }
+}
+
+private func effectSymbol(_ kind: EffectKind) -> String {
+    switch kind {
+    case .skinSmooth: "face.smiling"
+    case .skinGlow: "sun.max.fill"
+    case .bulge, .pinch: "circle.grid.cross"
+    case .twirl: "tornado"
+    case .kaleidoscope: "hexagon"
+    case .comic: "text.bubble"
+    case .crystallize: "snowflake"
+    case .exposure, .brightness, .highlights, .shadows: "sun.max"
+    case .contrast: "circle.lefthalf.filled"
+    case .saturation, .temperature, .tint: "paintpalette"
+    case .sharpness: "camera.aperture"
+    case .vignette: "circle.dashed"
+    case .grain: "circle.grid.3x3.fill"
+    case .fade: "circle.bottomhalf.filled"
+    case .blur: "drop.halffull"
+    case .glow: "sparkles"
+    case .rgbSplit: "circle.hexagongrid"
+    case .pixelate: "square.grid.3x3.fill"
+    case .shake: "waveform.path"
+    case .retro: "camera.filters"
+    }
+}
+
+struct CompactTextSizeStepper: View {
     let title: String
     @Binding var value: Double
     let range: ClosedRange<Double>
-    var step: Double? = nil
-    var editing: (Bool) -> Void = { _ in }
+    private let referenceWidth = 320.0
+
+    private var points: Int { Int((value * referenceWidth).rounded()) }
+
+    private func setPoints(_ points: Int) {
+        value = min(range.upperBound, max(range.lowerBound, Double(points) / referenceWidth))
+    }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(String(format: "%.3f", value))
-                    .monospacedDigit()
-                    .foregroundStyle(DesignTokens.amber)
+        HStack(spacing: 2) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(Color.white.opacity(0.76))
+            Button { setPoints(points - 1) } label: {
+                Image(systemName: "minus")
+                    .font(.caption.weight(.bold))
+                    .frame(width: 28, height: 28)
+                    .background(Color.white.opacity(0.07), in: Circle())
+                    .frame(width: 40, height: 44)
             }
-            .font(.caption)
-            HStack(spacing: 4) {
-                if let step {
-                    Button { value = max(range.lowerBound, value - step) } label: {
-                        Image(systemName: "minus").frame(width: 36, height: 28)
-                    }
-                    .accessibilityLabel(L("Réduire") + " " + title.lowercased())
-                    .accessibilityIdentifier("decrease-\(title)")
-                }
-                SmallThumbSlider(title: title, value: $value, range: range, editing: editing)
-                    .frame(height: 28)
-                if let step {
-                    Button { value = min(range.upperBound, value + step) } label: {
-                        Image(systemName: "plus").frame(width: 36, height: 28)
-                    }
-                    .accessibilityLabel(L("Augmenter") + " " + title.lowercased())
-                    .accessibilityIdentifier("increase-\(title)")
-                }
+            .buttonStyle(.plain)
+            .disabled(value <= range.lowerBound)
+            .accessibilityLabel(L("Réduire") + " " + title.lowercased())
+            .accessibilityIdentifier("decrease-\(title)")
+            Text("\(points) pt")
+                .font(.caption.monospacedDigit().weight(.semibold))
+                .foregroundStyle(DesignTokens.amber)
+                .frame(width: 50)
+                .accessibilityIdentifier("textSizeValue")
+            Button { setPoints(points + 1) } label: {
+                Image(systemName: "plus")
+                    .font(.caption.weight(.bold))
+                    .frame(width: 28, height: 28)
+                    .background(Color.white.opacity(0.07), in: Circle())
+                    .frame(width: 40, height: 44)
             }
+            .buttonStyle(.plain)
+            .disabled(value >= range.upperBound)
+            .accessibilityLabel(L("Augmenter") + " " + title.lowercased())
+            .accessibilityIdentifier("increase-\(title)")
         }
+        .fixedSize(horizontal: true, vertical: false)
     }
 }
 

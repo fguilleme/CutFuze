@@ -1,0 +1,17 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "E5D27AB6-47F8-4AFF-9433-8B23E031BBD0",
+        "deviceName" : "iPhone 18 Pro",
+        "exportedFileName" : "C0C30E33-C3F3-452E-8319-786D45C9CBBE.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "preview-direct-manipulation_0_C7EC1588-62E8-4606-A7E2-E6538E645E64.png",
+        "timestamp" : 1791388993.942
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testPreviewTapSelectsTopmostTextAndDragMovesIt()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testPreviewTapSelectsTopmostTextAndDragMovesIt"
+  }
+]
