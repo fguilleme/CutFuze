@@ -3,7 +3,7 @@ import AVFoundation
 import ImageIO
 
 private func CKL(_ french: String, _ english: String) -> String {
-    Locale.current.language.languageCode?.identifier == "fr" ? french : english
+    AppLocalization.bilingual(french, english)
 }
 
 /// All coordinates exposed here are source pixels with a top-left origin, like the

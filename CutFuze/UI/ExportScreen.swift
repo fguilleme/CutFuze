@@ -51,7 +51,7 @@ struct ExportScreen: View {
                         Picker(L("Cadence"), selection: $settings.frameRate) { ForEach([24, 25, 30, 50, 60], id: \.self) { Text("\($0) fps").tag($0) } }
                         Picker("Codec", selection: $settings.codec) { ForEach(MovieCodec.allCases, id: \.self) { Text($0.rawValue).tag($0) } }
                         Picker(L("Qualité"), selection: $settings.bitrate) { Text("4 Mb/s").tag(4_000_000); Text("8 Mb/s").tag(8_000_000); Text("16 Mb/s").tag(16_000_000); Text("35 Mb/s").tag(35_000_000) }
-                        HStack { Text("SDR · Rec.709"); Spacer(); Text("≈ \(Int(estimatedBytes / 1_000_000)) Mo").monospacedDigit() }.font(.caption).foregroundStyle(.secondary)
+                        HStack { Text("SDR · Rec.709"); Spacer(); Text("≈ \(Int(estimatedBytes / 1_000_000)) \(L("Mo"))").monospacedDigit() }.font(.caption).foregroundStyle(.secondary)
                     }.pickerStyle(.menu).tint(DesignTokens.ink).disabled(running).padding(18).background(.white, in: RoundedRectangle(cornerRadius: 20))
                     if running {
                         VStack(alignment: .leading, spacing: 10) { HStack { Text(currentName).font(.subheadline.bold()); Spacer(); Text("\(Int(progress * 100)) %").monospacedDigit() }; ProgressView(value: progress).tint(DesignTokens.ink); Button(L("Annuler l’export"), role: .destructive) { flag.cancel(); task?.cancel() }.frame(minHeight: 44) }.padding(18).background(.white, in: RoundedRectangle(cornerRadius: 20))

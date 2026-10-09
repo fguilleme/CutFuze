@@ -5,7 +5,7 @@ import Translation
 import UniformTypeIdentifiers
 
 private func SL(_ french: String, _ english: String) -> String {
-    Locale.current.language.languageCode?.identifier == "fr" ? french : (ExtraStrings.english[french] ?? Strings.english[french] ?? english)
+    AppLocalization.bilingual(french, english)
 }
 
 @MainActor
@@ -274,17 +274,17 @@ struct TranscriptionSheet: View {
             Form {
                 Section(SL("Source et langue", "Source and language")) {
                     Picker(SL("Clip source", "Source clip"), selection: $clipID) { ForEach(sources) { clip in Text(model.document.asset(clip.clip.assetID)?.name ?? "Audio").tag(Optional(clip.id)) } }
-                    Picker(SL("Langue parlée", "Spoken language"), selection: $language) { Text("Français (France)").tag("fr-FR"); Text("English (US)").tag("en-US"); Text("English (UK)").tag("en-GB"); Text("Español").tag("es-ES"); Text("Deutsch").tag("de-DE"); Text("Italiano").tag("it-IT") }
+                    Picker(SL("Langue parlée", "Spoken language"), selection: $language) { Text(L("Français (France)")).tag("fr-FR"); Text("English (US)").tag("en-US"); Text("English (UK)").tag("en-GB"); Text(L("Español")).tag("es-ES"); Text(L("Deutsch")).tag("de-DE"); Text(L("Italiano")).tag("it-IT") }
                 }.disabled(transcriber.isWorking || isTranslating)
                 Section(SL("Traduction des sous-titres", "Caption translation")) {
                     Picker(SL("Langue des sous-titres", "Caption language"), selection: $translationTarget) {
                         Text(SL("Texte original", "Original text")).tag("original")
-                        if !language.hasPrefix("fr") { Text("Français").tag("fr") }
+                        if !language.hasPrefix("fr") { Text(L("Français")).tag("fr") }
                         if !language.hasPrefix("en") { Text("English").tag("en") }
-                        if !language.hasPrefix("es") { Text("Español").tag("es") }
-                        if !language.hasPrefix("de") { Text("Deutsch").tag("de") }
-                        if !language.hasPrefix("it") { Text("Italiano").tag("it") }
-                        if !language.hasPrefix("pt") { Text("Português").tag("pt") }
+                        if !language.hasPrefix("es") { Text(L("Español")).tag("es") }
+                        if !language.hasPrefix("de") { Text(L("Deutsch")).tag("de") }
+                        if !language.hasPrefix("it") { Text(L("Italiano")).tag("it") }
+                        if !language.hasPrefix("pt") { Text(L("Português")).tag("pt") }
                     }
                     Text(SL("La traduction conserve exactement les timecodes de la transcription. iOS peut télécharger le modèle de traduction lors de la première utilisation.", "Translation preserves the transcription timecodes exactly. iOS may download the translation model the first time it is used.")).font(.footnote).foregroundStyle(.secondary)
                 }.disabled(transcriber.isWorking || isTranslating)
@@ -434,7 +434,7 @@ struct TemplatesScreen: View {
                     NavigationLink(value: template.id) {
                         HStack(spacing: 14) {
                             Image(systemName: template.symbol).font(.title2).foregroundStyle(Color(hex: template.accent)).frame(width: 42, height: 54).background(DesignTokens.ink, in: RoundedRectangle(cornerRadius: 10))
-                            VStack(alignment: .leading, spacing: 4) { Text(template.name).font(.headline); Text(template.subtitle).font(.caption).foregroundStyle(.secondary) }
+                            VStack(alignment: .leading, spacing: 4) { Text(L(template.name)).font(.headline); Text(L(template.subtitle)).font(.caption).foregroundStyle(.secondary) }
                             Spacer(); Text(timeLabel(template.duration)).font(.caption.monospacedDigit())
                         }.padding(.vertical, 5)
                     }
@@ -443,6 +443,7 @@ struct TemplatesScreen: View {
                 .navigationDestination(for: String.self) { id in if let template = TemplateCatalog.all.first(where: { $0.id == id }) { TemplateDetailScreen(workspace: workspace, template: template, finished: { dismiss() }) } }
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button(L("Fermer")) { dismiss() } } }
         }
+        .preferredColorScheme(.light)
     }
 }
 
@@ -470,7 +471,7 @@ private struct TemplateDetailScreen: View {
                 ZStack { DesignTokens.ink; if let preview { Image(decorative: preview, scale: 1).resizable().scaledToFit() } else { ProgressView().tint(.white) } }.frame(height: 300).clipShape(RoundedRectangle(cornerRadius: 18))
                 Picker(L("Format"), selection: $variantIndex) { Text("9:16").tag(0); Text("1:1").tag(1); Text("16:9").tag(2) }.pickerStyle(.segmented)
                 Slider(value: $position, in: 0...max(0.1, template.duration - 0.1)).accessibilityLabel(SL("Instant de prévisualisation", "Preview time"))
-                Text(template.subtitle).font(.headline)
+                Text(L(template.subtitle)).font(.headline)
                 if let document {
                     ForEach(document.scenes) { scene in HStack { Text(scene.title); Spacer(); Text(timeLabel(scene.duration.seconds)).monospacedDigit().foregroundStyle(.secondary) } }
                     Button(SL("Choisir des photos ou vidéos", "Choose photos or videos")) { importing = true }.buttonStyle(.bordered).disabled(busy)
@@ -480,7 +481,7 @@ private struct TemplateDetailScreen: View {
                 if let error { Text(error).foregroundStyle(.red) }
                 Text(SL("Les médias choisis remplacent les plans dans l’ordre. Textes, durée et cadrage restent modifiables dans l’atelier.", "Selected media replace shots in order. Text, timing and framing remain editable in the editor.")).font(.footnote).foregroundStyle(.secondary)
             }.padding(22)
-        }.background(DesignTokens.paper).navigationTitle(template.name).navigationBarTitleDisplayMode(.inline)
+        }.background(DesignTokens.paper).navigationTitle(L(template.name)).navigationBarTitleDisplayMode(.inline)
             .task { guard document == nil else { return }; do { document = try await TemplateCatalog.make(template: template, in: previewRoot); await render() } catch { self.error = error.localizedDescription } }
             .task(id: "\(variantIndex)-\(position)") { await render() }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.image, .movie], allowsMultipleSelection: true) { result in switch result { case .success(let urls): replace(urls); case .failure(let error): self.error = error.localizedDescription } }

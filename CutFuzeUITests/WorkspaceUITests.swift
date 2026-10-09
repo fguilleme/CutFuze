@@ -1,6 +1,67 @@
 import XCTest
 
 final class WorkspaceUITests: XCTestCase {
+    @MainActor func testEnglishInterfaceAndFrenchLanguageRestoration() throws {
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "fr_FR"]
+        app.launch()
+        XCTAssertTrue(app.buttons["newProject"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.buttons["newProject"].label, "New project")
+        XCTAssertTrue(app.staticTexts["Your editing workshop."].exists)
+        capture("english-library")
+        app.buttons["Settings"].tap()
+        XCTAssertTrue(app.staticTexts["Privacy"].waitForExistence(timeout: 5))
+        capture("english-settings")
+        app.buttons["Close"].tap()
+        let demo = app.buttons["openDemo"]
+        for _ in 0..<6 where !demo.isHittable { app.swipeUp() }
+        app.buttons["Templates"].tap()
+        XCTAssertTrue(app.staticTexts["One voice, one idea"].waitForExistence(timeout: 5))
+        capture("english-templates")
+        app.staticTexts["One voice, one idea"].tap()
+        XCTAssertTrue(app.staticTexts["Here is my idea"].waitForExistence(timeout: 10))
+        capture("english-template-detail")
+        app.navigationBars.buttons["Templates"].tap()
+        app.buttons["Close"].tap()
+        demo.tap()
+        XCTAssertTrue(app.scrollViews["timelineScroll"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.buttons["export"].label, "Export")
+        capture("english-timeline")
+        let video = firstTimelineClip(app, kind: "video")
+        XCTAssertTrue(video.waitForExistence(timeout: 5)); video.tap()
+        app.buttons["tool-Effets visuels"].tap()
+        XCTAssertEqual(app.buttons["visualTool-Transformer"].label, "Transform")
+        XCTAssertTrue(app.buttons["fitMedia"].isHittable)
+        capture("english-visual-effects")
+        app.buttons["closeContextTool"].tap()
+        let caption = firstTimelineClip(app, kind: "caption")
+        XCTAssertTrue(caption.exists); caption.tap()
+        app.buttons["action-EditCaptions"].tap()
+        let field = app.descendants(matching: .any)["captionTextField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        let original = field.value as? String
+        app.buttons["reviewCaptions"].tap()
+        XCTAssertTrue(app.segmentedControls["captionReviewScope"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.segmentedControls["captionReviewScope"].buttons["Entire track"].isSelected)
+        capture("english-caption-review")
+        app.buttons["closeCaptionReview"].tap()
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertEqual(field.value as? String, original)
+        app.buttons["Close"].tap()
+        app.buttons["export"].tap()
+        XCTAssertTrue(app.buttons["closeExport"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Formats to export"].exists)
+        XCTAssertTrue(app.buttons["Start export"].exists)
+        capture("english-export")
+        app.buttons["closeExport"].tap()
+        app.terminate()
+        // Only the test process overrides its language; device preferences are untouched.
+        _ = launchDemo()
+        XCTAssertEqual(app.buttons["export"].label, "Exporter")
+        capture("french-language-restored")
+    }
+
     @MainActor func testCaptionProofreadingEntryScopeAndCancelPreserveText() throws {
         let app = launchDemo()
         let caption = firstTimelineClip(app, kind: "caption")

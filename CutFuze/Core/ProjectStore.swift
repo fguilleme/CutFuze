@@ -11,11 +11,11 @@ extension ProjectDocument {
         func validTime(_ time: MediaTime) -> Bool { time.timescale > 0 && time.timescale <= 1_000_000 && time.value >= 0 && time.seconds <= 604_800 }
         let assetIDs = Set(assets.map(\.id)), clipIDs = Set(allClips.map { $0.id.uuidString })
         for asset in assets {
-            guard SafePath.isRelative(asset.relativePath), validTime(asset.duration), asset.width >= 0, asset.height >= 0, asset.width <= 65_536, asset.height <= 65_536, asset.nominalFrameRate.isFinite else { throw DocumentError.invalid("Média \(asset.name)") }
+            guard SafePath.isRelative(asset.relativePath), validTime(asset.duration), asset.width >= 0, asset.height >= 0, asset.width <= 65_536, asset.height <= 65_536, asset.nominalFrameRate.isFinite else { throw DocumentError.invalid(String(format: L("Média %@"), asset.name)) }
         }
         for scene in scenes {
             guard validTime(scene.duration), scene.duration > .zero, validTime(scene.transition.duration) else { throw DocumentError.invalid("Durée de scène") }
-            for clip in scene.clips where clip.end > scene.duration { throw DocumentError.invalid("Clip \(clip.id) hors de sa scène") }
+            for clip in scene.clips where clip.end > scene.duration { throw DocumentError.invalid(L("Un segment dépasse sa scène")) }
         }
         for clip in allClips {
             guard validTime(clip.start), validTime(clip.duration), clip.duration > .zero, validTime(clip.sourceStart), validTime(clip.sourceDuration), validTime(clip.animationOffset), validTime(clip.fadeIn), validTime(clip.fadeOut), clip.speed.isFinite, (0.1...100).contains(clip.speed), clip.volume.isFinite, (0...8).contains(clip.volume) else { throw DocumentError.invalid("Paramètres du clip") }

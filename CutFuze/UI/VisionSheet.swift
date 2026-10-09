@@ -1,7 +1,7 @@
 import AVFoundation
 import SwiftUI
 
-private func VL(_ french: String, _ english: String) -> String { Locale.current.language.languageCode?.identifier == "fr" ? french : (ExtraStrings.english[french] ?? Strings.english[french] ?? english) }
+private func VL(_ french: String, _ english: String) -> String { AppLocalization.bilingual(french, english) }
 
 struct VisionSheet: View {
     @ObservedObject var model: EditorModel

@@ -4,7 +4,7 @@ struct CaptionReviewFailure: LocalizedError {
     let message: String
     var start: MediaTime? = nil
     var end: MediaTime? = nil
-    var errorDescription: String? { message }
+    var errorDescription: String? { L(message) }
 }
 
 struct CaptionReviewInput: Identifiable, Sendable {

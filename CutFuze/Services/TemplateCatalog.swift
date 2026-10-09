@@ -37,8 +37,9 @@ enum TemplateCatalog {
 
     static func make(template: TemplateDefinition, in rootURL: URL) async throws -> ProjectDocument {
         let resources = try SyntheticResources.make(in: rootURL, theme: template.theme)
-        var document = ProjectDocument(title: template.name, collection: "Modèles", assets: resources.images)
-        for (index, title) in template.sceneTitles.enumerated() {
+        var document = ProjectDocument(title: L(template.name), collection: L("Modèles"), assets: resources.images)
+        for (index, sourceTitle) in template.sceneTitles.enumerated() {
+            let title = L(sourceTitle)
             let duration = template.durations[index]
             let image = resources.images[index % resources.images.count]
             var background = Clip(assetID: image.id, kind: .image, duration: .init(seconds: duration), sourceDuration: .init(seconds: duration))
@@ -58,13 +59,13 @@ enum TemplateCatalog {
             ]
             var clips = [background, heading]
             if template.id == "portrait" || template.id == "tutorial" || template.id == "letter" {
-                var caption = Clip(kind: .text, start: .init(seconds: 1), duration: .init(seconds: duration - 1.25), sourceDuration: .init(seconds: duration - 1.25), text: "Votre texte, votre histoire.", layer: 20, isCaption: true)
+                var caption = Clip(kind: .text, start: .init(seconds: 1), duration: .init(seconds: duration - 1.25), sourceDuration: .init(seconds: duration - 1.25), text: L("Votre texte, votre histoire."), layer: 20, isCaption: true)
                 caption.presentation.y = 0.86
                 caption.presentation.textSize = 0.041
                 caption.presentation.textBackgroundOpacity = 0.6
                 clips.append(caption)
             }
-            document.scenes.append(Scene(title: title, narration: "Remplacez ce texte par votre narration.", duration: .init(seconds: duration), clips: clips, transition: .init(kind: index < template.transitions.count ? template.transitions[index] : .none, duration: .init(seconds: 0.4))))
+            document.scenes.append(Scene(title: title, narration: L("Remplacez ce texte par votre narration."), duration: .init(seconds: duration), clips: clips, transition: .init(kind: index < template.transitions.count ? template.transitions[index] : .none, duration: .init(seconds: 0.4))))
         }
         configureFormats(&document)
         return document
@@ -96,9 +97,9 @@ enum DemoFactory {
     static func make(in rootURL: URL) async throws -> ProjectDocument {
         let resources = try SyntheticResources.make(in: rootURL, theme: 3)
         let sound = try SyntheticResources.makeReferenceSound(in: rootURL, duration: 30)
-        var document = ProjectDocument(title: "Trente secondes de lumière", collection: "Exemples", assets: resources.images + [sound])
-        let titles = ["Lever les yeux", "Trouver son rythme", "Garder la lumière"]
-        let narratives = ["Une histoire commence par un regard.", "On suit les lignes, les formes, le mouvement.", "Trois formats. Une même histoire à partager."]
+        var document = ProjectDocument(title: L("Trente secondes de lumière"), collection: L("Exemples"), assets: resources.images + [sound])
+        let titles = ["Lever les yeux", "Trouver son rythme", "Garder la lumière"].map(L)
+        let narratives = ["Une histoire commence par un regard.", "On suit les lignes, les formes, le mouvement.", "Trois formats. Une même histoire à partager."].map(L)
         for index in 0..<3 {
             let duration: Double = 10.4
             let image = Clip(assetID: resources.images[index].id, kind: .image, duration: .init(seconds: duration), sourceDuration: .init(seconds: duration), keyframes: [.init(time: .zero, property: .scale, value: 1), .init(time: .init(seconds: duration), property: .scale, value: 1.1, easing: .easeInOut)])
@@ -164,7 +165,7 @@ enum SyntheticResources {
                 }
             }
             try png.write(to: url, options: .atomic)
-            assets.append(.init(relativePath: relative, kind: .image, name: "Lumière \(index + 1)", width: 1280, height: 960, sha256: try digest(url)))
+            assets.append(.init(relativePath: relative, kind: .image, name: String(format: L("Lumière %d"), index + 1), width: 1280, height: 960, sha256: try digest(url)))
         }
         return Images(images: assets)
     }
@@ -199,7 +200,7 @@ enum SyntheticResources {
             try output.write(contentsOf: block)
         }
         try output.synchronize()
-        return .init(relativePath: relative, kind: .audio, name: "Repère sonore original", duration: .init(seconds: duration), sha256: try digest(url), hasAudio: true)
+        return .init(relativePath: relative, kind: .audio, name: L("Repère sonore original"), duration: .init(seconds: duration), sha256: try digest(url), hasAudio: true)
     }
 
     private static func digest(_ url: URL) throws -> String {

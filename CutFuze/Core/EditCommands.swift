@@ -9,11 +9,11 @@ enum DocumentError: LocalizedError, Equatable {
     case invalid(String), missing(String), unsupportedVersion(Int), corrupt(String), cancelled
     var errorDescription: String? {
         switch self {
-        case .invalid(let s): return "Projet invalide : \(s)"
-        case .missing(let s): return "Élément introuvable : \(s)"
-        case .unsupportedVersion(let v): return "Version de projet \(v) non prise en charge."
-        case .corrupt(let s): return "Fichier endommagé : \(s)"
-        case .cancelled: return "Opération annulée."
+        case .invalid(let s): return L("Projet invalide") + " : " + L(s)
+        case .missing(let s): return L("Élément introuvable") + " : " + L(s)
+        case .unsupportedVersion(let v): return String(format: L("Version de projet %d non prise en charge."), v)
+        case .corrupt(let s): return L("Fichier endommagé") + " : " + L(s)
+        case .cancelled: return L("Opération annulée.")
         }
     }
 }

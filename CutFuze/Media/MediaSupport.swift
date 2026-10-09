@@ -9,12 +9,12 @@ enum MediaFailure: LocalizedError, Sendable {
     case unreadable(String), unsupported(String), missing(String), rendering(String), export(String), diskSpace
     var errorDescription: String? {
         switch self {
-        case .unreadable(let s): return "Média illisible : \(s)"
-        case .unsupported(let s): return "Format non pris en charge : \(s)"
-        case .missing(let s): return "Média manquant : \(s)"
-        case .rendering(let s): return "Rendu impossible : \(s)"
-        case .export(let s): return "Export impossible : \(s)"
-        case .diskSpace: return "Espace disque insuffisant pour ce traitement."
+        case .unreadable(let s): return L("Média illisible") + " : " + L(s)
+        case .unsupported(let s): return L("Format non pris en charge") + " : " + L(s)
+        case .missing(let s): return L("Média manquant") + " : " + L(s)
+        case .rendering(let s): return L("Rendu impossible") + " : " + L(s)
+        case .export(let s): return L("Export impossible") + " : " + L(s)
+        case .diskSpace: return L("Espace disque insuffisant pour ce traitement.")
         }
     }
 }

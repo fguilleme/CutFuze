@@ -1,6 +1,6 @@
 import SwiftUI
 
-private func EFL(_ french: String, _ english: String) -> String { Locale.current.language.languageCode?.identifier == "fr" ? french : english }
+private func EFL(_ french: String, _ english: String) -> String { AppLocalization.bilingual(french, english) }
 
 @MainActor struct EffectEditorSheet: View {
     @ObservedObject var model: EditorModel

@@ -51,7 +51,7 @@ actor MovieExporter {
         let temporary = parent.appendingPathComponent(".\(UUID().uuidString).mp4")
         // Nonthrowing cleanup must never overwrite the error being unwound by this async function.
         defer { _ = unlink(temporary.path) }
-        var phase = "Création de l’encodeur"
+        var phase = L("Création de l’encodeur")
         do {
             let writer = try AVAssetWriter(outputURL: temporary, fileType: .mp4)
             let codec: AVVideoCodecType = settings.codec == .h264 ? .h264 : .hevc
@@ -62,7 +62,7 @@ actor MovieExporter {
             video.mediaTimeScale = Int32(settings.frameRate * 1000)
             let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: video, sourcePixelBufferAttributes: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA, kCVPixelBufferWidthKey as String: Int(size.width), kCVPixelBufferHeightKey as String: Int(size.height), kCVPixelBufferIOSurfacePropertiesKey as String: [:]])
             guard writer.canAdd(video) else { throw MediaFailure.export("Piste vidéo refusée") }; writer.add(video)
-            phase = "Préparation du mixage audio"
+            phase = L("Préparation du mixage audio")
             let prepared = try await AudioComposer.prepare(plan: plan, rootURL: rootURL)
             var audioInput: AVAssetWriterInput?
             var audioReader: AVAssetReader?
@@ -80,7 +80,7 @@ actor MovieExporter {
                 audioInput = input; audioReader = reader; audioOutput = output
             }
             defer { audioReader?.cancelReading(); if writer.status == .writing { writer.cancelWriting() } }
-            phase = "Démarrage de l’encodeur"
+            phase = L("Démarrage de l’encodeur")
             guard writer.startWriting() else { throw writer.error ?? MediaFailure.export("Démarrage encodeur") }
             writer.startSession(atSourceTime: .zero)
             if let audioReader, !audioReader.startReading() { throw audioReader.error ?? MediaFailure.export("Démarrage audio") }
@@ -103,7 +103,7 @@ actor MovieExporter {
                         let stamp = CMSampleBufferGetPresentationTimeStamp(sample)
                         if stamp >= encodedDuration { nextAudio = nil; break }
                         if !videoFinished && video.isReadyForMoreMediaData && stamp > audioHorizon { break }
-                        phase = "Encodage audio à \(String(format: "%.3f", stamp.seconds)) s"
+                        phase = String(format: L("Encodage audio à %.3f s"), stamp.seconds)
                         guard audioInput.append(sample) else { throw writer.error ?? MediaFailure.export("Encodage audio") }
                         nextAudio = audioOutput?.copyNextSampleBuffer()
                         supplied += 1; advanced = true
@@ -114,7 +114,7 @@ actor MovieExporter {
                     }
                 }
                 if !videoFinished && video.isReadyForMoreMediaData {
-                    phase = "Encodage image \(frameIndex + 1)/\(frameCount)"
+                    phase = String(format: L("Encodage image %d/%d"), frameIndex + 1, frameCount)
                     let timestamp = CMTime(value: Int64(frameIndex), timescale: Int32(settings.frameRate))
                     let renderTime = MediaTime(seconds: min(timestamp.seconds, max(0, plan.duration.seconds - 1.0 / 60_000)))
                     let image = try await renderer.render(plan: plan, time: renderTime, rootURL: rootURL, size: size)
@@ -122,7 +122,7 @@ actor MovieExporter {
                     var pixelBuffer: CVPixelBuffer?
                     guard CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &pixelBuffer) == kCVReturnSuccess, let pixelBuffer else { throw MediaFailure.export("Allocation image") }
                     context.render(CIImage(cgImage: image), to: pixelBuffer, bounds: CGRect(origin: .zero, size: size), colorSpace: CGColorSpace(name: CGColorSpace.itur_709)!)
-                    guard adaptor.append(pixelBuffer, withPresentationTime: timestamp) else { throw writer.error ?? MediaFailure.export("Encodage image \(frameIndex)") }
+                    guard adaptor.append(pixelBuffer, withPresentationTime: timestamp) else { throw writer.error ?? MediaFailure.export(String(format: L("Encodage image %d"), frameIndex)) }
                     if frameIndex.isMultiple(of: settings.frameRate * 2) { try MediaFiles.checkSpace(at: parent, bytes: 8_388_608) }
                     frameIndex += 1; advanced = true
                     progress(Double(frameIndex) / Double(frameCount) * 0.94)
@@ -131,21 +131,21 @@ actor MovieExporter {
                 if advanced { lastProgress = .now }
                 else {
                     guard lastProgress.duration(to: .now) < .seconds(30) else {
-                        throw MediaFailure.export("Encodeur sans progression : vidéo \(frameIndex)/\(frameCount), audio \(audioFinished ? "terminé" : "en attente")")
+                        throw MediaFailure.export(String(format: L("Encodeur sans progression : vidéo %d/%d, audio %@"), frameIndex, frameCount, L(audioFinished ? "terminé" : "en attente")))
                     }
                     try await Task.sleep(for: .milliseconds(2))
                 }
             }
             if let audioReader, audioReader.status == .failed { throw audioReader.error ?? MediaFailure.export("Lecture audio") }
-            phase = "Finalisation de l’encodeur"
+            phase = L("Finalisation de l’encodeur")
             writer.endSession(atSourceTime: encodedDuration)
             await writer.finishWriting()
             try Task.checkCancellation()
             guard writer.status == .completed else { throw writer.error ?? MediaFailure.export("Finalisation du fichier") }
             progress(0.97)
-            phase = "Relecture du fichier terminé"
+            phase = L("Relecture du fichier terminé")
             let receipt = try await verify(url: temporary, expectedSize: size, expectedDuration: encodedDuration.seconds, expectedRate: Double(settings.frameRate), expectedAudio: prepared.hasAudio, expectedCodec: codec)
-            phase = "Installation atomique du fichier vérifié"
+            phase = L("Installation atomique du fichier vérifié")
             try Task.checkCancellation()
             try MovieFileInstallation.install(temporary: temporary, to: outputURL)
             progress(1)
@@ -154,7 +154,7 @@ actor MovieExporter {
             throw CancellationError()
         } catch {
             let exists = FileManager.default.fileExists(atPath: temporary.path)
-            throw MediaFailure.export("\(phase) : \(error.localizedDescription) (fichier temporaire \(exists ? "présent" : "absent")).")
+            throw MediaFailure.export(String(format: L("%@ : %@ (fichier temporaire %@)."), phase, error.localizedDescription, L(exists ? "présent" : "absent")))
         }
     }
 

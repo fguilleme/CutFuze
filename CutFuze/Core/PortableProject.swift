@@ -24,7 +24,7 @@ enum PortableProject {
             let values = try source.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
             guard values.isRegularFile == true, values.isSymbolicLink != true, let size = values.fileSize, size >= 0 else { throw DocumentError.invalid("Source média non régulière") }
             let digest = try FileDigest.sha256(of: source, cancelled: cancelled)
-            if !asset.sha256.isEmpty && asset.sha256 != digest { throw DocumentError.corrupt("Intégrité du média \(asset.name)") }
+            if !asset.sha256.isEmpty && asset.sha256 != digest { throw DocumentError.corrupt(String(format: L("Intégrité du média %@"), asset.name)) }
             let path: String
             if let existing = pathsByDigest[digest] { path = existing }
             else {

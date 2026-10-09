@@ -1,0 +1,89 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "4D89EBB3-72D1-4F38-A112-27E2CC0ADA7C.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "french-language-restored_0_561AB4B9-FEF1-4840-8633-EF28F2413D2B.png",
+        "timestamp" : 1791572095.38
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "9DC5E9D5-0194-4130-A93D-9DFFEBE94DE1.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "english-export_0_A4928EFB-8930-4475-9B51-705638B2FEB7.png",
+        "timestamp" : 1791572088.104
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "D2CA7961-C5EC-4855-8394-97B898AB013B.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "english-caption-review_0_BF2EF285-0D9B-4693-9402-EF2D0B08C193.png",
+        "timestamp" : 1791572082.144
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "EC8F2253-E0CD-4C32-A596-79BB0965F5F7.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "english-visual-effects_0_56F517D2-536B-4108-9C7B-AD73C2BA1005.png",
+        "timestamp" : 1791572076.394
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "0FB0969F-1B6A-4D4F-B312-324BB93632EC.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "english-timeline_0_7C28BDF9-6B54-4A7E-BBC8-BE535CC5F5F7.png",
+        "timestamp" : 1791572073.786
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "1EE8A8FF-BAD6-414F-B321-A565F71E6FDB.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "english-template-detail_0_CD833909-EFD1-4454-894A-145C44CDC0EE.png",
+        "timestamp" : 1791572069.719
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "B40010F8-3AAB-4536-96E9-8038BEA5776D.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "english-templates_0_D841083E-BFDA-4A9B-BD07-3B09747B0149.png",
+        "timestamp" : 1791572067.096
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "47AFA0C9-60BB-4C07-B446-154E01AB8A25.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "english-settings_0_D9B50B5A-59AC-41D3-B439-58B8A9D562FB.png",
+        "timestamp" : 1791572060.307
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "C49E6EB4-85FB-4143-959D-96BF1C15633E.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "english-library_0_EDA150DE-1584-4CCB-BF81-4EB34C596E0B.png",
+        "timestamp" : 1791572057.8
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testEnglishInterfaceAndFrenchLanguageRestoration()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testEnglishInterfaceAndFrenchLanguageRestoration"
+  }
+]

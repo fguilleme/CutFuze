@@ -1,8 +1,7 @@
 import SwiftUI
 
 private func BL(_ french: String, _ english: String) -> String {
-    if Locale.current.language.languageCode?.identifier == "fr" { return french }
-    return ExtraStrings.english[french] ?? english
+    AppLocalization.bilingual(french, english)
 }
 
 struct BeatMarkersSheet: View {

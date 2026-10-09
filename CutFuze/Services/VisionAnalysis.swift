@@ -17,7 +17,7 @@ struct TrackingResult: Sendable {
 enum VisionAnalysisError: LocalizedError {
     case noVideo, invalidRegion, tooLong, stabilizationTooLong, lostImmediately, noSamples
     var errorDescription: String? {
-        let french = Locale.current.language.languageCode?.identifier == "fr"
+        let french = AppLocalization.isFrench
         switch self {
         case .noVideo: return french ? "Sélectionnez une vidéo décodable." : "Select a decodable video."
         case .invalidRegion: return french ? "Dessinez une région à suivre dans l’image." : "Draw a region to track in the image."

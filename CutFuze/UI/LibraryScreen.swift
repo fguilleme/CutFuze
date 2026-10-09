@@ -57,6 +57,7 @@ struct LibraryScreen: View {
         .sheet(isPresented: $showTemplates) { TemplatesScreen(workspace: workspace) }
         .sheet(item: $editing) { doc in RenameProjectSheet(document: doc) { title, collection in workspace.update(doc, title: title, collection: collection) } }
         .confirmationDialog(L("Supprimer ce projet ?"), isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) { Button(L("Supprimer"), role: .destructive) { if let doc = deleting { workspace.delete(doc) }; deleting = nil } } message: { Text(L("Le document sera supprimé. Les originaux partagés sont conservés.")) }
+        .preferredColorScheme(.light)
     }
     private var header: some View {
         VStack(alignment: .leading, spacing: 16) {
