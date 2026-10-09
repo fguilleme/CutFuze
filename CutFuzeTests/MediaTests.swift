@@ -5,6 +5,53 @@ import ImageIO
 @testable import CutFuze
 
 @MainActor final class MediaTests: XCTestCase {
+    func testCaptionAuditionClampsRangesAndReportsNoAudio() async throws {
+        XCTAssertEqual(CaptionSegmentPlayer.range(start: .init(seconds: -1), end: .init(seconds: 4), duration: .init(seconds: 3)), 0...3)
+        XCTAssertNil(CaptionSegmentPlayer.range(start: .init(seconds: 4), end: .init(seconds: 5), duration: .init(seconds: 3)))
+        XCTAssertNil(CaptionSegmentPlayer.range(start: .init(seconds: 1), end: .init(seconds: 1), duration: .init(seconds: 3)))
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let doc = ProjectDocument(scenes: [.init(duration: .init(seconds: 3), clips: [shape("#000000", duration: 3)])])
+        let audition = CaptionSegmentPlayer(plan: .compile(document: doc, variantID: nil), rootURL: root)
+        defer { audition.stop() }
+        audition.toggle(id: UUID(), start: .zero, end: .init(seconds: 1))
+        try await waitForAudition { audition.activeID == nil }
+        XCTAssertNotNil(audition.error)
+        XCTAssertFalse(audition.preparing)
+    }
+
+    func testCaptionAuditionRealAudioAutoStopSwitchAndCancellation() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("caption-tone.caf")
+        try audioFixture(at: url, seconds: 3)
+        let asset = try await MediaImporter().importFile(url: url, to: root)
+        let doc = ProjectDocument(assets: [asset], scenes: [.init(duration: .init(seconds: 3))],
+                                  globalClips: [Clip(assetID: asset.id, kind: .audio, duration: .init(seconds: 3), sourceDuration: .init(seconds: 3))])
+        let audition = CaptionSegmentPlayer(plan: .compile(document: doc, variantID: nil), rootURL: root)
+        defer { audition.stop() }
+        let first = UUID(), second = UUID()
+        audition.toggle(id: first, start: .init(seconds: 0.2), end: .init(seconds: 1.2))
+        try await waitForAudition { !audition.preparing && audition.position > 0.25 }
+        XCTAssertEqual(audition.activeID, first); XCTAssertNil(audition.error)
+        audition.toggle(id: second, start: .init(seconds: 1.5), end: .init(seconds: 2))
+        XCTAssertEqual(audition.activeID, second)
+        try await waitForAudition { audition.activeID == nil }
+        XCTAssertEqual(audition.position, 2, accuracy: 0.01); XCTAssertNil(audition.error)
+        audition.toggle(id: first, start: .zero, end: .init(seconds: 1))
+        audition.toggle(id: first, start: .zero, end: .init(seconds: 1))
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertNil(audition.activeID); XCTAssertFalse(audition.preparing)
+        audition.toggle(id: second, start: .init(seconds: 1), end: .init(seconds: 2))
+        audition.stop()
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertNil(audition.activeID); XCTAssertFalse(audition.preparing)
+    }
+
+    private func waitForAudition(_ condition: () -> Bool) async throws {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(8))
+        while !condition(), ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(30)) }
+        XCTAssertTrue(condition(), "The audition did not reach its expected state.")
+    }
+
     private func temporaryRoot() throws -> URL {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("MediaTests-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

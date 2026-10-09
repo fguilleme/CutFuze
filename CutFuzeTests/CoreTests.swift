@@ -2,6 +2,168 @@ import XCTest
 @testable import CutFuze
 
 final class CoreTests: XCTestCase {
+    func testCaptionReviewTextResponseRejectsRefusalProseAndMalformedJSON() throws {
+        let input = CaptionReviewInput(id: UUID(), original: "Les chat joue.", text: "Les chat joue.", start: .zero, end: .init(seconds: 1))
+        let json = #"{"text":"Les chats jouent."}"#
+        XCTAssertEqual(try CaptionProofreading.decodePhraseResponse(json, for: [input]).first?.replacement, "Les chats jouent.")
+        XCTAssertEqual(try CaptionProofreading.decodePhraseResponse("```json\n" + json + "\n```", for: [input]).first?.id, input.id)
+        for bad in ["Je ne peux pas vous aider avec ce contenu.", "Voici la réponse : " + json,
+                    #"{"text":""}"#, #"{"text":false}"#, #"{"text":0}"#, #"{"text":null}"#,
+                    #"{"text":"Bonjour","reason":"test"}"#,
+                    #"{"captions":[],"refusal":"Non"}"#] {
+            XCTAssertThrowsError(try CaptionProofreading.decodePhraseResponse(bad, for: [input]))
+        }
+    }
+
+    func testCaptionPhraseGroupingPreservesBoundariesAndRejectsPartialAcceptance() throws {
+        var doc = document(); doc.scenes[0].clips.removeAll { $0.isCaption }
+        doc.globalClips = ["Les chat", "joue dans le", "jardin.", "Bonjour !", "Autre phrase"].enumerated().map {
+            Clip(kind: .text, start: .init(seconds: Double($0.offset)), duration: .init(seconds: 1), text: $0.element, isCaption: true)
+        }
+        let inputs = CaptionProofreading.inputs(in: doc)
+        let batches = try CaptionProofreading.phraseBatches(inputs)
+        XCTAssertEqual(batches.map(\.count), [3, 1, 1])
+        XCTAssertEqual(batches.flatMap { $0 }.map(\.id), inputs.map(\.id))
+        let response = #"{"text":"Les chats jouent dans le jardin."}"#
+        var corrections = try CaptionProofreading.decodePhraseResponse(response, for: batches[0])
+        XCTAssertEqual(corrections.count, 2)
+        let before = doc.globalClips
+        corrections[1].accepted = false
+        XCTAssertThrowsError(try CaptionProofreading.apply(corrections, in: &doc))
+        XCTAssertEqual(doc.globalClips, before)
+        corrections[1].accepted = true
+        let history = EditHistory(document: doc)
+        try history.perform(name: "Relecture de phrase") { try CaptionProofreading.apply(corrections, in: &$0) }
+        XCTAssertEqual(history.document.globalClips.prefix(3).map(\.text).joined(separator: " "), "Les chats jouent dans le jardin.")
+        XCTAssertEqual(history.document.globalClips.map(\.start), before.map(\.start))
+        XCTAssertEqual(history.document.globalClips.map(\.duration), before.map(\.duration))
+        history.undo(); XCTAssertEqual(history.document.globalClips, before)
+        var layers = inputs; layers[1].layer = 1
+        XCTAssertEqual(try CaptionProofreading.phraseBatches(layers).prefix(3).map(\.count), [1, 1, 1])
+    }
+
+    func testCaptionPhraseRedistributionKeepsApproximateCutsAndEveryWordOnce() throws {
+        let inputs = ["Les chat", "joue dans le", "jardin."].enumerated().map {
+            CaptionReviewInput(id: UUID(), original: $0.element, text: $0.element,
+                               start: .init(seconds: Double($0.offset)), end: .init(seconds: Double($0.offset + 1)))
+        }
+        let result = try CaptionProofreading.decodePhraseResponse(#"{"text":"Les chats jouent dans le jardin."}"#, for: inputs)
+        let parts = inputs.map { input in result.first { $0.id == input.id }?.replacement ?? input.text }
+        XCTAssertEqual(parts, ["Les chats", "jouent dans le", "jardin."])
+        XCTAssertEqual(parts.joined(separator: " "), "Les chats jouent dans le jardin.")
+        XCTAssertTrue(result.allSatisfy { $0.groupID == inputs[0].id })
+        let longer = try CaptionProofreading.decodePhraseResponse(#"{"text":"Les chats jouent tranquillement dans le grand jardin."}"#, for: inputs)
+        let longerParts = inputs.map { input in longer.first { $0.id == input.id }?.replacement ?? input.text }
+        XCTAssertEqual(longerParts.joined(separator: " "), "Les chats jouent tranquillement dans le grand jardin.")
+        XCTAssertTrue(longerParts.allSatisfy { !$0.isEmpty })
+        XCTAssertThrowsError(try CaptionProofreading.decodePhraseResponse(#"{"text":"Non."}"#, for: inputs))
+        XCTAssertThrowsError(try CaptionProofreading.decodePhraseResponse("Je ne peux pas relire ce texte.", for: inputs))
+        XCTAssertThrowsError(try CaptionProofreading.decodePhraseResponse(#"{"text":"Bonjour","reason":"refusal"}"#, for: inputs))
+    }
+
+    @MainActor func testRealCaptionIntelligenceProofreadsWholePhraseAndNeutralLanguageFragment() async throws {
+        if let reason = CaptionIntelligence.unavailableReason { throw XCTSkip(reason) }
+        let inputs = ["Les chat", "joue dans le", "jardin."].enumerated().map {
+            CaptionReviewInput(id: UUID(), original: $0.element, text: $0.element,
+                               start: .init(seconds: Double($0.offset)), end: .init(seconds: Double($0.offset + 1)))
+        }
+        var progress: [Int] = []
+        let corrections = try await CaptionIntelligence.review(inputs, wholeTrack: true) { count, _ in progress.append(count) }
+        let text = inputs.map { input in corrections.first { $0.id == input.id }?.replacement ?? input.text }.joined(separator: " ")
+        XCTAssertEqual(text.lowercased(), "les chats jouent dans le jardin.")
+        XCTAssertEqual(progress, [3])
+        XCTAssertTrue(corrections.allSatisfy { $0.groupID == inputs[0].id })
+        for correction in corrections {
+            let input = try XCTUnwrap(inputs.first { $0.id == correction.id })
+            XCTAssertEqual(correction.start, input.start); XCTAssertEqual(correction.end, input.end)
+        }
+        let neutral = CaptionReviewInput(id: UUID(), original: "Pas espagnol", text: "Pas espagnol", start: .zero, end: .init(seconds: 2))
+        let result = try await CaptionIntelligence.review([neutral]) { _, _ in }
+        let neutralText = result.first?.replacement ?? neutral.text
+        XCTAssertTrue(neutralText.lowercased().contains("pas espagnol"), neutralText)
+    }
+
+    @MainActor func testRealCaptionIntelligenceProcessesMultipleBatchesWithoutChangingTiming() async throws {
+        if let reason = CaptionIntelligence.unavailableReason { throw XCTSkip(reason) }
+        let inputs = (0..<9).map { index in
+            CaptionReviewInput(id: UUID(), original: "Les chat joue.", text: "Les chat joue.",
+                               start: .init(seconds: Double(index)), end: .init(seconds: Double(index + 1)))
+        }
+        var progress: [Int] = []
+        let corrections = try await CaptionIntelligence.review(inputs, wholeTrack: true) { completed, total in
+            progress.append(completed); XCTAssertEqual(total, 9)
+        }
+        XCTAssertEqual(progress, Array(1...9))
+        XCTAssertEqual(corrections.map(\.id), inputs.map(\.id))
+        XCTAssertEqual(corrections.map(\.start), inputs.map(\.start))
+        XCTAssertEqual(corrections.map(\.end), inputs.map(\.end))
+        XCTAssertTrue(corrections.allSatisfy { $0.replacement.contains("chats") && $0.replacement.contains("jouent") })
+    }
+
+    func testCaptionProofreadingPreservesTimingSourceStyleFormatsAndSingleUndo() throws {
+        var doc = document(); doc.assets[0].kind = .video
+        let media = Clip(assetID: doc.assets[0].id, kind: .video, duration: .init(seconds: 10), sourceDuration: .init(seconds: 10))
+        let caption = Clip(kind: .text, start: .init(seconds: 2), duration: .init(seconds: 6), text: "Les chat joue.", isCaption: true,
+                           captionSourceAssetID: doc.assets[0].id, captionSourceClipID: media.id,
+                           captionSourceStart: .init(seconds: 2), captionSourceEnd: .init(seconds: 8), captionAnalyzedRevision: 3)
+        let second = Clip(kind: .text, start: .init(seconds: 8), duration: .init(seconds: 1), text: "Autre texte", isCaption: true)
+        doc.scenes[0].clips = [media, caption, second]
+        var presentation = Presentation(); presentation.y = 0.3
+        doc.variants[1].overrides[caption.id.uuidString] = presentation
+        let inputs = CaptionProofreading.inputs(in: doc)
+        var corrections = try CaptionProofreading.corrections(for: inputs, indexedTexts: [(1, "Autre texte."), (0, "Les chats jouent.")])
+        corrections[1].accepted = false
+        let history = EditHistory(document: doc)
+        try history.perform(name: "Relecture") { try CaptionProofreading.apply(corrections, in: &$0) }
+        var expected = caption; expected.text = "Les chats jouent."
+        XCTAssertEqual(history.document.clip(caption.id), expected)
+        XCTAssertEqual(history.document.clip(second.id), second)
+        XCTAssertEqual(history.document.variants, doc.variants)
+        history.undo(); XCTAssertEqual(history.document.scenes, doc.scenes)
+        history.redo(); XCTAssertEqual(history.document.clip(caption.id)?.text, "Les chats jouent.")
+    }
+
+    func testCaptionProofreadingRejectsMalformedOutputAndStaleEditsAtomically() throws {
+        var doc = document()
+        let first = Clip(kind: .text, duration: .init(seconds: 3), text: "Bonjour", isCaption: true)
+        let second = Clip(kind: .text, start: .init(seconds: 3), duration: .init(seconds: 3), text: "Salut", isCaption: true)
+        doc.scenes[0].clips = doc.scenes[0].clips.filter { !$0.isCaption } + [first, second]
+        let inputs = CaptionProofreading.inputs(in: doc)
+        XCTAssertThrowsError(try CaptionProofreading.corrections(for: inputs, indexedTexts: [(0, "Bonjour.")]))
+        XCTAssertThrowsError(try CaptionProofreading.corrections(for: inputs, indexedTexts: [(0, "Bonjour."), (0, "Salut.")]))
+        XCTAssertThrowsError(try CaptionProofreading.corrections(for: inputs, indexedTexts: [(-1, "Bonjour."), (1, "Salut.")]))
+        XCTAssertThrowsError(try CaptionProofreading.corrections(for: inputs, indexedTexts: [(0, " "), (1, "Salut.")]))
+        XCTAssertTrue(try CaptionProofreading.corrections(for: inputs, indexedTexts: [(0, "Bonjour"), (1, "Salut")]).isEmpty)
+        var corrections = try CaptionProofreading.corrections(for: inputs, indexedTexts: [(0, "Bonjour."), (1, "Salut.")])
+        try DocumentEditor.updateClip(second.id, in: &doc) { $0.text = "Modifié à la main" }
+        let saved = doc.scenes
+        XCTAssertThrowsError(try CaptionProofreading.apply(corrections, in: &doc))
+        XCTAssertEqual(doc.scenes, saved)
+        corrections[1].accepted = false
+        try CaptionProofreading.apply(corrections, in: &doc)
+        XCTAssertEqual(doc.clip(first.id)?.text, "Bonjour.")
+        XCTAssertEqual(doc.clip(second.id)?.text, "Modifié à la main")
+    }
+
+    func testCaptionProofreadingBatchesAndUnsavedDraftDoNotMutateDocument() throws {
+        var doc = document()
+        doc.scenes[0].clips.removeAll { $0.isCaption }
+        doc.globalClips = (0..<19).map { Clip(kind: .text, start: .init(seconds: Double($0)), duration: .init(seconds: 1), text: String(repeating: "é", count: 150), isCaption: true) }
+        let id = doc.globalClips[0].id
+        let inputs = CaptionProofreading.inputs(in: doc, draftID: id, draft: "Brouillon")
+        XCTAssertEqual(inputs.first?.text, "Brouillon")
+        XCTAssertEqual(doc.clip(id)?.text, String(repeating: "é", count: 150))
+        let batches = try CaptionProofreading.batches(inputs)
+        XCTAssertEqual(batches.flatMap { $0 }.map(\.id), inputs.map(\.id))
+        XCTAssertTrue(batches.allSatisfy { $0.count <= 8 && $0.reduce(0) { $0 + $1.text.utf8.count } <= 1800 })
+        let correction = try CaptionProofreading.corrections(for: [inputs[0]], indexedTexts: [(0, "Brouillon.")])
+        XCTAssertEqual(correction.first?.original, doc.clip(id)?.text)
+        XCTAssertEqual(correction.first?.reviewedText, "Brouillon")
+        XCTAssertTrue(try CaptionProofreading.batches([]).isEmpty)
+        let tooLong = CaptionReviewInput(id: id, original: "", text: String(repeating: "é", count: 901), start: .zero, end: .init(seconds: 1))
+        XCTAssertThrowsError(try CaptionProofreading.batches([tooLong]))
+    }
+
     func testEffectPointEditorPreservesIdentityDomainAndRejectsCollisions() throws {
         var effect = EffectInstance(kind: .brightness, amount: 0.2, start: .init(seconds: 5.5), duration: .init(seconds: 3))
         let domain = MediaTime(seconds: 5)...MediaTime(seconds: 10)

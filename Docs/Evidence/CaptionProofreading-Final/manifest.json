@@ -1,0 +1,41 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "C90948A2-F336-4F08-8024-D83370B75E07.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "caption-proofreading-entry_0_37A0B41A-CA2F-4C6B-B3D2-08AF207C7A08.png",
+        "timestamp" : 1791532707.059
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testCaptionProofreadingEntryScopeAndCancelPreserveText()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testCaptionProofreadingEntryScopeAndCancelPreserveText"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "A3843C08-0A85-4C36-8AA6-2D29251DC010.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "caption-proofreading-single-undo_0_5E9DFAA0-D048-4A61-996C-CF8168513C8A.png",
+        "timestamp" : 1791532741.116
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "64236CB0-14EA-4650-9930-18A1523189D0.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "caption-proofreading-proposal_0_F428A039-1828-49BE-AF56-807440527B2B.png",
+        "timestamp" : 1791532736.749
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testCaptionProofreadingWithRealAppleIntelligenceAndUndo()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testCaptionProofreadingWithRealAppleIntelligenceAndUndo"
+  }
+]

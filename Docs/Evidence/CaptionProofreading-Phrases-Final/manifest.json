@@ -1,0 +1,59 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "5BAA71DE-D3C8-4AD5-8B9A-D41C4B4D4290.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "caption-proofreading-entry_0_C05CC363-D7E8-4DC1-9D57-EF3924BD7F60.png",
+        "timestamp" : 1791534775.208
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "2F9B7130-39AE-4C6B-A9B2-58F36213E387.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "caption-proofreading-whole-phrase-scope_0_E9F0308D-BDCA-4A65-9AD7-95FDD24B5061.png",
+        "timestamp" : 1791534772.578
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "AB2CD92B-A114-4349-96AA-E462A5B985CA.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "caption-proofreading-access_0_3FDBAC7E-74B7-470B-9AFF-EA2EAF4A9C46.png",
+        "timestamp" : 1791534769.806
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testCaptionProofreadingEntryScopeAndCancelPreserveText()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testCaptionProofreadingEntryScopeAndCancelPreserveText"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "7702E6AD-141D-48B7-9B66-A363BD893AEC.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "caption-proofreading-single-undo_0_B934EABD-8C65-487C-9F4E-E2066B1A4AB2.png",
+        "timestamp" : 1791534807.723
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "3A801616-41B5-4B47-B0EF-658D47560B36.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "caption-proofreading-proposal_0_08BC8FD2-8817-427D-A6DE-A4F6FA341405.png",
+        "timestamp" : 1791534803.347
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testCaptionProofreadingWithRealAppleIntelligenceAndUndo()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testCaptionProofreadingWithRealAppleIntelligenceAndUndo"
+  }
+]

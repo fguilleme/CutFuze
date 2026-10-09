@@ -1,6 +1,86 @@
 import XCTest
 
 final class WorkspaceUITests: XCTestCase {
+    @MainActor func testCaptionProofreadingEntryScopeAndCancelPreserveText() throws {
+        let app = launchDemo()
+        let caption = firstTimelineClip(app, kind: "caption")
+        XCTAssertTrue(caption.waitForExistence(timeout: 10)); caption.tap()
+        app.buttons["action-EditCaptions"].tap()
+        let field = app.descendants(matching: .any)["captionTextField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        let original = field.value as? String
+        capture("caption-proofreading-access")
+        app.buttons["reviewCaptions"].tap()
+        XCTAssertTrue(app.segmentedControls["captionReviewScope"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.segmentedControls["captionReviewScope"].buttons["Toute la piste"].isSelected)
+        XCTAssertTrue(app.staticTexts["Les fragments sont relus comme des phrases, puis répartis sur les segments existants. Les temps restent inchangés."].exists)
+        capture("caption-proofreading-whole-phrase-scope")
+        app.segmentedControls["captionReviewScope"].buttons["Ce segment"].tap()
+        XCTAssertFalse(app.buttons["applyCaptionCorrections"].isEnabled)
+        capture("caption-proofreading-entry")
+        app.buttons["closeCaptionReview"].tap()
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertEqual(field.value as? String, original)
+    }
+
+    @MainActor func testCaptionProofreadingWithRealAppleIntelligenceAndUndo() throws {
+        let app = launchDemo()
+        let caption = firstTimelineClip(app, kind: "caption")
+        XCTAssertTrue(caption.waitForExistence(timeout: 10)); caption.tap()
+        app.buttons["action-EditCaptions"].tap()
+        let field = app.descendants(matching: .any)["captionTextField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        let original = try XCTUnwrap(field.value as? String)
+        field.tap()
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: original.count))
+        field.typeText("Les chat joue dans le jardin.")
+        app.buttons["Terminé"].tap()
+        app.buttons["reviewCaptions"].tap()
+        XCTAssertTrue(app.segmentedControls["captionReviewScope"].waitForExistence(timeout: 5))
+        if app.staticTexts["captionReviewUnavailable"].exists {
+            capture("caption-proofreading-unavailable")
+            throw XCTSkip("Apple Intelligence indisponible sur l’appareil de test : " + app.staticTexts["captionReviewUnavailable"].label)
+        }
+        app.segmentedControls["captionReviewScope"].buttons["Ce segment"].tap()
+        app.buttons["startCaptionReview"].tap()
+        let correction = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "captionCorrection-")).firstMatch
+        let response = NSPredicate { _, _ in correction.exists || app.staticTexts["captionReviewError"].exists || app.staticTexts["captionReviewUnavailable"].exists }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: response, object: app)], timeout: 90), .completed)
+        XCTAssertTrue(correction.exists, app.debugDescription)
+        let proposed = try XCTUnwrap(correction.value as? String)
+        XCTAssertFalse(proposed.isEmpty)
+        XCTAssertNotEqual(proposed, original)
+        XCTAssertTrue(proposed.contains("chats"), proposed)
+        XCTAssertTrue(proposed.contains("jouent"), proposed)
+        let listen = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "listenCaption-")).firstMatch
+        XCTAssertTrue(listen.exists)
+        listen.tap()
+        let playing = NSPredicate { _, _ in listen.label.contains("Arrêter l’écoute") }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: playing, object: app)], timeout: 10), .completed)
+        capture("caption-proofreading-listening")
+        listen.tap()
+        XCTAssertTrue(listen.label.contains("Écouter le segment"))
+        listen.tap()
+        let finished = NSPredicate { _, _ in listen.label.contains("Écouter le segment") }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: finished, object: app)], timeout: 15), .completed)
+        XCTAssertFalse(app.staticTexts["captionAuditionError"].exists)
+        XCTAssertEqual(correction.value as? String, proposed)
+        let acceptance = app.switches.matching(NSPredicate(format: "identifier BEGINSWITH %@", "acceptCorrection-")).firstMatch
+        XCTAssertTrue(acceptance.exists)
+        let acceptanceControl = acceptance.switches.firstMatch.exists ? acceptance.switches.firstMatch : acceptance
+        acceptanceControl.tap()
+        XCTAssertFalse(app.buttons["applyCaptionCorrections"].isEnabled)
+        acceptanceControl.tap()
+        XCTAssertTrue(app.buttons["applyCaptionCorrections"].isEnabled)
+        capture("caption-proofreading-proposal")
+        app.buttons["applyCaptionCorrections"].tap()
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertEqual(field.value as? String, proposed)
+        app.buttons["captionUndo"].tap()
+        XCTAssertEqual(field.value as? String, original)
+        capture("caption-proofreading-single-undo")
+    }
+
     @MainActor func testVisualToolsShareOnePanelAndMaskIsDirectlyEditable() throws {
         let app = launchDemo()
         let video = firstTimelineClip(app, kind: "video")

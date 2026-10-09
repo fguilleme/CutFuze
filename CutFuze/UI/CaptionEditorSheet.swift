@@ -25,6 +25,7 @@ struct CaptionEditorSheet: View {
     @State private var editingEffect: EffectInstance?
     @State private var localError: String?
     @State private var confirmDeleteTrack = false
+    @State private var showReview = false
     @FocusState private var textFocused: Bool
 
     private var captions: [RenderClip] { CaptionEditing.captions(in: model.document) }
@@ -53,7 +54,7 @@ struct CaptionEditorSheet: View {
                 .scrollDismissesKeyboard(.interactively)
             }
             .pinnedPreview(textFocused ? nil : model.preview)
-            .navigationTitle(L("Modifier les sous-titres"))
+            .navigationTitle(L("Sous-titres"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -62,8 +63,10 @@ struct CaptionEditorSheet: View {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button { model.undo(); refresh() } label: { Image(systemName: "arrow.uturn.backward") }
                         .disabled(!model.canUndo).accessibilityLabel(L("Annuler la modification"))
+                        .accessibilityIdentifier("captionUndo")
                     Button { model.redo(); refresh() } label: { Image(systemName: "arrow.uturn.forward") }
                         .disabled(!model.canRedo).accessibilityLabel(L("Rétablir"))
+                        .accessibilityIdentifier("captionRedo")
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
@@ -84,6 +87,11 @@ struct CaptionEditorSheet: View {
                 Text(L("Tous les sous-titres du montage seront supprimés. Vous pourrez annuler cette action."))
             }
             .sheet(item: $editingEffect) { effect in EffectEditorSheet(model: model, effectID: effect.id) }
+            .sheet(isPresented: $showReview) {
+                CaptionReviewSheet(model: model,
+                                   inputs: CaptionProofreading.inputs(in: model.document, draftID: selectedID, draft: text),
+                                   selectedID: selectedID, onApplied: refresh)
+            }
         }
         .preferredColorScheme(.dark)
     }
@@ -108,6 +116,9 @@ struct CaptionEditorSheet: View {
                         Text(String(format: "%.2f → %.2f s", start, end))
                             .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                         Spacer()
+                        Button { textFocused = false; showReview = true } label: {
+                            Label(L("Vérifier"), systemImage: "sparkles").font(.caption).frame(minHeight: 44)
+                        }.buttonStyle(.borderless).accessibilityIdentifier("reviewCaptions")
                         Button(L("Enregistrer")) { textFocused = false; update() }
                             .buttonStyle(.borderedProminent).tint(DesignTokens.amber).foregroundStyle(DesignTokens.ink)
                             .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)

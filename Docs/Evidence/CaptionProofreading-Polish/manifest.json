@@ -1,0 +1,41 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "37BF7DFA-D48C-4FD8-97CF-343B1CF78595.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "caption-list-handwritten-fonts_0_DFA32D11-8616-4273-98C5-51B4DB98575B.png",
+        "timestamp" : 1791532855.991
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testCaptionListOffersFontGalleryAndSharedTrackScope()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testCaptionListOffersFontGalleryAndSharedTrackScope"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "F31CF746-16DA-40F9-9DC3-360EF15C60EE.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "caption-proofreading-entry_0_BEA0D81E-9B13-4349-9D51-0852462415F4.png",
+        "timestamp" : 1791532871.497
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008130-001144C10162001C",
+        "deviceName" : "📱ZAPHODICUS",
+        "exportedFileName" : "1A06A693-30AA-44D9-A7C4-9B83C79C1D04.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "caption-proofreading-access_0_6387A782-DAF5-4A2C-8A26-807DFECEB4D4.png",
+        "timestamp" : 1791532866.716
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testCaptionProofreadingEntryScopeAndCancelPreserveText()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testCaptionProofreadingEntryScopeAndCancelPreserveText"
+  }
+]
