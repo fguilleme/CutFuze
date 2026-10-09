@@ -307,7 +307,7 @@ struct EditorScreen: View {
 
     private var formatMenu: some View {
         Menu {
-            Section(L("Format actif")) { ForEach(model.document.variants) { variant in Button { model.changeVariant(variant.id) } label: { if variant.id == model.variantID { Label(variant.name, systemImage: "checkmark") } else { Text(variant.name) } } } }
+            Section(L("Format actif")) { ForEach(model.document.variants) { variant in Button { model.changeVariant(variant.id) } label: { if variant.id == model.variantID { Label(L(variant.name), systemImage: "checkmark") } else { Text(L(variant.name)) } } } }
             Button(L("Canevas et formats"), systemImage: "aspectratio") { showCanvas = true }
             Button(L("Comparer les formats"), systemImage: "rectangle.on.rectangle") { model.stop(); showCompare = true }
         } label: { ContextActionLabel(title: "Format", symbol: "aspectratio") }.accessibilityIdentifier("formatTool")

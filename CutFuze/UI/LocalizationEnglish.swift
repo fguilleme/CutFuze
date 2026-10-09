@@ -4,6 +4,8 @@ import Foundation
 enum EnglishCompletion {
     static let strings: [String: String] = [
         "Photo": "Photo", "Audio": "Audio", "Position": "Position",
+        "Votre histoire": "Your story", "VOTRE HISTOIRE": "YOUR STORY",
+        "Toutes": "All",
         "Remplacer": "Replace", "Détourer": "Cutout", "Activé": "Enabled", "Désactivé": "Disabled",
         "Redimensionner l’aperçu et la timeline": "Resize preview and timeline",
         "Mo": "MB",

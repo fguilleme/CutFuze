@@ -1,0 +1,102 @@
+{
+  "date": "2026-10-09",
+  "inspectedScreenshots": 24,
+  "runs": [
+    {
+      "target": "iPhone",
+      "summary": {
+        "status": "SUCCEEDED",
+        "durationMs": 103994,
+        "counts": {
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0
+        },
+        "target": "simulator"
+      },
+      "tests": [
+        {
+          "suite": "AppStoreScreenshotTests",
+          "test": "testEnglishAppStoreScreenshots",
+          "status": "passed",
+          "durationMs": 46464
+        },
+        {
+          "suite": "AppStoreScreenshotTests",
+          "test": "testFrenchAppStoreScreenshots",
+          "status": "passed",
+          "durationMs": 43773
+        }
+      ],
+      "xcresultPath": "/private/tmp/CutFuze-AppStore-iPhone-delivery-20261009.xcresult"
+    },
+    {
+      "target": "iPad",
+      "summary": {
+        "status": "SUCCEEDED",
+        "durationMs": 93275,
+        "counts": {
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0
+        },
+        "target": "simulator"
+      },
+      "tests": [
+        {
+          "suite": "AppStoreScreenshotTests",
+          "test": "testEnglishAppStoreScreenshots",
+          "status": "passed",
+          "durationMs": 43031
+        },
+        {
+          "suite": "AppStoreScreenshotTests",
+          "test": "testFrenchAppStoreScreenshots",
+          "status": "passed",
+          "durationMs": 38294
+        }
+      ],
+      "xcresultPath": "/private/tmp/CutFuze-AppStore-iPad-delivery-20261009.xcresult"
+    },
+    {
+      "target": "Localization",
+      "summary": {
+        "status": "SUCCEEDED",
+        "durationMs": 121732,
+        "counts": {
+          "passed": 6,
+          "failed": 0,
+          "skipped": 0
+        },
+        "target": "simulator"
+      },
+      "tests": [
+        {
+          "suite": "LocalizationTests",
+          "test": "testAllTemplatesAndContextualToolsHaveEnglishTranslations",
+          "status": "passed",
+          "durationMs": 3
+        },
+        {
+          "suite": "LocalizationTests",
+          "test": "testEnglishFrenchAndFallbackPreserveUnknownProjectContent",
+          "status": "passed",
+          "durationMs": 0
+        },
+        {
+          "suite": "LocalizationTests",
+          "test": "testFontGallerySamplesAndCategoriesAreLocalized",
+          "status": "passed",
+          "durationMs": 1
+        },
+        {
+          "suite": "LocalizationTests",
+          "test": "testLocalizedErrorsAndFormatPlaceholders",
+          "status": "passed",
+          "durationMs": 7
+        }
+      ],
+      "xcresultPath": "/private/tmp/CutFuze-AppStore-iPad-20261009.xcresult"
+    }
+  ]
+}

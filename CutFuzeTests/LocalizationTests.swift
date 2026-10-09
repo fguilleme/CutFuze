@@ -2,6 +2,13 @@ import XCTest
 @testable import CutFuze
 
 final class LocalizationTests: XCTestCase {
+    func testFontGallerySamplesAndCategoriesAreLocalized() {
+        XCTAssertEqual(AppLocalization.text("Votre histoire", languageCode: "en"), "Your story")
+        XCTAssertEqual(AppLocalization.text("VOTRE HISTOIRE", languageCode: "en"), "YOUR STORY")
+        XCTAssertEqual(AppLocalization.text("Toutes", languageCode: "en"), "All")
+        XCTAssertEqual(AppLocalization.text("Votre histoire", languageCode: "fr"), "Votre histoire")
+    }
+
     func testEnglishFrenchAndFallbackPreserveUnknownProjectContent() {
         XCTAssertEqual(AppLocalization.text("Sous-titres", languageCode: "en-US"), "Captions")
         XCTAssertEqual(AppLocalization.text("Sous-titres", languageCode: "fr-FR"), "Sous-titres")

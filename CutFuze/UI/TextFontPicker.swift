@@ -68,7 +68,7 @@ struct TextFontPicker: View {
                     ForEach(EditorFontCatalog.available.filter { category == "Toutes" || $0.category == category }) { choice in
                         Button { selectedFont = choice.id; UISelectionFeedbackGenerator().selectionChanged() } label: {
                             VStack(spacing: 4) {
-                                Text(choice.sample).font(choice.font).lineLimit(1).minimumScaleFactor(0.65)
+                                Text(L(choice.sample)).font(choice.font).lineLimit(1).minimumScaleFactor(0.65)
                                 HStack(spacing: 4) {
                                     Text(L(choice.title)).font(.system(size: 10, weight: .medium))
                                     if selectedFont == choice.id { Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)) }
