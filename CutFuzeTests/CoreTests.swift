@@ -2,6 +2,24 @@ import XCTest
 @testable import CutFuze
 
 final class CoreTests: XCTestCase {
+    func testChangingEasingImmediatelyChangesRenderedCurveAndSupportsUndo() throws {
+        let start = Keyframe(time: .zero, property: .scale, value: 1)
+        let end = Keyframe(time: .init(seconds: 4), property: .scale, value: 2)
+        let clip = Clip(kind: .shape, duration: .init(seconds: 4), sourceDuration: .init(seconds: 4), keyframes: [start, end])
+        let history = EditHistory(document: ProjectDocument(scenes: [.init(duration: .init(seconds: 4), clips: [clip])]))
+        let expected: [(KeyframeEasing, Double)] = [(.linear, 1.25), (.easeIn, 1.0625), (.easeOut, 1.4375), (.easeInOut, 1.15625)]
+        for (easing, value) in expected {
+            try history.perform(name: "Interpolation") { try AnimationEditing.setEasing(easing, keyframeID: end.id, clipID: clip.id, in: &$0) }
+            let rendered = try XCTUnwrap(RenderPlan.compile(document: history.document, variantID: nil).clips.first)
+            XCTAssertEqual(rendered.evaluatedPresentation(at: .init(seconds: 1)).scale, value, accuracy: 0.000001)
+            let restored = try JSONDecoder().decode(ProjectDocument.self, from: JSONEncoder().encode(history.document))
+            XCTAssertEqual(restored.clip(clip.id)?.keyframes.last?.easing, easing)
+        }
+        history.undo()
+        XCTAssertEqual(history.document.clip(clip.id)?.keyframes.last?.easing, .easeOut)
+        history.redo()
+        XCTAssertEqual(history.document.clip(clip.id)?.keyframes.last?.easing, .easeInOut)
+    }
     func testCaptionReviewTextResponseRejectsRefusalProseAndMalformedJSON() throws {
         let input = CaptionReviewInput(id: UUID(), original: "Les chat joue.", text: "Les chat joue.", start: .zero, end: .init(seconds: 1))
         let json = #"{"text":"Les chats jouent."}"#
@@ -410,6 +428,24 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(model.document.scenes[0].clips[0].presentation, doc.scenes[0].clips[0].presentation)
         model.undo()
         XCTAssertEqual(model.document.scenes, doc.scenes)
+    }
+
+    @MainActor func testCaptionBackdropAppliesToTrackWithUndoAndKeepsFraming() throws {
+        var doc = document()
+        let first = try XCTUnwrap(doc.allClips.first(where: \.isCaption))
+        var second = first; second.id = UUID(); second.presentation.x = 0.3
+        doc.scenes[0].clips.append(second)
+        doc.variants[1].overrides[first.id.uuidString] = first.presentation
+        let root = try temporaryRoot()
+        let model = EditorModel(document: doc, store: ProjectStore(rootURL: root), rootURL: root)
+        model.selectedClipID = first.id; model.captionWholeTrack = true
+        model.changeSelectedTextPresentation { $0.textBackgroundShape = .cloud; $0.background = "#EF4444"; $0.textBackgroundOpacity = 1 }
+        XCTAssertEqual(model.document.clip(second.id)?.presentation.textBackgroundShape, .cloud)
+        XCTAssertEqual(model.document.clip(second.id)?.presentation.background, "#EF4444")
+        XCTAssertEqual(model.document.clip(second.id)?.presentation.x, 0.3)
+        XCTAssertEqual(model.document.variants[1].overrides[first.id.uuidString]?.textBackgroundShape, .cloud)
+        XCTAssertEqual(model.document.clip(second.id)?.start, second.start)
+        model.undo(); XCTAssertEqual(model.document.scenes, doc.scenes); XCTAssertEqual(model.document.variants, doc.variants)
     }
 
     @MainActor func testRemovingBackgroundOnlyChangesSelectedPhoto() throws {

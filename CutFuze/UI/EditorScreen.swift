@@ -34,6 +34,7 @@ struct EditorScreen: View {
     @State private var viewerHeightAtDragStart: CGFloat?
     @State private var viewerDividerIsDragging = false
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     private var compact: Bool { verticalSizeClass == .compact }
 
     var body: some View {
@@ -46,6 +47,7 @@ struct EditorScreen: View {
             case .visual?: compact ? 218 : 266
             case .animation?: compact ? 176 : 188
             case .font?: compact ? 192 : 294
+            case .textStyle? where horizontalSizeClass == .regular && !compact: 322
             default: compact ? 118 : 156
             }
             let captionScopeHeight: CGFloat = model.selectedClip?.isCaption == true ? 42 : 0

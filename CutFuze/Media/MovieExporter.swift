@@ -2,12 +2,51 @@ import Foundation
 @preconcurrency import AVFoundation
 import CoreImage
 import Darwin
+import VideoToolbox
+
+enum MovieQualityProfile: String, CaseIterable, Sendable {
+    case compact, balanced, fidelity
+    var title: String { switch self {
+    case .compact: AppLocalization.bilingual("Compact", "Compact")
+    case .balanced: AppLocalization.bilingual("Équilibré", "Balanced")
+    case .fidelity: AppLocalization.bilingual("Haute fidélité", "High fidelity")
+    } }
+    var factor: Double { switch self { case .compact: 0.55; case .balanced: 0.72; case .fidelity: 0.88 } }
+    var bitsPerPixel: Double { switch self { case .compact: 0.075; case .balanced: 0.14; case .fidelity: 0.24 } }
+}
 
 struct MovieExportSettings: Equatable, Sendable {
     var longEdge: Int = 1080
     var frameRate: Int = 30
     var codec: MovieCodec = .h264
     var bitrate: Int = 8_000_000
+    // nil retains the explicit bitrate workflow, including existing callers.
+    var qualityProfile: MovieQualityProfile? = nil
+    func estimatedBitrate(for variant: OutputVariant) -> Int {
+        guard let qualityProfile else { return bitrate }
+        let size = dimensions(for: variant)
+        let codecFactor = codec == .hevc ? 0.65 : 1.0
+        return max(200_000, Int(size.width * size.height * Double(frameRate) * qualityProfile.bitsPerPixel * codecFactor))
+    }
+    func compressionProperties(for variant: OutputVariant, supportsConstantQuality: Bool, supportsQualityPriority: Bool) -> [String: Any] {
+        var properties: [String: Any] = [AVVideoExpectedSourceFrameRateKey: frameRate, AVVideoMaxKeyFrameIntervalKey: frameRate * 2]
+        if let qualityProfile, supportsConstantQuality {
+            properties[kVTCompressionPropertyKey_ConstantQualityFactor as String] = qualityProfile.factor
+        } else {
+            properties[AVVideoAverageBitRateKey] = estimatedBitrate(for: variant)
+        }
+        if qualityProfile != nil, supportsQualityPriority {
+            properties[kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality as String] = false
+        }
+        return properties
+    }
+    func supportedEncoderProperties(for variant: OutputVariant) -> Set<String> {
+        let size = dimensions(for: variant)
+        var properties: CFDictionary?
+        let status = VTCopySupportedPropertyDictionaryForEncoder(width: Int32(size.width), height: Int32(size.height), codecType: codec == .h264 ? kCMVideoCodecType_H264 : kCMVideoCodecType_HEVC, encoderSpecification: nil, encoderIDOut: nil, supportedPropertiesOut: &properties)
+        guard status == noErr, let properties else { return [] }
+        return Set((properties as NSDictionary).allKeys.compactMap { $0 as? String })
+    }
     func dimensions(for variant: OutputVariant) -> CGSize {
         let ratio = variant.ratio
         let width = ratio >= 1 ? Double(longEdge) : Double(longEdge) * ratio
@@ -25,12 +64,13 @@ struct ExportReceipt: Sendable {
     var frameRate: Double
     var duration: Double
     var hasAudio: Bool
+    var constantQuality: Bool = false
 }
 
 actor MovieExporter {
-    private let renderer = FrameRenderer()
+    private let renderer = FrameRenderer(softwareRendering: true)
     private var exporting = false
-    private let context = CIContext(options: [.outputColorSpace: CGColorSpace(name: CGColorSpace.itur_709)!])
+    private let context = CIContext(options: [.useSoftwareRenderer: true, .outputColorSpace: CGColorSpace(name: CGColorSpace.itur_709)!])
 
     /// The value-type document parameter is a frozen snapshot. Call sequentially for variants.
     func export(document: ProjectDocument, variantID: UUID, rootURL: URL, settings: MovieExportSettings, outputURL: URL, progress: @escaping @Sendable (Double) -> Void) async throws -> ExportReceipt {
@@ -47,7 +87,10 @@ actor MovieExporter {
         let encodedDuration = CMTime(value: Int64(frameCount), timescale: Int32(settings.frameRate))
         let parent = outputURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
-        try MediaFiles.checkSpace(at: parent, bytes: Int64(plan.duration.seconds * Double(settings.bitrate + 256_000) / 8 * 1.25) + 16_777_216)
+        let supported = settings.supportedEncoderProperties(for: plan.variant)
+        let constantQuality = settings.qualityProfile != nil && supported.contains(kVTCompressionPropertyKey_ConstantQualityFactor as String)
+        // Quality-driven output has no fixed size; reserve conservatively and check while writing.
+        try MediaFiles.checkSpace(at: parent, bytes: Int64(plan.duration.seconds * Double(settings.estimatedBitrate(for: plan.variant) + 256_000) / 8 * (constantQuality ? 3 : 1.25)) + 16_777_216)
         let temporary = parent.appendingPathComponent(".\(UUID().uuidString).mp4")
         // Nonthrowing cleanup must never overwrite the error being unwound by this async function.
         defer { _ = unlink(temporary.path) }
@@ -55,7 +98,8 @@ actor MovieExporter {
         do {
             let writer = try AVAssetWriter(outputURL: temporary, fileType: .mp4)
             let codec: AVVideoCodecType = settings.codec == .h264 ? .h264 : .hevc
-            let outputSettings: [String: Any] = [AVVideoCodecKey: codec, AVVideoWidthKey: Int(size.width), AVVideoHeightKey: Int(size.height), AVVideoCompressionPropertiesKey: [AVVideoAverageBitRateKey: settings.bitrate, AVVideoExpectedSourceFrameRateKey: settings.frameRate, AVVideoMaxKeyFrameIntervalKey: settings.frameRate * 2], AVVideoColorPropertiesKey: [AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2, AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2, AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2]]
+            let compression = settings.compressionProperties(for: plan.variant, supportsConstantQuality: constantQuality, supportsQualityPriority: supported.contains(kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality as String))
+            let outputSettings: [String: Any] = [AVVideoCodecKey: codec, AVVideoWidthKey: Int(size.width), AVVideoHeightKey: Int(size.height), AVVideoCompressionPropertiesKey: compression, AVVideoColorPropertiesKey: [AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2, AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2, AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2]]
             guard writer.canApply(outputSettings: outputSettings, forMediaType: .video) else { throw MediaFailure.unsupported("Codec ou résolution non pris en charge par cet appareil") }
             let video = AVAssetWriterInput(mediaType: .video, outputSettings: outputSettings)
             video.expectsMediaDataInRealTime = false
@@ -144,7 +188,8 @@ actor MovieExporter {
             guard writer.status == .completed else { throw writer.error ?? MediaFailure.export("Finalisation du fichier") }
             progress(0.97)
             phase = L("Relecture du fichier terminé")
-            let receipt = try await verify(url: temporary, expectedSize: size, expectedDuration: encodedDuration.seconds, expectedRate: Double(settings.frameRate), expectedAudio: prepared.hasAudio, expectedCodec: codec)
+            var receipt = try await verify(url: temporary, expectedSize: size, expectedDuration: encodedDuration.seconds, expectedRate: Double(settings.frameRate), expectedAudio: prepared.hasAudio, expectedCodec: codec)
+            receipt.constantQuality = constantQuality
             phase = L("Installation atomique du fichier vérifié")
             try Task.checkCancellation()
             try MovieFileInstallation.install(temporary: temporary, to: outputURL)

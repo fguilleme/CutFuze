@@ -1,6 +1,178 @@
 import XCTest
 
 final class WorkspaceUITests: XCTestCase {
+    @MainActor func testIPadStyleShowsBackgroundControlsWithoutScrolling() throws {
+        guard UIDevice.current.userInterfaceIdiom == .pad else { throw XCTSkip("iPad layout") }
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "caption").tap()
+        app.buttons["tool-Style"].tap()
+        XCTAssertTrue(app.buttons["textBackgroundColor-#EF4444"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["textBackgroundColor-#EF4444"].isHittable)
+        XCTAssertTrue(app.buttons["textBackground-heart"].isHittable)
+        XCTAssertTrue(app.buttons["increase-Taille"].isHittable)
+        capture("ipad-style-expanded")
+        app.terminate()
+    }
+
+    @MainActor func testColoredTextBackgroundShapes() throws {
+        continueAfterFailure = false
+        let app = launchDemo()
+        app.buttons["play"].tap()
+        Thread.sleep(forTimeInterval: 2)
+        app.buttons["play"].tap()
+        firstTimelineClip(app, kind: "text").tap()
+        app.buttons["tool-Style"].tap()
+        let red = app.buttons["textBackgroundColor-#EF4444"]
+        let panel = app.scrollViews["contextToolScroll"]
+        for _ in 0..<5 where !red.isHittable { panel.swipeUp() }
+        XCTAssertTrue(red.isHittable); red.tap()
+        let shapes = app.scrollViews["textBackgroundShapes"]
+        for name in ["rounded", "cloud", "star", "heart"] {
+            let button = app.buttons["textBackground-\(name)"]
+            for _ in 0..<5 where !button.isHittable { shapes.swipeLeft() }
+            XCTAssertTrue(button.isHittable); button.tap()
+            XCTAssertTrue(button.isSelected)
+            capture("text-colored-background-\(name)")
+        }
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        app.terminate()
+    }
+
+    @MainActor func testKeyframeLowerControlsRemainReachable() throws {
+        continueAfterFailure = false
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Animation"].tap()
+        app.buttons["animationPreset-zoom"].tap()
+        app.buttons["advancedAnimation"].tap()
+        XCTAssertTrue(app.sliders["keyframeTimeSlider"].waitForExistence(timeout: 5))
+        capture("keyframe-scroll-initial")
+        let form = app.descendants(matching: .any)["keyframeEditorForm"].firstMatch
+        func scrollSettings() {
+            form.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.9))
+                .press(forDuration: 0.05, thenDragTo: form.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.2)))
+        }
+        let value = app.textFields["keyframeValueField"]
+        for _ in 0..<6 where !value.isHittable { scrollSettings() }
+        XCTAssertTrue(value.isHittable)
+        let fade = app.buttons["applyKeyframeFade"]
+        for _ in 0..<6 where !fade.isHittable { scrollSettings() }
+        XCTAssertTrue(fade.isHittable)
+        capture("keyframe-scroll-lower-controls")
+        app.terminate()
+    }
+
+    @MainActor func testCurveEasingPersistsImmediatelyWithoutSavingPoint() throws {
+        continueAfterFailure = false
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Animation"].tap()
+        app.buttons["animationPreset-zoom"].tap()
+        app.buttons["advancedAnimation"].tap()
+        XCTAssertTrue(app.sliders["keyframeTimeSlider"].waitForExistence(timeout: 5))
+        let keys = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "graphKey-"))
+        XCTAssertGreaterThan(keys.count, 1)
+        // Accessibility order follows screen geometry, not keyframe chronology.
+        func seconds(_ element: XCUIElement) -> Double {
+            Double(element.label.components(separatedBy: ", ").last?.replacingOccurrences(of: " s", with: "") ?? "0") ?? 0
+        }
+        let endPoint = try XCTUnwrap(keys.allElementsBoundByIndex.max { seconds($0) < seconds($1) })
+        endPoint.tap()
+        let picker = app.buttons["keyframeEasing"]
+        for _ in 0..<6 where !picker.isHittable { app.swipeUp() }
+        XCTAssertTrue(picker.isHittable)
+        for label in ["Accélération", "Décélération", "Accélération et décélération", "Linéaire"] {
+            picker.tap()
+            let option = app.buttons[label]
+            if option.waitForExistence(timeout: 2) { option.tap() } else { app.staticTexts[label].tap() }
+            XCTAssertEqual(picker.value as? String, label)
+            XCTAssertEqual(endPoint.value as? String, label)
+        }
+        capture("curve-linear-after-choice")
+        app.buttons["keyframeUndo"].tap()
+        XCTAssertEqual(picker.value as? String, "Accélération et décélération")
+        capture("curve-eased-after-undo")
+        app.buttons["keyframeRedo"].tap()
+        XCTAssertEqual(picker.value as? String, "Linéaire")
+        app.terminate()
+    }
+
+    @MainActor func testVideoExportCompletesAfterBriefBackgroundSwitch() throws {
+        continueAfterFailure = false
+        let app = launchDemo()
+        app.buttons["export"].tap()
+        XCTAssertTrue(app.buttons["exportVariant-1x1"].waitForExistence(timeout: 5))
+        app.buttons["exportVariant-1x1"].tap()
+        app.buttons["exportVariant-16x9"].tap()
+        let resolution = app.buttons["exportResolution"]
+        for _ in 0..<5 where !resolution.isHittable { app.swipeUp() }
+        resolution.tap()
+        app.buttons["720p · 1280 px"].tap()
+        let start = app.buttons["Lancer l’export"]
+        for _ in 0..<5 where !start.isHittable { app.swipeUp() }
+        start.tap()
+        XCTAssertTrue(app.buttons["Annuler l’export"].waitForExistence(timeout: 10))
+        XCUIDevice.shared.press(.home)
+        Thread.sleep(forTimeInterval: 3)
+        app.activate()
+        XCTAssertTrue(app.staticTexts["Terminé"].waitForExistence(timeout: 120))
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        capture("export-completed-after-brief-background")
+        app.terminate()
+    }
+
+    @MainActor func testExportProfilesAndReturnFromAnotherApp() throws {
+        continueAfterFailure = false
+        let app = launchDemo()
+        app.buttons["export"].tap()
+        let profiles = app.segmentedControls["exportQualityProfile"]
+        XCTAssertTrue(profiles.waitForExistence(timeout: 5))
+        XCTAssertTrue(profiles.buttons["Équilibré"].isSelected)
+        profiles.buttons["Compact"].tap()
+        XCTAssertTrue(profiles.buttons["Compact"].isSelected)
+        profiles.buttons["Haute fidélité"].tap()
+        XCTAssertTrue(profiles.buttons["Haute fidélité"].isSelected)
+        capture("export-quality-profiles")
+        let advanced = app.buttons["Avancé"]
+        for _ in 0..<5 where !advanced.isHittable { app.swipeUp() }
+        advanced.tap()
+        let manual = app.switches["exportManualBitrate"]
+        XCTAssertTrue(manual.waitForExistence(timeout: 5))
+        manual.tap()
+        XCTAssertFalse(profiles.isEnabled)
+        manual.tap()
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(app.buttons["closeExport"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        capture("export-advanced-after-app-switch")
+        app.terminate()
+    }
+
+    @MainActor func testTemplateImportOpensPhotoLibrary() throws {
+        continueAfterFailure = false
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        XCTAssertTrue(app.buttons["newProject"].waitForExistence(timeout: 10))
+        let templates = app.buttons["Templates"]
+        for _ in 0..<8 where !templates.isHittable { app.swipeUp() }
+        templates.tap()
+        app.staticTexts["One voice, one idea"].tap()
+        let photos = app.buttons["templatePhotos"]
+        XCTAssertTrue(photos.waitForExistence(timeout: 15))
+        for _ in 0..<4 where !photos.isHittable { app.swipeUp() }
+        XCTAssertTrue(app.buttons["templateFiles"].exists)
+        photos.tap()
+        XCTAssertTrue(app.buttons["Photos"].waitForExistence(timeout: 10)
+            || app.staticTexts["Photos"].exists
+            || app.navigationBars["Photos"].exists)
+        XCTAssertFalse(app.navigationBars["Browse"].exists)
+        capture("template-photo-library")
+        app.terminate()
+    }
+
     @MainActor func testEnglishInterfaceAndFrenchLanguageRestoration() throws {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()

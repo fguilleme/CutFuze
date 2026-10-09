@@ -1,8 +1,31 @@
 import XCTest
 import CoreGraphics
+import UIKit
 @testable import CutFuze
 
 final class TextRenderingTests: XCTestCase {
+    func testBackgroundShapesPersistAndRenderDistinctColoredBackdrops() throws {
+        XCTAssertEqual(try JSONDecoder().decode(Presentation.self, from: Data("{}".utf8)).textBackgroundShape, .rounded)
+        var rasters = Set<Data>()
+        for shape in TextBackgroundShape.allCases {
+            var style = Presentation(textSize: 0.065, background: "#EF4444", textBackgroundOpacity: 1)
+            style.textBackgroundShape = shape
+            let decoded = try JSONDecoder().decode(Presentation.self, from: JSONEncoder().encode(style))
+            XCTAssertEqual(decoded, style)
+            let image = try TextRasterizer.render(text: "Bonjour\nle monde", presentation: decoded, size: CGSize(width: 640, height: 640))
+            let png = try XCTUnwrap(UIImage(cgImage: image).pngData())
+            rasters.insert(png)
+            let bounds = inkBounds(image)
+            XCTAssertGreaterThan(bounds.width, 70)
+            XCTAssertGreaterThan(bounds.height, 40)
+            XCTAssertGreaterThan(bounds.minX, 0)
+            XCTAssertLessThan(bounds.maxX, 640)
+            let attachment = XCTAttachment(image: UIImage(cgImage: image))
+            attachment.name = "text-background-\(shape.rawValue)"; attachment.lifetime = .keepAlways; add(attachment)
+        }
+        XCTAssertEqual(rasters.count, TextBackgroundShape.allCases.count)
+    }
+
     private func inkBounds(_ image: CGImage) -> CGRect {
         var bytes = [UInt8](repeating: 0, count: image.width * image.height * 4)
         bytes.withUnsafeMutableBytes { p in

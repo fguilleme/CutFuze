@@ -4,10 +4,15 @@ import crypto from 'node:crypto';
 
 // Export xcresulttool attachments without changing a pixel of the screenshots.
 const [source, destination, device] = process.argv.slice(2);
-if (!source || !destination || !['iPhone', 'iPad'].includes(device)) {
-  throw new Error('Usage: node Scripts/export-app-store-screenshots.mjs ATTACHMENTS OUTPUT iPhone|iPad');
+const screenshotSizes = {
+  iPhone: [1320, 2868],
+  'iPhone-6.3': [1206, 2622],
+  iPad: [2064, 2752],
+};
+if (!source || !destination || !Object.hasOwn(screenshotSizes, device)) {
+  throw new Error('Usage: node Scripts/export-app-store-screenshots.mjs ATTACHMENTS OUTPUT iPhone|iPhone-6.3|iPad');
 }
-const dimensions = device === 'iPhone' ? [1320, 2868] : [2064, 2752];
+const dimensions = screenshotSizes[device];
 const manifest = JSON.parse(fs.readFileSync(path.join(source, 'manifest.json'), 'utf8'));
 const captured = [];
 for (const test of manifest) {

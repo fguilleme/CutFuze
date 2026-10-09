@@ -1,6 +1,30 @@
 import SwiftUI
 import UIKit
 
+private extension Color {
+    var textHex: String {
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        UIColor(self).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        return String(format: "#%02X%02X%02X", Int((red * 255).rounded()), Int((green * 255).rounded()), Int((blue * 255).rounded()))
+    }
+}
+
+private extension TextBackgroundShape {
+    var displayName: String {
+        switch self {
+        case .rounded: AppLocalization.bilingual("Arrondi", "Rounded")
+        case .rectangle: AppLocalization.bilingual("Rectangle", "Rectangle")
+        case .capsule: AppLocalization.bilingual("Pilule", "Pill")
+        case .cloud: AppLocalization.bilingual("Nuage", "Cloud")
+        case .star: AppLocalization.bilingual("Étoile", "Star")
+        case .heart: AppLocalization.bilingual("Cœur", "Heart")
+        }
+    }
+    var symbol: String {
+        switch self { case .rounded: "rectangle.roundedtop"; case .rectangle: "rectangle"; case .capsule: "capsule"; case .cloud: "cloud"; case .star: "star"; case .heart: "heart" }
+    }
+}
+
 enum ContextTool: String, Identifiable {
     case speed = "Vitesse"
     case volume = "Volume"
@@ -63,8 +87,10 @@ struct ContextToolPanel: View {
     @State private var animationZone: MotionAnimationZone = .entrance
     @FocusState private var textFocused: Bool
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var controlsViewportHeight: CGFloat {
+        if tool == .textStyle, horizontalSizeClass == .regular, verticalSizeClass != .compact { return 260 }
         if tool == .font { return verticalSizeClass == .compact ? 130 : 232 }
         if tool == .visual { return verticalSizeClass == .compact ? 96 : 144 }
         if tool == .animation { return verticalSizeClass == .compact ? 108 : 122 }
@@ -327,6 +353,40 @@ struct ContextToolPanel: View {
                     CompactInlineSlider(title: L("Contour"), value: presentation(\.textOutline), range: 0...0.1)
                     CompactInlineSlider(title: L("Fond"), value: presentation(\.textBackgroundOpacity), range: 0...1)
                 }
+                HStack {
+                    ColorPicker(AppLocalization.bilingual("Couleur du texte", "Text color"), selection: Binding(get: { Color(hex: model.presentation.color) }, set: { value in
+                        model.changeSelectedTextPresentation { $0.color = value.textHex }
+                    }), supportsOpacity: false).font(.caption)
+                    ColorPicker(AppLocalization.bilingual("Couleur du fond", "Background color"), selection: Binding(get: { Color(hex: model.presentation.background) }, set: { value in
+                        model.changeSelectedTextPresentation { $0.background = value.textHex; if $0.textBackgroundOpacity == 0 { $0.textBackgroundOpacity = 1 } }
+                    }), supportsOpacity: false).font(.caption).accessibilityIdentifier("textBackgroundColor")
+                }.frame(minHeight: 44)
+                HStack(spacing: 4) {
+                    Text(AppLocalization.bilingual("Fond", "Background")).font(.caption)
+                    ForEach(["#000000", "#FFFFFF", "#EF4444", "#FBBF24", "#8B5CF6", "#22C5AB"], id: \.self) { hex in
+                        Button {
+                            model.changeSelectedTextPresentation { $0.background = hex; if $0.textBackgroundOpacity == 0 { $0.textBackgroundOpacity = 1 } }
+                        } label: {
+                            Circle().fill(Color(hex: hex)).frame(width: 24, height: 24)
+                                .overlay { Circle().strokeBorder(model.presentation.background == hex ? DesignTokens.amber : .white.opacity(0.35), lineWidth: 2) }
+                                .frame(width: 44, height: 44)
+                        }.buttonStyle(.plain).accessibilityLabel(hex).accessibilityIdentifier("textBackgroundColor-\(hex)")
+                    }
+                }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(TextBackgroundShape.allCases, id: \.self) { shape in
+                            Button {
+                                model.changeSelectedTextPresentation { $0.textBackgroundShape = shape; if $0.textBackgroundOpacity == 0 { $0.textBackgroundOpacity = 1 } }
+                            } label: {
+                                Label(shape.displayName, systemImage: shape.symbol)
+                                    .font(.caption).padding(.horizontal, 10).frame(height: 44)
+                                    .background(model.presentation.textBackgroundShape == shape ? DesignTokens.amber.opacity(0.2) : Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 9))
+                            }.buttonStyle(.plain).accessibilityIdentifier("textBackground-\(shape.rawValue)")
+                                .accessibilityAddTraits(model.presentation.textBackgroundShape == shape ? .isSelected : [])
+                        }
+                    }
+                }.accessibilityIdentifier("textBackgroundShapes")
             }
     }
 

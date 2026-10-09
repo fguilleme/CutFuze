@@ -2,9 +2,70 @@ import XCTest
 import AVFoundation
 import CoreImage
 import ImageIO
+import VideoToolbox
 @testable import CutFuze
 
 @MainActor final class MediaTests: XCTestCase {
+    func testColoredCaptionBackdropSurvivesMovieExport() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        var style = Presentation(textSize: 0.1, background: "#EF4444", textBackgroundOpacity: 1)
+        style.textBackgroundShape = .cloud
+        let caption = Clip(kind: .text, duration: .init(seconds: 0.5), text: "Bonjour", presentation: style)
+        let doc = ProjectDocument(globalClips: [caption])
+        let output = root.appendingPathComponent("colored-caption.mp4")
+        _ = try await MovieExporter().export(document: doc, variantID: doc.variants[0].id, rootURL: root, settings: MovieExportSettings(longEdge: 320), outputURL: output, progress: { _ in })
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: output)); generator.appliesPreferredTrackTransform = true
+        let frame = try await generator.image(at: .zero).image
+        var pixels = [UInt8](repeating: 0, count: frame.width * frame.height * 4)
+        pixels.withUnsafeMutableBytes { buffer in
+            let context = CGContext(data: buffer.baseAddress, width: frame.width, height: frame.height, bitsPerComponent: 8, bytesPerRow: frame.width * 4, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+            context.draw(frame, in: CGRect(x: 0, y: 0, width: frame.width, height: frame.height))
+        }
+        let redPixels = stride(from: 0, to: pixels.count, by: 4).filter { pixels[$0] > 120 && Int(pixels[$0]) > Int(pixels[$0 + 1]) + 50 }.count
+        XCTAssertGreaterThan(redPixels, 100)
+    }
+
+    func testExportProfilesSeparateConstantQualityFromAdaptiveAndManualBitrate() {
+        let variant = ProjectDocument().variants[0]
+        let compact = MovieExportSettings(longEdge: 1920, qualityProfile: .compact)
+        let balanced = MovieExportSettings(longEdge: 1920, qualityProfile: .balanced)
+        let fidelity = MovieExportSettings(longEdge: 1920, qualityProfile: .fidelity)
+        XCTAssertLessThan(compact.estimatedBitrate(for: variant), balanced.estimatedBitrate(for: variant))
+        XCTAssertLessThan(balanced.estimatedBitrate(for: variant), fidelity.estimatedBitrate(for: variant))
+        let hevc = MovieExportSettings(longEdge: 1920, codec: .hevc, qualityProfile: .balanced)
+        XCTAssertLessThan(hevc.estimatedBitrate(for: variant), balanced.estimatedBitrate(for: variant))
+        let larger = MovieExportSettings(longEdge: 3840, frameRate: 60, qualityProfile: .balanced)
+        XCTAssertGreaterThan(larger.estimatedBitrate(for: variant), balanced.estimatedBitrate(for: variant) * 7)
+        let cq = balanced.compressionProperties(for: variant, supportsConstantQuality: true, supportsQualityPriority: true)
+        XCTAssertEqual(cq[kVTCompressionPropertyKey_ConstantQualityFactor as String] as? Double, 0.72)
+        XCTAssertNil(cq[AVVideoAverageBitRateKey])
+        XCTAssertEqual(cq[kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality as String] as? Bool, false)
+        let fallback = balanced.compressionProperties(for: variant, supportsConstantQuality: false, supportsQualityPriority: false)
+        XCTAssertEqual(fallback[AVVideoAverageBitRateKey] as? Int, balanced.estimatedBitrate(for: variant))
+        XCTAssertNil(fallback[kVTCompressionPropertyKey_ConstantQualityFactor as String])
+        let manual = MovieExportSettings(bitrate: 4_000_000)
+        let properties = manual.compressionProperties(for: variant, supportsConstantQuality: true, supportsQualityPriority: true)
+        XCTAssertEqual(properties[AVVideoAverageBitRateKey] as? Int, 4_000_000)
+        XCTAssertNil(properties[kVTCompressionPropertyKey_ConstantQualityFactor as String])
+    }
+
+    func testQualityProfilesProduceVerifiedH264AndHEVCFiles() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let doc = ProjectDocument(scenes: [.init(duration: .init(seconds: 0.5), clips: [shape("#387F56")])])
+        for codec in MovieCodec.allCases {
+            for profile in MovieQualityProfile.allCases {
+                let settings = MovieExportSettings(longEdge: 320, frameRate: 30, codec: codec, qualityProfile: profile)
+                let output = root.appendingPathComponent("\(codec.rawValue)-\(profile.rawValue).mp4")
+                let supported = settings.supportedEncoderProperties(for: doc.variants[0])
+                let receipt = try await MovieExporter().export(document: doc, variantID: doc.variants[0].id, rootURL: root, settings: settings, outputURL: output, progress: { _ in })
+                XCTAssertEqual(receipt.constantQuality, supported.contains(kVTCompressionPropertyKey_ConstantQualityFactor as String))
+                XCTAssertEqual(receipt.frameRate, 30, accuracy: 0.1)
+                XCTAssertGreaterThan(try Data(contentsOf: output).count, 500)
+                print("Export profile \(codec.rawValue) / \(profile.rawValue): constantQuality=\(receipt.constantQuality), bytes=\(try Data(contentsOf: output).count)")
+            }
+        }
+    }
+
     func testCaptionAuditionClampsRangesAndReportsNoAudio() async throws {
         XCTAssertEqual(CaptionSegmentPlayer.range(start: .init(seconds: -1), end: .init(seconds: 4), duration: .init(seconds: 3)), 0...3)
         XCTAssertNil(CaptionSegmentPlayer.range(start: .init(seconds: 4), end: .init(seconds: 5), duration: .init(seconds: 3)))

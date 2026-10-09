@@ -94,15 +94,16 @@ enum PreviewInteractionGeometry {
         paragraph.lineSpacing = presentation.textLineSpacing * fontSize
         let attributes: [NSAttributedString.Key: Any] = [.font: font, .kern: presentation.textLetterSpacing * fontSize, .paragraphStyle: paragraph]
         let measured = (text.isEmpty ? " " : text).boundingRect(
-            with: CGSize(width: canvasSize.width * 0.86, height: canvasSize.height * 0.9),
+            with: CGSize(width: canvasSize.width * (presentation.textBackgroundOpacity > 0 ? presentation.textBackgroundShape.widthLimit : 0.86), height: canvasSize.height * 0.9),
             options: [.usesLineFragmentOrigin, .usesFontLeading],
             attributes: attributes,
             context: nil
         ).integral.size
         let padding: CGFloat = presentation.textBackgroundOpacity > 0 ? 20 : 8
+        let expansion = presentation.textBackgroundOpacity > 0 ? presentation.textBackgroundShape.expansion : 1
         return CGSize(
-            width: min(canvasSize.width * 0.92, max(52, (measured.width + padding) * presentation.scale)),
-            height: min(canvasSize.height * 0.92, max(36, (measured.height + padding * 0.7) * presentation.scale))
+            width: min(canvasSize.width * 0.98, max(52, (measured.width + padding) * expansion * presentation.scale)),
+            height: min(canvasSize.height * 0.98, max(36, (measured.height + padding * 0.7) * expansion * presentation.scale))
         )
     }
 }

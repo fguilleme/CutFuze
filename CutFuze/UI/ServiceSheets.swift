@@ -3,6 +3,7 @@ import SwiftUI
 import Combine
 import Translation
 import UniformTypeIdentifiers
+import PhotosUI
 
 private func SL(_ french: String, _ english: String) -> String {
     AppLocalization.bilingual(french, english)
@@ -257,6 +258,8 @@ private struct CaptionGenerationJob: Sendable {
 struct TranscriptionSheet: View {
     @ObservedObject var model: EditorModel
     @StateObject private var transcriber = LocalTranscriber()
+    @StateObject private var continuedWork = ContinuedWork()
+    @State private var processing = false
     @Environment(\.dismiss) private var dismiss
     @State private var clipID: UUID?
     @State private var language = "fr-FR"
@@ -275,7 +278,7 @@ struct TranscriptionSheet: View {
                 Section(SL("Source et langue", "Source and language")) {
                     Picker(SL("Clip source", "Source clip"), selection: $clipID) { ForEach(sources) { clip in Text(model.document.asset(clip.clip.assetID)?.name ?? "Audio").tag(Optional(clip.id)) } }
                     Picker(SL("Langue parlée", "Spoken language"), selection: $language) { Text(L("Français (France)")).tag("fr-FR"); Text("English (US)").tag("en-US"); Text("English (UK)").tag("en-GB"); Text(L("Español")).tag("es-ES"); Text(L("Deutsch")).tag("de-DE"); Text(L("Italiano")).tag("it-IT") }
-                }.disabled(transcriber.isWorking || isTranslating)
+                }.disabled(processing || transcriber.isWorking || isTranslating)
                 Section(SL("Traduction des sous-titres", "Caption translation")) {
                     Picker(SL("Langue des sous-titres", "Caption language"), selection: $translationTarget) {
                         Text(SL("Texte original", "Original text")).tag("original")
@@ -287,10 +290,10 @@ struct TranscriptionSheet: View {
                         if !language.hasPrefix("pt") { Text(L("Português")).tag("pt") }
                     }
                     Text(SL("La traduction conserve exactement les timecodes de la transcription. iOS peut télécharger le modèle de traduction lors de la première utilisation.", "Translation preserves the transcription timecodes exactly. iOS may download the translation model the first time it is used.")).font(.footnote).foregroundStyle(.secondary)
-                }.disabled(transcriber.isWorking || isTranslating)
+                }.disabled(processing || transcriber.isWorking || isTranslating)
                 Section {
                     Text(SL("L’audio reste local. Si nécessaire, iOS télécharge uniquement le modèle de langue. Les temps proviennent du moteur ; relisez toujours le texte.", "Audio stays on this device. If needed, iOS downloads only the language model. Timing comes from the speech engine; always review the text.")).font(.footnote)
-                    if transcriber.isWorking || isTranslating {
+                    if processing || transcriber.isWorking || isTranslating {
                         if isTranslating { ProgressView(SL("Traduction locale…", "Translating locally…")) }
                         else { ProgressView(value: transcriber.progress) }
                         if let status = transcriber.statusMessage { Text(status).font(.footnote).foregroundStyle(.secondary) }
@@ -300,9 +303,11 @@ struct TranscriptionSheet: View {
                     if sources.isEmpty { Text(SL("Ajoutez d’abord une vidéo avec son ou un fichier audio.", "First add a video with audio or an audio file.")).foregroundStyle(.secondary) }
                     if count > 0 { Text(SL("\(count) segments ajoutés. Ils sont modifiables dans Texte.", "\(count) segments added. Edit them in Text.")) }
                     if let error { Text(error).foregroundStyle(.red) }
+                    if let notice = continuedWork.notice { Text(notice).font(.footnote).foregroundStyle(.secondary) }
                 }
-            }.navigationTitle(L("Sous-titres")).toolbar { ToolbarItem(placement: .cancellationAction) { Button(L("Fermer")) { dismiss() } } }
+            }.navigationTitle(L("Sous-titres")).toolbar { ToolbarItem(placement: .cancellationAction) { Button(L("Fermer")) { dismiss() }.disabled(processing) } }
         }
+        .interactiveDismissDisabled(processing)
         .translationTask(translationConfiguration) { session in await translateAndInsert(using: session) }
         .onAppear { clipID = sources.first(where: { $0.id == model.selectedClipID })?.id ?? sources.first?.id; language = Locale.current.language.languageCode?.identifier == "fr" ? "fr-FR" : "en-US" }
         .onChange(of: language) { _, value in if translationTarget != "original", value.hasPrefix(translationTarget) { translationTarget = "original" } }
@@ -311,11 +316,15 @@ struct TranscriptionSheet: View {
     private func generate() {
         guard let source = sources.first(where: { $0.id == clipID }), let asset = model.document.asset(source.clip.assetID) else { return }
         let snapshotRevision = model.document.revision
-        error = nil; count = 0; model.stop()
+        error = nil; count = 0; model.stop(); processing = true
+        let work = continuedWork
+        transcriber.progressHandler = { value, installing in work.update(installing ? value * 0.1 : 0.1 + value * 0.8) }
         task = Task {
             var extracted: URL?
             defer { if let extracted { try? FileManager.default.removeItem(at: extracted) } }
+            await continuedWork.begin(title: SL("Sous-titres CutFuze", "CutFuze captions")) { cancel(); error = continuedWork.notice }
             do {
+                try Task.checkCancellation()
                 var url = model.rootURL.appendingPathComponent(asset.relativePath)
                 if asset.kind == .video {
                     let output = FileManager.default.temporaryDirectory.appendingPathComponent("transcription-\(UUID().uuidString).m4a")
@@ -344,9 +353,12 @@ struct TranscriptionSheet: View {
                 )
                 if translationTarget == "original" {
                     try insert(job)
+                    processing = false
+                    continuedWork.finish(success: true)
                 } else {
                     translationJob = job
                     isTranslating = true
+                    continuedWork.update(0.92)
                     let sourceLanguage = Locale.Language(identifier: language)
                     let targetLanguage = Locale.Language(identifier: translationTarget)
                     if translationConfiguration?.source == sourceLanguage && translationConfiguration?.target == targetLanguage {
@@ -355,7 +367,7 @@ struct TranscriptionSheet: View {
                         translationConfiguration = .init(source: sourceLanguage, target: targetLanguage)
                     }
                 }
-            } catch is CancellationError {} catch { self.error = error.localizedDescription }
+            } catch is CancellationError { transcriber.progressHandler = nil; processing = false; continuedWork.finish(success: false) } catch { transcriber.progressHandler = nil; self.error = error.localizedDescription; processing = false; continuedWork.finish(success: false) }
         }
     }
     private func translateAndInsert(using session: TranslationSession) async {
@@ -385,6 +397,8 @@ struct TranscriptionSheet: View {
         activeTranslationSession = nil
         translationJob = nil
         isTranslating = false
+        processing = false
+        continuedWork.finish(success: error == nil && count > 0)
     }
     private func insert(_ job: CaptionGenerationJob) throws {
         guard model.document.revision == job.revision else { throw DocumentError.invalid(SL("Le montage a changé ; relancez la transcription.", "The edit changed; generate captions again.")) }
@@ -415,11 +429,14 @@ struct TranscriptionSheet: View {
         task?.cancel()
         task = nil
         transcriber.cancel()
+        transcriber.progressHandler = nil
         activeTranslationSession?.cancel()
         activeTranslationSession = nil
         translationConfiguration = nil
         translationJob = nil
         isTranslating = false
+        processing = false
+        continuedWork.finish(success: false)
     }
 }
 
@@ -463,6 +480,7 @@ private struct TemplateDetailScreen: View {
     @State private var variantIndex = 0
     @State private var position = 1.0
     @State private var importing = false
+    @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var busy = false
     @State private var error: String?
     var body: some View {
@@ -474,7 +492,11 @@ private struct TemplateDetailScreen: View {
                 Text(L(template.subtitle)).font(.headline)
                 if let document {
                     ForEach(document.scenes) { scene in HStack { Text(scene.title); Spacer(); Text(timeLabel(scene.duration.seconds)).monospacedDigit().foregroundStyle(.secondary) } }
-                    Button(SL("Choisir des photos ou vidéos", "Choose photos or videos")) { importing = true }.buttonStyle(.bordered).disabled(busy)
+                    PhotosPicker(selection: $selectedPhotos, maxSelectionCount: document.scenes.count, selectionBehavior: .ordered, matching: .any(of: [.images, .videos])) {
+                        Text(SL("Choisir des photos ou vidéos", "Choose photos or videos"))
+                    }.buttonStyle(.bordered).disabled(busy).accessibilityIdentifier("templatePhotos")
+                    Button(SL("Importer depuis Fichiers", "Import from Files")) { importing = true }
+                        .buttonStyle(.bordered).disabled(busy).accessibilityIdentifier("templateFiles")
                     Button(SL("Ouvrir dans l’atelier", "Open in the editor")) { open() }.buttonStyle(.borderedProminent).tint(DesignTokens.ink).disabled(busy)
                 }
                 if busy { ProgressView() }
@@ -485,7 +507,34 @@ private struct TemplateDetailScreen: View {
             .task { guard document == nil else { return }; do { document = try await TemplateCatalog.make(template: template, in: previewRoot); await render() } catch { self.error = error.localizedDescription } }
             .task(id: "\(variantIndex)-\(position)") { await render() }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.image, .movie], allowsMultipleSelection: true) { result in switch result { case .success(let urls): replace(urls); case .failure(let error): self.error = error.localizedDescription } }
+            .onChange(of: selectedPhotos) { _, items in importPhotos(items) }
 
+    }
+    private func importPhotos(_ items: [PhotosPickerItem]) {
+        guard !items.isEmpty else { return }
+        busy = true
+        error = nil
+        Task {
+            do {
+                var urls: [URL] = []
+                for item in items {
+                    let url: URL?
+                    if item.supportedContentTypes.contains(where: { $0.conforms(to: .movie) }) {
+                        url = try await item.loadTransferable(type: ImportedMovie.self)?.url
+                    } else {
+                        url = try await item.loadTransferable(type: ImportedImage.self)?.url
+                    }
+                    guard let url else { throw MediaFailure.unreadable(SL("Photo ou vidéo", "Photo or video")) }
+                    urls.append(url)
+                }
+                selectedPhotos = []
+                replace(urls)
+            } catch {
+                selectedPhotos = []
+                busy = false
+                self.error = error.localizedDescription
+            }
+        }
     }
     private func render() async {
         guard let document else { return }

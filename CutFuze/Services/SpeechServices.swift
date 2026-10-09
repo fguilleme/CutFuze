@@ -133,7 +133,11 @@ private final class SpeechBufferWriter: @unchecked Sendable {
 @MainActor
 final class LocalTranscriber: ObservableObject {
     @Published private(set) var isWorking = false
-    @Published private(set) var progress: Double = 0
+    @Published private(set) var progress: Double = 0 {
+        didSet { progressHandler?(progress, statusMessage == L("Téléchargement du modèle de langue…")) }
+    }
+    // Report directly rather than relying on SwiftUI updates while the app is backgrounded.
+    var progressHandler: ((Double, Bool) -> Void)?
     @Published private(set) var statusMessage: String?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var continuation: CheckedContinuation<[TranscribedWord], Error>?
@@ -156,6 +160,7 @@ final class LocalTranscriber: ObservableObject {
         statusMessage = nil
         defer {
             isWorking = false
+            progressHandler = nil
             analyzerCancellation = nil
             assetInstallationProgress = nil
             statusMessage = nil

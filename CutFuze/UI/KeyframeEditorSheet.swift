@@ -42,8 +42,16 @@ struct KeyframeEditorSheet: View {
     private var signature: String { "\(clipID?.uuidString ?? "")|\(property.rawValue)|\(globalSeconds)|\(displayedValue)|\(easing.rawValue)|\(model.document.revision)" }
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            Form {
+                if let image = preview ?? model.preview {
+                    Section {
+                        Image(decorative: image, scale: 1).resizable().scaledToFit()
+                            .frame(maxWidth: .infinity).frame(height: 100)
+                            .accessibilityLabel(L("Aperçu du réglage"))
+                    }.listRowBackground(DesignTokens.ink)
+                }
                 if let rendered {
+                    Section {
                     VStack(spacing: 5) {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 5) {
@@ -62,6 +70,15 @@ struct KeyframeEditorSheet: View {
                         Slider(value: Binding(get: { globalSeconds }, set: { selectTime(.init(seconds: $0)) }), in: rendered.globalStart.seconds...max(rendered.globalStart.seconds + 0.001, rendered.end.seconds))
                             .tint(DesignTokens.amber).accessibilityLabel(L("Parcourir l’animation")).accessibilityIdentifier("keyframeTimeSlider")
                         HStack {
+                            Text(L("Interpolation")).font(.caption)
+                            Spacer()
+                            Picker(L("Interpolation"), selection: Binding(get: { easing }, set: changeEasing)) {
+                                ForEach(KeyframeEasing.allCases, id: \.self) { Text(animationEasingLabel($0)).tag($0) }
+                            }.pickerStyle(.menu).labelsHidden().font(.caption)
+                                .accessibilityIdentifier("keyframeEasing").accessibilityValue(animationEasingLabel(easing))
+                                .disabled(selectedKeyID != nil && previous == nil)
+                        }.frame(minHeight: 44)
+                        HStack {
                             Button { savePoint() } label: {
                                 Label(L(selectedKeyID == nil ? "Ajouter un point" : "Enregistrer le point"), systemImage: selectedKeyID == nil ? "plus.diamond" : "checkmark")
                                     .font(.caption.weight(.semibold)).frame(minHeight: 44)
@@ -75,9 +92,9 @@ struct KeyframeEditorSheet: View {
                         if let message = localError ?? renderError {
                             Label(message, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.red)
                         }
-                    }.padding(.horizontal, 16).padding(.bottom, 6).background(DesignTokens.ink)
+                    }.padding(.bottom, 6)
+                    }.listRowBackground(DesignTokens.ink)
                 }
-            Form {
                 Section(L("Point d’animation")) {
                     HStack { Text(L("Instant") + " (s)"); TextField(L("Instant"), value: Binding(get: { globalSeconds - (rendered?.globalStart.seconds ?? 0) }, set: { globalSeconds = $0 + (rendered?.globalStart.seconds ?? 0) }), format: .number.precision(.fractionLength(0...4))).multilineTextAlignment(.trailing).keyboardType(.decimalPad) }
                     HStack {
@@ -86,15 +103,16 @@ struct KeyframeEditorSheet: View {
                         Button { if let next { selectTime(next) } } label: { Label(L("Point suivant"), systemImage: "forward.end") }.disabled(next == nil)
                     }
                     ValueSlider(title: animationPropertyLabel(property), value: $displayedValue, range: range)
-                    HStack { Text(L("Valeur")); TextField(L("Valeur"), value: $displayedValue, format: .number.precision(.fractionLength(0...4))).multilineTextAlignment(.trailing).keyboardType(.numbersAndPunctuation) }
-                    Picker(L("Interpolation"), selection: $easing) { ForEach(KeyframeEasing.allCases, id: \.self) { Text(animationEasingLabel($0)).tag($0) } }
-                    Text(L("L’interpolation choisie décrit l’arrivée sur ce point depuis le précédent.")).font(.caption).foregroundStyle(.secondary)
+                    HStack { Text(L("Valeur")); TextField(L("Valeur"), value: $displayedValue, format: .number.precision(.fractionLength(0...4))).multilineTextAlignment(.trailing).keyboardType(.numbersAndPunctuation).accessibilityIdentifier("keyframeValueField") }
+                    Text(selectedKeyID != nil && previous == nil
+                         ? AppLocalization.bilingual("Ce premier point n’a pas de transition d’arrivée. Sélectionnez le point suivant pour modifier la courbe entre les deux.", "This first point has no incoming transition. Select the next point to change the curve between them.")
+                         : L("L’interpolation choisie décrit l’arrivée sur ce point depuis le précédent.")).font(.caption).foregroundStyle(.secondary)
                 }
                 Section(L("Fondus d’entrée et de sortie")) {
                     Picker(L("Animation"), selection: $preset) { Text(L("Entrée")).tag(FadeAnimationPreset.entrance); Text(L("Sortie")).tag(FadeAnimationPreset.exit); Text(L("Entrée et sortie")).tag(FadeAnimationPreset.combination) }.pickerStyle(.segmented)
                     HStack { Text(L("Durée") + " (s)"); TextField(L("Durée"), value: $fadeDuration, format: .number.precision(.fractionLength(0...3))).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
                     Text(L("Seuls les points d’opacité aux bornes du fondu sont ajoutés ou modifiés. Les autres points manuels sont conservés.")).font(.caption).foregroundStyle(.secondary)
-                    Button(L("Appliquer le fondu")) { applyPreset() }
+                    Button(L("Appliquer le fondu")) { applyPreset() }.accessibilityIdentifier("applyKeyframeFade")
                 }
                 Section(L("Images clés")) {
                     if let rendered {
@@ -103,7 +121,7 @@ struct KeyframeEditorSheet: View {
                                 Button { select(key) } label: {
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text(animationPropertyLabel(key.property)).font(.subheadline)
-                                        Text(String(format: "%.3f s · %@", (rendered.globalStart + key.time - rendered.clip.animationOffset).seconds, animationEasingLabel(key.easing))).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                                        Text(String(format: "%.3f s · %@", (rendered.globalStart + key.time - rendered.clip.animationOffset).seconds, animationEasingLabel(key.easing))).font(.caption.monospacedDigit()).foregroundStyle(.secondary).accessibilityIdentifier("keyframeDetail-\(key.id)")
                                     }
                                 }
                                 Spacer()
@@ -114,7 +132,8 @@ struct KeyframeEditorSheet: View {
                 }
                 Section { Text(L("L’animation est commune aux formats. Les valeurs affichées tiennent compte du cadrage actif.")).font(.caption).foregroundStyle(.secondary) }
             }.buttonStyle(.borderless).scrollDismissesKeyboard(.interactively)
-            }.pinnedPreview(preview ?? model.preview).navigationTitle(L("Éditer les points")).navigationBarTitleDisplayMode(.inline)
+                .accessibilityIdentifier("keyframeEditorForm")
+                .navigationTitle(L("Éditer les points")).navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button(L("Fermer")) { dismiss() } }
                     ToolbarItemGroup(placement: .topBarTrailing) {
@@ -131,7 +150,8 @@ struct KeyframeEditorSheet: View {
                     }
                 }
                 .task(id: signature) { await renderDraft() }
-        }.preferredColorScheme(.dark)
+        }.presentationSizing(.page).presentationDetents([.large])
+            .preferredColorScheme(.dark)
     }
     private var range: ClosedRange<Double> {
         switch property { case .x, .y: -0.5...1.5; case .scale: 0.05...4; case .rotation: -180...180; case .opacity: 0...1 }
@@ -175,6 +195,13 @@ struct KeyframeEditorSheet: View {
         guard clipID != nil, globalSeconds.isFinite else { return }
         perform(L("Images clés")) { try mutatePoint(in: &$0) }
         if localError == nil { loadValue() }
+    }
+    private func changeEasing(_ value: KeyframeEasing) {
+        easing = value
+        guard let selectedKeyID, let clipID,
+              rendered?.clip.keyframes.first(where: { $0.id == selectedKeyID })?.easing != value else { return }
+        perform(L("Interpolation")) { try AnimationEditing.setEasing(value, keyframeID: selectedKeyID, clipID: clipID, in: &$0) }
+        if localError != nil { loadValue() }
     }
     private func applyPreset() {
         guard let clipID, fadeDuration.isFinite else { return }

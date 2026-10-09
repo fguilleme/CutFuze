@@ -80,6 +80,7 @@ struct KeyframeGraph: View {
                         .buttonStyle(.plain).offset(x: x, y: pointY)
                         .accessibilityLabel("\(title ?? animationPropertyLabel(property)), \(String(format: "%.2f", (keyTime - clip.globalStart).seconds)) s")
                         .accessibilityIdentifier("graphKey-\(key.id)").accessibilityAddTraits(key.id == selectedID ? .isSelected : [])
+                        .accessibilityValue(animationEasingLabel(key.easing))
                         .highPriorityGesture(DragGesture(minimumDistance: 6, coordinateSpace: .named("keyframeGraph"))
                             .onChanged { gesture in
                                 onMove(key, time((gesture.location.x - 22) / width), valueRange.upperBound - min(1, max(0, (gesture.location.y - 22) / height)) * (valueRange.upperBound - valueRange.lowerBound), false)

@@ -79,6 +79,7 @@ struct Presentation: Codable, Equatable, Sendable {
     var textOutline: Double = 0
     var textShadow: Double = 0
     var textBackgroundOpacity: Double = 0
+    var textBackgroundShape: TextBackgroundShape = .rounded
     /// Additional tracking and line spacing in em, independent of output resolution.
     var textLetterSpacing: Double = 0
     var textLineSpacing: Double = 0
@@ -86,6 +87,17 @@ struct Presentation: Codable, Equatable, Sendable {
     var chromaKeyTolerance: Double = 0.2
     var chromaKeySoftness: Double = 0.1
     var removePersonBackground: Bool = false
+}
+
+enum TextBackgroundShape: String, Codable, CaseIterable, Sendable {
+    case rounded, rectangle, capsule, cloud, star, heart
+
+    var widthLimit: Double {
+        switch self { case .star: 0.4; case .heart: 0.42; case .cloud: 0.7; default: 0.86 }
+    }
+    var expansion: Double {
+        switch self { case .star, .heart: 2.2; case .cloud: 1.3; default: 1 }
+    }
 }
 
 struct Transition: Codable, Equatable, Sendable {
@@ -283,6 +295,7 @@ extension Presentation {
         textOutline = try container.decodeIfPresent(Double.self, forKey: .textOutline) ?? textOutline
         textShadow = try container.decodeIfPresent(Double.self, forKey: .textShadow) ?? textShadow
         textBackgroundOpacity = try container.decodeIfPresent(Double.self, forKey: .textBackgroundOpacity) ?? textBackgroundOpacity
+        textBackgroundShape = try container.decodeIfPresent(TextBackgroundShape.self, forKey: .textBackgroundShape) ?? textBackgroundShape
         textLetterSpacing = try container.decodeIfPresent(Double.self, forKey: .textLetterSpacing) ?? textLetterSpacing
         textLineSpacing = try container.decodeIfPresent(Double.self, forKey: .textLineSpacing) ?? textLineSpacing
         chromaKeyColor = try container.decodeIfPresent(String.self, forKey: .chromaKeyColor)

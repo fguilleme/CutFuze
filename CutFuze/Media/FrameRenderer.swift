@@ -8,7 +8,12 @@ import Vision
 /// Both preview and export call this renderer. Caches contain derived resources only.
 /// The actor serializes access to image generators; images are bounded to output size.
 actor FrameRenderer {
-    private let context = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!, .outputColorSpace: CGColorSpace(name: CGColorSpace.itur_709)!])
+    private let context: CIContext
+    private let softwareRendering: Bool
+    init(softwareRendering: Bool = false) {
+        self.softwareRendering = softwareRendering
+        context = CIContext(options: [.useSoftwareRenderer: softwareRendering, .workingColorSpace: CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!, .outputColorSpace: CGColorSpace(name: CGColorSpace.itur_709)!])
+    }
     private var generators: [String: AVAssetImageGenerator] = [:]
     private var images: [String: CGImage] = [:]
     private var textImages: [String: CGImage] = [:]
@@ -77,7 +82,7 @@ actor FrameRenderer {
         if clip.kind == .shape {
             image = CIImage(color: color(p.color)).cropped(to: rect)
         } else if clip.kind == .text {
-            let key = "\(clip.text)|\(p.textSize)|\(p.color)|\(p.textFont)|\(p.textAlignment)|\(p.textBold)|\(p.textOutline)|\(p.textShadow)|\(p.background)|\(p.textBackgroundOpacity)|\(p.textLetterSpacing)|\(p.textLineSpacing)|\(Int(rect.width))x\(Int(rect.height))"
+            let key = "\(clip.text)|\(p.textSize)|\(p.color)|\(p.textFont)|\(p.textAlignment)|\(p.textBold)|\(p.textOutline)|\(p.textShadow)|\(p.background)|\(p.textBackgroundOpacity)|\(p.textBackgroundShape.rawValue)|\(p.textLetterSpacing)|\(p.textLineSpacing)|\(Int(rect.width))x\(Int(rect.height))"
             let raster: CGImage
             if let cached = textImages[key] { raster = cached }
             else {
@@ -243,6 +248,7 @@ actor FrameRenderer {
         if let cached = personMasks[cacheKey] { rawMask = cached }
         else {
             let request = VNGeneratePersonSegmentationRequest()
+            request.usesCPUOnly = softwareRendering
             request.qualityLevel = .balanced
             request.outputPixelFormat = kCVPixelFormatType_OneComponent8
             let handler = VNImageRequestHandler(ciImage: image, options: [:])
@@ -366,18 +372,79 @@ enum TextRasterizer {
         if p.textOutline > 0 { attrs[NSAttributedString.Key(kCTStrokeWidthAttributeName as String)] = -p.textOutline * 5; attrs[NSAttributedString.Key(kCTStrokeColorAttributeName as String)] = CGColor(gray: 0, alpha: 1) }
         let string = NSAttributedString(string: text, attributes: attrs)
         let setter = CTFramesetterCreateWithAttributedString(string)
-        let maxWidth = rect.width * 0.86
-        let fit = CTFramesetterSuggestFrameSizeWithConstraints(setter, CFRange(location: 0, length: 0), nil, CGSize(width: maxWidth, height: rect.height * 0.9), nil)
+        let backdrop = p.textBackgroundOpacity > 0
+        let maxWidth = rect.width * (backdrop ? p.textBackgroundShape.widthLimit : 0.86)
+        let fit = CTFramesetterSuggestFrameSizeWithConstraints(setter, CFRange(location: 0, length: 0), nil, CGSize(width: maxWidth, height: rect.height * 0.9 / (backdrop ? p.textBackgroundShape.expansion : 1)), nil)
         let textRect = CGRect(x: (rect.width - maxWidth) / 2, y: max(0, (rect.height - ceil(fit.height)) / 2), width: maxWidth, height: min(rect.height, ceil(fit.height) + 4))
+        let frame = CTFramesetterCreateFrame(setter, CFRange(location: 0, length: 0), CGPath(rect: textRect, transform: nil), nil)
         if p.textBackgroundOpacity > 0 {
             let bg = color(p.background)
             context.setFillColor(CGColor(red: bg.red, green: bg.green, blue: bg.blue, alpha: p.textBackgroundOpacity))
-            context.addPath(CGPath(roundedRect: textRect.insetBy(dx: -10, dy: -7), cornerWidth: 8, cornerHeight: 8, transform: nil)); context.fillPath()
+            let lines = CTFrameGetLines(frame) as! [CTLine]
+            var origins = [CGPoint](repeating: .zero, count: lines.count)
+            CTFrameGetLineOrigins(frame, CFRange(location: 0, length: 0), &origins)
+            var bounds = CGRect.null
+            for (index, line) in lines.enumerated() {
+                var ascent: CGFloat = 0, descent: CGFloat = 0
+                let width = CTLineGetTypographicBounds(line, &ascent, &descent, nil)
+                bounds = bounds.union(CGRect(x: textRect.minX + origins[index].x, y: textRect.minY + origins[index].y - descent, width: width, height: ascent + descent))
+            }
+            if !bounds.isNull {
+                let padded = bounds.insetBy(dx: -fontSize * 0.3, dy: -fontSize * 0.2)
+                let factor = p.textBackgroundShape.expansion
+                let width = min(rect.width - 4, padded.width * factor)
+                let height = min(rect.height - 4, padded.height * factor)
+                let centerY = padded.midY - (p.textBackgroundShape == .heart ? height * 0.08 : 0)
+                let backgroundRect = CGRect(x: padded.midX - width / 2, y: max(2, min(rect.height - height - 2, centerY - height / 2)), width: width, height: height)
+                context.addPath(p.textBackgroundShape.path(in: backgroundRect)); context.fillPath()
+            }
         }
         if p.textShadow > 0 { context.setShadow(offset: CGSize(width: 0, height: -2), blur: p.textShadow * 8, color: CGColor(gray: 0, alpha: 0.8)) }
-        let frame = CTFramesetterCreateFrame(setter, CFRange(location: 0, length: 0), CGPath(rect: textRect, transform: nil), nil)
         CTFrameDraw(frame, context)
         guard let raster = context.makeImage() else { throw MediaFailure.rendering("Texte raster") }
         return raster
+    }
+}
+
+extension TextBackgroundShape {
+    /// Original vector backdrops, shared by preview and export; coordinates use Core Graphics' upward Y axis.
+    func path(in rect: CGRect) -> CGPath {
+        switch self {
+        case .rectangle: return CGPath(rect: rect, transform: nil)
+        case .rounded: return CGPath(roundedRect: rect, cornerWidth: min(rect.height * 0.22, rect.width * 0.1), cornerHeight: min(rect.height * 0.22, rect.width * 0.1), transform: nil)
+        case .capsule: return CGPath(roundedRect: rect, cornerWidth: rect.height / 2, cornerHeight: rect.height / 2, transform: nil)
+        case .star:
+            let path = CGMutablePath()
+            for index in 0..<10 {
+                let angle = Double.pi / 2 + Double(index) * Double.pi / 5
+                let radius = index.isMultiple(of: 2) ? 0.5 : 0.3
+                let point = CGPoint(x: rect.midX + cos(angle) * rect.width * radius, y: rect.midY + sin(angle) * rect.height * radius)
+                if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+            }
+            path.closeSubpath(); return path
+        case .heart, .cloud:
+            let path = CGMutablePath()
+            func point(_ x: Double, _ y: Double) -> CGPoint { CGPoint(x: rect.minX + x * rect.width, y: rect.minY + y * rect.height) }
+            func curve(_ x: Double, _ y: Double, _ a: Double, _ b: Double, _ c: Double, _ d: Double) {
+                path.addCurve(to: point(x, y), control1: point(a, b), control2: point(c, d))
+            }
+            if self == .heart {
+                path.move(to: point(0.5, 0))
+                curve(0, 0.72, 0.4, 0.14, 0, 0.42)
+                curve(0.5, 0.82, 0, 1.06, 0.36, 1.08)
+                curve(1, 0.72, 0.64, 1.08, 1, 1.06)
+                curve(0.5, 0, 1, 0.42, 0.6, 0.14)
+            } else {
+                path.move(to: point(0.18, 0.1))
+                curve(0.08, 0.58, -0.08, 0.08, -0.05, 0.5)
+                curve(0.34, 0.88, 0, 0.84, 0.16, 1)
+                curve(0.7, 0.9, 0.42, 1.04, 0.62, 1.04)
+                curve(0.92, 0.57, 0.86, 1, 1, 0.8)
+                curve(0.82, 0.1, 1.06, 0.45, 1.05, 0.08)
+                curve(0.5, 0.08, 0.7, -0.02, 0.6, -0.01)
+                curve(0.18, 0.1, 0.35, -0.02, 0.22, -0.03)
+            }
+            path.closeSubpath(); return path
+        }
     }
 }

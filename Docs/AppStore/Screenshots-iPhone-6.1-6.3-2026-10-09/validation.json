@@ -1,0 +1,48 @@
+{
+  "device": "iPhone 16 Pro",
+  "simulatorName": "CutFuze App Store iPhone 6.3",
+  "simulatorId": "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+  "runtime": "iOS 27",
+  "dimensions": [
+    1206,
+    2622
+  ],
+  "languages": [
+    "fr",
+    "en"
+  ],
+  "nativeScreenshots": 12,
+  "visuallyInspected": 12,
+  "sourceImagesModified": false,
+  "appStoreUploaded": false,
+  "summary": {
+    "status": "SUCCEEDED",
+    "durationMs": 108135,
+    "counts": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    "target": "simulator"
+  },
+  "testCases": [
+    {
+      "suite": "AppStoreScreenshotTests",
+      "test": "testEnglishAppStoreScreenshots",
+      "status": "passed",
+      "durationMs": 46187
+    },
+    {
+      "suite": "AppStoreScreenshotTests",
+      "test": "testFrenchAppStoreScreenshots",
+      "status": "passed",
+      "durationMs": 40497
+    }
+  ],
+  "xcresultPath": "/private/tmp/CutFuze-AppStore-iPhone63-20261009.xcresult",
+  "inspectionNotes": [
+    "Both languages and all six states reviewed.",
+    "Scrollable panels and horizontal toolbars show the native viewport, not their full offscreen contents.",
+    "The selected caption preview is compact and its handles partially overlap; no retouching was performed."
+  ]
+}

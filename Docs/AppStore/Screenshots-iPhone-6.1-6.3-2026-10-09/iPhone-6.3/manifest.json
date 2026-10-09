@@ -1,0 +1,117 @@
+{
+  "device": "iPhone-6.3",
+  "dimensions": [
+    1206,
+    2622
+  ],
+  "screenshots": [
+    {
+      "language": "en",
+      "filename": "06-modeles.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false,
+      "sha256": "0dff819a64750cdca32de617e7c89740b04f959f5c50a6c114e8d5db47c394b6",
+      "sourceTest": "AppStoreScreenshotTests/testEnglishAppStoreScreenshots()"
+    },
+    {
+      "language": "en",
+      "filename": "04-animation.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false,
+      "sha256": "cca2c14584d3260c6b68e254c8ab8c9d576f1e9cd3f0710e2171dd51162646c1",
+      "sourceTest": "AppStoreScreenshotTests/testEnglishAppStoreScreenshots()"
+    },
+    {
+      "language": "en",
+      "filename": "03-effets.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false,
+      "sha256": "c3a1da9dacbf6e1a73b75cc9573b8775220ef3aa737737b88632b988c7ac863c",
+      "sourceTest": "AppStoreScreenshotTests/testEnglishAppStoreScreenshots()"
+    },
+    {
+      "language": "en",
+      "filename": "02-texte.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false,
+      "sha256": "88c923f6406a8af17a99031e58ac2ab9f48f71704006a6f18206289d14912a83",
+      "sourceTest": "AppStoreScreenshotTests/testEnglishAppStoreScreenshots()"
+    },
+    {
+      "language": "en",
+      "filename": "05-multiformat.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false,
+      "sha256": "c9a66adfd64c37f2f62c625df68099d318ac0d436a6c2a90dba72e89710dca7b",
+      "sourceTest": "AppStoreScreenshotTests/testEnglishAppStoreScreenshots()"
+    },
+    {
+      "language": "en",
+      "filename": "01-montage.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false,
+      "sha256": "16648db402470d3fb4cf27e883e8ff16dd4992a0f820c30b0d9406e1259c9d1c",
+      "sourceTest": "AppStoreScreenshotTests/testEnglishAppStoreScreenshots()"
+    },
+    {
+      "language": "fr",
+      "filename": "06-modeles.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false,
+      "sha256": "bb34cb0cf5912780081506df34cad49194d44ef0f3db63202d940d8709d8930b",
+      "sourceTest": "AppStoreScreenshotTests/testFrenchAppStoreScreenshots()"
+    },
+    {
+      "language": "fr",
+      "filename": "04-animation.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false,
+      "sha256": "de2fe79343cf679256cb53ef5a24ce83f283e623dfbe7b04637d0a2b8c6aaef1",
+      "sourceTest": "AppStoreScreenshotTests/testFrenchAppStoreScreenshots()"
+    },
+    {
+      "language": "fr",
+      "filename": "03-effets.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false,
+      "sha256": "18e02d873aa7663cc20bbb8d36dc6ce35729283df73ccc761a567db5737f0013",
+      "sourceTest": "AppStoreScreenshotTests/testFrenchAppStoreScreenshots()"
+    },
+    {
+      "language": "fr",
+      "filename": "02-texte.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false,
+      "sha256": "967d8d20e9539cf97ef9f1ac0e302e260b36d3d6c14ff3d5061cfdb55087245e",
+      "sourceTest": "AppStoreScreenshotTests/testFrenchAppStoreScreenshots()"
+    },
+    {
+      "language": "fr",
+      "filename": "05-multiformat.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false,
+      "sha256": "ece46b3937405d7a417f929a36968c979ae74e94bc4ecc7ab0db8d15a422b814",
+      "sourceTest": "AppStoreScreenshotTests/testFrenchAppStoreScreenshots()"
+    },
+    {
+      "language": "fr",
+      "filename": "01-montage.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false,
+      "sha256": "e1da93e8ee35af800c3b2ada17335d68aaf2f06b8c858934a3ade712b31a705b",
+      "sourceTest": "AppStoreScreenshotTests/testFrenchAppStoreScreenshots()"
+    }
+  ]
+}
