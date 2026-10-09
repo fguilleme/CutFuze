@@ -1,6 +1,116 @@
 import XCTest
 
 final class WorkspaceUITests: XCTestCase {
+    @MainActor func testVisualToolsShareOnePanelAndMaskIsDirectlyEditable() throws {
+        let app = launchDemo()
+        let video = firstTimelineClip(app, kind: "video")
+        XCTAssertTrue(video.waitForExistence(timeout: 10)); video.tap()
+        app.buttons["tool-Effets visuels"].tap()
+        let tabs = app.scrollViews["visualTools"]
+        let panel = app.scrollViews["contextToolScroll"]
+        XCTAssertTrue(tabs.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["visualTool-Transformer"].isSelected)
+        XCTAssertTrue(app.buttons["fitMedia"].isHittable)
+        XCTAssertFalse(app.buttons["tool-Opacité"].exists)
+        XCTAssertFalse(app.buttons["tool-Transformer"].exists)
+        XCTAssertFalse(app.buttons["tool-Visuel"].exists)
+        capture("grouped-effects-transform")
+        app.buttons["visualTool-Opacité"].tap()
+        let opacity = app.sliders["Opacité"]
+        XCTAssertTrue(opacity.waitForExistence(timeout: 3))
+        let before = opacity.value as? String
+        opacity.adjust(toNormalizedSliderPosition: 0.4)
+        XCTAssertNotEqual(opacity.value as? String, before)
+        XCTAssertTrue(app.buttons["visualTool-Opacité"].isSelected)
+        capture("grouped-effects-opacity")
+        app.buttons["visualTool-Masque"].tap()
+        app.buttons["mask-ellipse"].tap()
+        XCTAssertTrue(app.buttons["mask-ellipse"].isSelected)
+        let feather = app.sliders["Contour progressif"]
+        for _ in 0..<3 where !feather.isHittable { panel.swipeUp() }
+        XCTAssertTrue(feather.isHittable)
+        feather.adjust(toNormalizedSliderPosition: 0.3)
+        XCTAssertTrue(app.buttons["visualTool-Masque"].isHittable)
+        XCTAssertTrue(app.buttons["closeContextTool"].isHittable)
+        XCTAssertFalse(app.alerts["Erreur"].exists)
+        capture("grouped-effects-mask-scrolled")
+        app.buttons["visualTool-Géométrie"].tap()
+        XCTAssertTrue(app.buttons["effect-bulge"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["visualTool-Géométrie"].isSelected)
+        capture("grouped-effects-geometry")
+        app.buttons["visualTool-Masque"].tap()
+        XCTAssertTrue(app.buttons["mask-ellipse"].isSelected)
+        XCTAssertTrue(app.buttons["mask-ellipse"].isHittable)
+        app.buttons["mask-none"].tap()
+        XCTAssertTrue(app.buttons["mask-none"].isSelected)
+        app.buttons["Annuler la modification"].tap()
+        XCTAssertTrue(app.buttons["mask-ellipse"].isSelected)
+    }
+
+    @MainActor func testVisualEffectEditorSharesGraphDraftUndoAndApply() throws {
+        let app = launchDemo()
+        let video = firstTimelineClip(app, kind: "video")
+        XCTAssertTrue(video.waitForExistence(timeout: 10)); video.tap()
+        app.buttons["tool-Effets visuels"].tap()
+        app.buttons["visualTool-Géométrie"].tap(); app.buttons["effect-bulge"].tap()
+        XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+        let scrub = app.sliders["keyframeTimeSlider"]
+        XCTAssertTrue(scrub.exists)
+        let points = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "graphKey-"))
+        XCTAssertEqual(points.count, 0)
+        app.buttons["effectSaveKeyframe"].tap()
+        XCTAssertEqual(points.count, 1)
+        let initialTime = app.staticTexts["keyframeLocalTime"].label
+        scrub.adjust(toNormalizedSliderPosition: 0.7)
+        XCTAssertTrue(waitForLabel(app.staticTexts["keyframeLocalTime"], equals: initialTime, matching: false))
+        // Put the second point well away from the first, using the graph's own
+        // scrub gesture rather than assuming XCTest's slider drag is exact.
+        app.descendants(matching: .any)["keyframeGraph"].coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.3)).tap()
+        app.buttons["effectSaveKeyframe"].tap()
+        XCTAssertEqual(points.count, 2)
+        let first = points.firstMatch; first.tap()
+        XCTAssertTrue(first.isSelected)
+        let before = first.label
+        let center = first.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        center.press(forDuration: 0.1, thenDragTo: center.withOffset(CGVector(dx: 45, dy: -15)))
+        XCTAssertTrue(waitForLabel(first, equals: before, matching: false))
+        XCTAssertFalse(app.descendants(matching: .any)["effectEditorError"].exists)
+        capture("effect-curve-point-moved")
+        app.buttons["effectUndo"].tap()
+        XCTAssertTrue(waitForLabel(first, equals: before))
+        app.buttons["effectRedo"].tap()
+        XCTAssertTrue(waitForLabel(first, equals: before, matching: false))
+        app.buttons["zoomKeyframeGraph"].tap()
+        app.buttons["Point suivant"].tap()
+        points.element(boundBy: 1).tap()
+        XCTAssertTrue(app.buttons["effectDeleteKeyframe"].isHittable)
+        app.buttons["effectDeleteKeyframe"].tap(); XCTAssertEqual(points.count, 1)
+        app.buttons["effectUndo"].tap(); XCTAssertEqual(points.count, 2)
+        capture("effect-curve-zoomed")
+        let limit = app.switches["effectLimitRange"]
+        let settings = app.descendants(matching: .any)["effectSettings"]
+        for _ in 0..<2 where !limit.exists { settings.swipeUp() }
+        XCTAssertTrue(limit.exists)
+        // SwiftUI exposes both the labelled row and the actual UISwitch.
+        limit.switches.firstMatch.tap()
+        XCTAssertTrue(app.sliders["Début"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.sliders["Fin"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["effectApply"].isHittable)
+        XCTAssertTrue(app.descendants(matching: .any)["keyframeGraph"].isHittable)
+        capture("effect-curve-range")
+        app.buttons["effectUndo"].tap()
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "0"), object: limit)], timeout: 4), .completed)
+        app.buttons["effectApply"].tap()
+        XCTAssertFalse(app.buttons["effectApply"].exists)
+        app.buttons["effect-bulge"].tap()
+        XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5)); XCTAssertEqual(points.count, 2)
+        points.firstMatch.tap()
+        app.buttons["effectDeleteKeyframe"].tap(); XCTAssertEqual(points.count, 1)
+        app.buttons["effectCancel"].tap()
+        app.buttons["effect-bulge"].tap()
+        XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5)); XCTAssertEqual(points.count, 2)
+        capture("effect-curve-reopened")
+    }
     override func setUpWithError() throws { continueAfterFailure = false }
 
     @MainActor func testPauseDoesNotPresentCancellationError() throws {
@@ -40,7 +150,7 @@ final class WorkspaceUITests: XCTestCase {
         XCTAssertTrue(video.waitForExistence(timeout: 5)); video.tap()
         XCTAssertTrue(app.buttons["action-Split"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["tool-Vitesse"].exists)
-        XCTAssertTrue(app.buttons["tool-Ajuster"].exists)
+        XCTAssertTrue(app.buttons["tool-Effets visuels"].exists)
         capture("editor-video-selection")
 
         let text = firstTimelineClip(app, kind: "text")
@@ -95,17 +205,17 @@ final class WorkspaceUITests: XCTestCase {
         capture("animation-presets")
         app.buttons["closeContextTool"].tap()
 
-        app.buttons["Plus"].tap()
-        app.buttons["Effets visuels"].tap()
-        XCTAssertTrue(app.buttons["effectCategory-Beauté"].waitForExistence(timeout: 3))
+        app.buttons["tool-Effets visuels"].tap()
+        app.buttons["visualTool-Beauté"].tap()
+        XCTAssertTrue(app.buttons["visualTool-Beauté"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["closeContextTool"].isHittable)
         XCTAssertTrue(app.buttons["effect-skinSmooth"].exists)
-        app.buttons["effectCategory-Géométrie"].tap()
+        app.buttons["visualTool-Géométrie"].tap()
         XCTAssertTrue(app.buttons["effect-bulge"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["effect-kaleidoscope"].exists)
         capture("effect-families")
         app.buttons["closeContextTool"].tap()
-        XCTAssertFalse(app.buttons["effectCategory-Géométrie"].exists)
+        XCTAssertFalse(app.buttons["visualTool-Géométrie"].exists)
     }
 
     @MainActor func testVisualKeyframeEditorSelectsMovesScrubsAndUndoes() throws {
@@ -133,7 +243,7 @@ final class WorkspaceUITests: XCTestCase {
         XCTAssertFalse(app.alerts["Erreur"].exists)
         capture("animation-point-moved")
         app.buttons["keyframeUndo"].tap()
-        XCTAssertEqual(point.label, original)
+        XCTAssertTrue(waitForLabel(point, equals: original))
         let beforeTime = app.staticTexts["keyframeLocalTime"].label
         app.sliders["keyframeTimeSlider"].adjust(toNormalizedSliderPosition: 0.55)
         XCTAssertNotEqual(app.staticTexts["keyframeLocalTime"].label, beforeTime)
@@ -243,6 +353,9 @@ final class WorkspaceUITests: XCTestCase {
 
     @MainActor func testTimelineHandlesTrimAndTransformControlsRemainReachable() throws {
         let app = launchDemo()
+        // Keep the actual clip end inside the viewport. At the default zoom the
+        // accessibility frame can be clipped by the right edge of the timeline.
+        app.buttons["Réduire le zoom temporel"].tap()
         let video = firstTimelineClip(app, kind: "video")
         XCTAssertTrue(video.waitForExistence(timeout: 10))
         video.tap()
@@ -259,11 +372,13 @@ final class WorkspaceUITests: XCTestCase {
         trailingCenter.press(forDuration: 0.05, thenDragTo: trailingCenter.withOffset(CGVector(dx: -30, dy: 0)))
         XCTAssertLessThan(video.frame.width, widthBefore - 12)
 
-        app.buttons["Plus"].tap()
-        XCTAssertTrue(app.buttons["Transformer"].waitForExistence(timeout: 3))
-        app.buttons["Transformer"].tap()
+        app.buttons["tool-Effets visuels"].tap()
+        XCTAssertTrue(app.buttons["visualTool-Transformer"].waitForExistence(timeout: 3))
         let panel = app.scrollViews["contextToolScroll"]
         XCTAssertTrue(panel.waitForExistence(timeout: 3))
+        // Start on the label, not on a slider: a slider consumes that drag.
+        let scrollStart = app.staticTexts["Horizontal"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        scrollStart.press(forDuration: 0.05, thenDragTo: scrollStart.withOffset(CGVector(dx: 0, dy: -105)))
         XCTAssertTrue(app.sliders["Horizontal"].exists)
         let rotation = app.sliders["Rotation"]
         XCTAssertTrue(rotation.exists)
@@ -299,7 +414,7 @@ final class WorkspaceUITests: XCTestCase {
         let video = firstTimelineClip(app, kind: "video")
         XCTAssertTrue(video.waitForExistence(timeout: 10))
         video.tap()
-        app.buttons["tool-Ajuster"].tap()
+        app.buttons["tool-Effets visuels"].tap()
 
         let fit = app.buttons["fitMedia"]
         let fill = app.buttons["fillMedia"]
@@ -512,6 +627,7 @@ final class WorkspaceUITests: XCTestCase {
     }
 
     @MainActor private func launchDemo() -> XCUIApplication {
+        XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
         app.launchArguments = ["-AppleLanguages", "(fr)", "-AppleLocale", "fr_FR"]
         app.launch()
@@ -523,6 +639,11 @@ final class WorkspaceUITests: XCTestCase {
 
     private func firstTimelineClip(_ app: XCUIApplication, kind: String) -> XCUIElement {
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "timelineClip-\(kind)-")).firstMatch
+    }
+
+    private func waitForLabel(_ element: XCUIElement, equals label: String, matching: Bool = true) -> Bool {
+        let predicate = NSPredicate(format: matching ? "label == %@" : "label != %@", label)
+        return XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: predicate, object: element)], timeout: 4) == .completed
     }
 
     @MainActor private func capture(_ name: String) {

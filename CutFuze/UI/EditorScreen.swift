@@ -29,6 +29,7 @@ struct EditorScreen: View {
     @State private var importingOverlay = false
     @State private var replaceID: UUID?
     @State private var activeTool: ContextTool?
+    @State private var visualTool: VisualTool = .transform
     @State private var viewerHeight: CGFloat?
     @State private var viewerHeightAtDragStart: CGFloat?
     @State private var viewerDividerIsDragging = false
@@ -42,9 +43,8 @@ struct EditorScreen: View {
             let minimumViewerHeight: CGFloat = landscape ? 80 : 130
             let activeToolHeight: CGFloat = switch activeTool {
             case nil: 0
-            case .transform?: compact ? 166 : 214
-            case .adjust?: compact ? 152 : 166
-            case .animation?, .effects?: compact ? 176 : 188
+            case .visual?: compact ? 218 : 266
+            case .animation?: compact ? 176 : 188
             case .font?: compact ? 192 : 294
             default: compact ? 118 : 156
             }
@@ -61,7 +61,7 @@ struct EditorScreen: View {
                 TimelinePanel(model: model, showStory: { model.stop(); showStory = true }, showCaptions: { openCaptionEditor(initialID: nil) })
                     .frame(maxHeight: .infinity).layoutPriority(1)
                 if let activeTool {
-                    ContextToolPanel(model: model, tool: activeTool, close: { self.activeTool = nil }, showTiming: { showTiming = true })
+                    ContextToolPanel(model: model, tool: activeTool, visualTool: $visualTool, close: { self.activeTool = nil }, showTiming: { showTiming = true })
                         .frame(width: geometry.size.width, height: activeToolHeight)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -100,7 +100,7 @@ struct EditorScreen: View {
         .overlay(alignment: .top) {
             if let busy = model.busy { HStack { ProgressView(); Text(busy).font(.subheadline); if busy.hasPrefix(L("Import…")) { Button(L("Annuler")) { model.cancelImport() } } }.padding(14).background(.regularMaterial, in: Capsule()).padding(.top, 56) }
         }
-        .onChange(of: model.selectedClipID) { _, _ in withAnimation(.easeOut(duration: 0.16)) { activeTool = nil } }
+        .onChange(of: model.selectedClipID) { _, _ in visualTool = .transform; withAnimation(.easeOut(duration: 0.16)) { activeTool = nil } }
         .onDisappear { model.stop(); model.save() }
     }
 
@@ -139,9 +139,7 @@ struct EditorScreen: View {
         if clip.kind == .text {
             if clip.isCaption { openCaptionEditor(initialID: clip.id) }
             else { withAnimation(.easeOut(duration: 0.16)) { activeTool = .textEdit } }
-        } else if clip.kind == .shape || clip.layer > 0 {
-            withAnimation(.easeOut(duration: 0.16)) { activeTool = .transform } }
-        else { withAnimation(.easeOut(duration: 0.16)) { activeTool = .adjust } }
+        } else { visualTool = .transform; activeTool = .visual }
     }
 
     private var transport: some View {
@@ -263,7 +261,7 @@ struct EditorScreen: View {
 
     @ViewBuilder private var videoActions: some View {
         action("Diviser", "scissors", perform: splitSelected, identifier: "action-Split")
-        tool("Vitesse", "speedometer", .speed); tool("Volume", "speaker.wave.2", .volume); tool("Animation", "diamond", .animation); tool("Ajuster", "crop", .adjust); cutoutAction; moreMenu
+        tool("Vitesse", "speedometer", .speed); tool("Volume", "speaker.wave.2", .volume); tool("Animation", "diamond", .animation); tool("Effets", "camera.filters", .visual); cutoutAction; moreMenu
     }
     @ViewBuilder private var textActions: some View {
         if model.selectedClip?.isCaption == true {
@@ -271,7 +269,7 @@ struct EditorScreen: View {
         } else {
             tool("Modifier", "pencil", .textEdit)
         }
-        tool("Style", "paintbrush", .textStyle); tool("Police", "textformat.size", .font); tool("Animation", "diamond", .animation); tool("Effets", "sparkles", .effects)
+        tool("Style", "paintbrush", .textStyle); tool("Police", "textformat.size", .font); tool("Animation", "diamond", .animation); tool("Effets", "camera.filters", .visual)
         action("Dupliquer", "doc.on.doc", perform: duplicateSelected); action("Supprimer", "trash", destructive: true, perform: model.deleteClip)
     }
     @ViewBuilder private var audioActions: some View {
@@ -279,9 +277,9 @@ struct EditorScreen: View {
         action("Dupliquer", "doc.on.doc", perform: duplicateSelected); action("Supprimer", "trash", destructive: true, perform: model.deleteClip)
     }
     @ViewBuilder private var overlayActions: some View {
-        tool("Ajuster", "crop", .adjust); tool("Transformer", "move.3d", .transform)
+        tool("Effets", "camera.filters", .visual)
         if let clip = model.selectedClip, clip.kind == .image || clip.kind == .video { cutoutAction }
-        tool("Opacité", "circle.lefthalf.filled", .opacity); tool("Animation", "diamond", .animation); tool("Effets", "sparkles", .effects)
+        tool("Animation", "diamond", .animation)
         action("Dupliquer", "doc.on.doc", perform: duplicateSelected); action("Supprimer", "trash", destructive: true, perform: model.deleteClip)
     }
 
@@ -316,10 +314,6 @@ struct EditorScreen: View {
     }
     private var moreMenu: some View {
         Menu {
-            Button(L("Effets visuels"), systemImage: "camera.filters") { activeTool = .effects }
-            Button(L("Masque"), systemImage: "circle.dashed") { activeTool = .adjust }
-            Button(L("Opacité"), systemImage: "circle.lefthalf.filled") { activeTool = .opacity }
-            Button(L("Transformer"), systemImage: "move.3d") { activeTool = .transform }
             Button(L("Suivre un objet (Vision)"), systemImage: "viewfinder") { showVision = true }
             Button(L("Stabiliser la vidéo (Vision)"), systemImage: "camera.metering.center.weighted") { showStabilization = true }
             Button(L("Précision temporelle"), systemImage: "timer") { showTiming = true }

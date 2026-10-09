@@ -8,19 +8,22 @@ struct KeyframeGraph: View {
     var selectedID: UUID?
     var valueRange: ClosedRange<Double>
     var pointIDs: Set<UUID>
+    var animationPoints: [Keyframe]? = nil
+    var title: String? = nil
+    var evaluate: ((MediaTime) -> Double)? = nil
     var onScrub: (MediaTime) -> Void
     var onSelect: (Keyframe) -> Void
     var onMove: (Keyframe, MediaTime, Double, Bool) -> Void
     @State private var zoom = 1.0
 
     private var keys: [Keyframe] {
-        clip.clip.keyframes.filter { pointIDs.contains($0.id) && $0.property == property && $0.time >= clip.clip.animationOffset && $0.time <= clip.clip.animationOffset + clip.duration }.sorted { $0.time < $1.time }
+        (animationPoints ?? clip.clip.keyframes).filter { pointIDs.contains($0.id) && $0.property == property && $0.time >= clip.clip.animationOffset && $0.time <= clip.clip.animationOffset + clip.duration }.sorted { $0.time < $1.time }
     }
     private func time(_ fraction: Double) -> MediaTime {
         clip.globalStart + MediaTime(seconds: min(1, max(0, fraction)) * clip.duration.seconds)
     }
     private func value(at time: MediaTime) -> Double {
-        AnimationEditing.value(property, in: clip.evaluatedPresentation(at: time))
+        evaluate?(time) ?? AnimationEditing.value(property, in: clip.evaluatedPresentation(at: time))
     }
     private func y(_ value: Double, height: Double) -> Double {
         height * (1 - min(1, max(0, (value - valueRange.lowerBound) / (valueRange.upperBound - valueRange.lowerBound))))
@@ -28,7 +31,7 @@ struct KeyframeGraph: View {
     var body: some View {
         VStack(spacing: 3) {
             HStack {
-                Text("\(animationPropertyLabel(property)) · \(keys.count)").font(.caption.weight(.semibold))
+                Text("\(title ?? animationPropertyLabel(property)) · \(keys.count)").font(.caption.weight(.semibold))
                 Spacer()
                 Text(String(format: "%.2f / %.2f s", globalTime - clip.globalStart.seconds, clip.duration.seconds))
                     .font(.caption.monospacedDigit()).accessibilityIdentifier("keyframeLocalTime")
@@ -75,7 +78,7 @@ struct KeyframeGraph: View {
                                 .frame(width: 44, height: 44).contentShape(Rectangle())
                         }
                         .buttonStyle(.plain).offset(x: x, y: pointY)
-                        .accessibilityLabel("\(animationPropertyLabel(property)), \(String(format: "%.2f", (keyTime - clip.globalStart).seconds)) s")
+                        .accessibilityLabel("\(title ?? animationPropertyLabel(property)), \(String(format: "%.2f", (keyTime - clip.globalStart).seconds)) s")
                         .accessibilityIdentifier("graphKey-\(key.id)").accessibilityAddTraits(key.id == selectedID ? .isSelected : [])
                         .highPriorityGesture(DragGesture(minimumDistance: 6, coordinateSpace: .named("keyframeGraph"))
                             .onChanged { gesture in

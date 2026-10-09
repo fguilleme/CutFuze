@@ -2,6 +2,37 @@ import XCTest
 @testable import CutFuze
 
 final class CoreTests: XCTestCase {
+    func testEffectPointEditorPreservesIdentityDomainAndRejectsCollisions() throws {
+        var effect = EffectInstance(kind: .brightness, amount: 0.2, start: .init(seconds: 5.5), duration: .init(seconds: 3))
+        let domain = MediaTime(seconds: 5)...MediaTime(seconds: 10)
+        let firstID = try EffectAnimationEditing.upsert(at: .init(seconds: 6), value: 0.1, easing: .easeOut, domain: domain, in: &effect)
+        let lastID = try EffectAnimationEditing.upsert(at: .init(seconds: 9), value: 0.8, easing: .linear, domain: domain, in: &effect)
+        XCTAssertEqual(try EffectAnimationEditing.upsert(at: .init(seconds: 6), value: 0.3, easing: .easeOut, domain: domain, in: &effect), firstID)
+        try EffectAnimationEditing.move(firstID, to: .init(seconds: 7), value: 0.5, domain: domain, in: &effect)
+        let key = try XCTUnwrap(effect.amountKeyframes?.first { $0.id == firstID })
+        XCTAssertEqual(key.time, .init(seconds: 7)); XCTAssertEqual(key.value, 0.5); XCTAssertEqual(key.easing, .easeOut)
+        XCTAssertEqual(effect.amountKeyframes?.count, 2); XCTAssertEqual(effect.amountKeyframes?.last?.id, lastID)
+        XCTAssertEqual(effect.start, .init(seconds: 5.5)); XCTAssertEqual(effect.duration, .init(seconds: 3))
+        XCTAssertEqual(effect.animatedAmount(at: .init(seconds: 8)), 0.65, accuracy: 0.000001)
+        XCTAssertNil(effect.evaluatedAmount(at: .init(seconds: 8.5)))
+        let saved = effect
+        XCTAssertThrowsError(try EffectAnimationEditing.move(firstID, to: .init(seconds: 9), value: 1, domain: domain, in: &effect))
+        XCTAssertThrowsError(try EffectAnimationEditing.move(firstID, to: .init(seconds: 4), value: 1, domain: domain, in: &effect))
+        XCTAssertThrowsError(try EffectAnimationEditing.upsert(at: .init(seconds: 8), value: .nan, easing: .linear, domain: domain, in: &effect))
+        XCTAssertEqual(effect, saved)
+        var doc = document(); let clipID = doc.scenes[0].clips[0].id
+        doc.scenes[0].clips[0].effects = [effect]
+        let splitID = try DocumentEditor.splitClip(clipID, at: .init(seconds: 5), in: &doc)
+        let split = try XCTUnwrap(RenderPlan.compile(document: doc, variantID: nil).clips.first { $0.id == splitID })
+        XCTAssertEqual(split.clip.animationOffset, .init(seconds: 5))
+        XCTAssertEqual(split.clip.effects.first?.animatedAmount(at: .init(seconds: 8) - split.globalStart + split.clip.animationOffset), 0.65)
+        let history = EditHistory(document: doc)
+        try history.perform(name: "Effet") { candidate in
+            candidate.updateClip(splitID) { $0.effects[0] = EffectInstance(kind: .brightness, amount: 0.2) }
+        }
+        history.undo(); XCTAssertEqual(history.document.clip(splitID)?.effects.first, effect)
+        history.redo(); XCTAssertNil(history.document.clip(splitID)?.effects.first?.amountKeyframes)
+    }
     private func document() -> ProjectDocument {
         let asset = MediaAsset(relativePath: "Assets/source.png", kind: .image, name: "Mire", duration: .init(seconds: 10), width: 2, height: 2)
         let image = Clip(assetID: asset.id, kind: .image, duration: .init(seconds: 10), sourceDuration: .init(seconds: 10))
