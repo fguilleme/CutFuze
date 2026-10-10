@@ -14,6 +14,10 @@ struct KeyframeEditorSheet: View {
     @State private var preview: CGImage?
     @State private var localError: String?
     @State private var renderError: String?
+    @State private var previewHeight: CGFloat = 100
+    @State private var previewHeightAtDragStart: CGFloat?
+    @State private var availableHeight: CGFloat = 700
+    private var previewHeightRange: ClosedRange<CGFloat> { 80...max(100, min(500, availableHeight * 0.48)) }
     private var rendered: RenderClip? { model.plan.clips.first { $0.id == clipID } }
     private var draftTime: MediaTime {
         if let rendered, let key = rendered.clip.keyframes.first(where: { $0.id == selectedKeyID && $0.property == property }) {
@@ -43,13 +47,6 @@ struct KeyframeEditorSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                if let image = preview ?? model.preview {
-                    Section {
-                        Image(decorative: image, scale: 1).resizable().scaledToFit()
-                            .frame(maxWidth: .infinity).frame(height: 100)
-                            .accessibilityLabel(L("Aperçu du réglage"))
-                    }.listRowBackground(DesignTokens.ink)
-                }
                 if let rendered {
                     Section {
                     VStack(spacing: 5) {
@@ -133,6 +130,18 @@ struct KeyframeEditorSheet: View {
                 Section { Text(L("L’animation est commune aux formats. Les valeurs affichées tiennent compte du cadrage actif.")).font(.caption).foregroundStyle(.secondary) }
             }.buttonStyle(.borderless).scrollDismissesKeyboard(.interactively)
                 .accessibilityIdentifier("keyframeEditorForm")
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    if let image = preview ?? model.preview {
+                        VStack(spacing: 0) {
+                            Image(decorative: image, scale: 1).resizable().scaledToFit()
+                                .frame(maxWidth: .infinity).frame(height: min(previewHeight, previewHeightRange.upperBound))
+                                .accessibilityLabel(L("Aperçu du réglage"))
+                                .accessibilityIdentifier("curvePreview")
+                            previewDivider
+                        }.background(DesignTokens.ink)
+                    }
+                }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { availableHeight = $0 }
                 .navigationTitle(L("Éditer les points")).navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button(L("Fermer")) { dismiss() } }
@@ -152,6 +161,37 @@ struct KeyframeEditorSheet: View {
                 .task(id: signature) { await renderDraft() }
         }.presentationSizing(.page).presentationDetents([.large])
             .preferredColorScheme(.dark)
+    }
+    private var previewDivider: some View {
+        ZStack {
+            Color.clear
+            Capsule().fill(previewHeightAtDragStart == nil ? Color.white.opacity(0.34) : DesignTokens.amber)
+                .frame(width: 38, height: 3)
+        }.frame(height: 22).contentShape(Rectangle())
+            .highPriorityGesture(DragGesture(minimumDistance: 2, coordinateSpace: .global)
+                .onChanged { value in
+                    if previewHeightAtDragStart == nil {
+                        previewHeightAtDragStart = min(previewHeight, previewHeightRange.upperBound)
+                        UISelectionFeedbackGenerator().selectionChanged()
+                    }
+                    setPreviewHeight((previewHeightAtDragStart ?? previewHeight) + value.translation.height)
+                }
+                .onEnded { value in
+                    setPreviewHeight((previewHeightAtDragStart ?? previewHeight) + value.translation.height)
+                    previewHeightAtDragStart = nil
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                })
+            .accessibilityElement().accessibilityLabel(AppLocalization.bilingual("Hauteur de l’aperçu", "Preview height"))
+            .accessibilityValue("\(Int(previewHeight))")
+            .accessibilityIdentifier("curvePreviewDivider")
+            .accessibilityAdjustableAction { direction in
+                setPreviewHeight(previewHeight + (direction == .increment ? 30 : -30))
+            }
+    }
+    private func setPreviewHeight(_ value: CGFloat) {
+        let target = min(previewHeightRange.upperBound, max(previewHeightRange.lowerBound, value))
+        var transaction = Transaction(); transaction.animation = nil
+        withTransaction(transaction) { previewHeight = target }
     }
     private var range: ClosedRange<Double> {
         switch property { case .x, .y: -0.5...1.5; case .scale: 0.05...4; case .rotation: -180...180; case .opacity: 0...1 }

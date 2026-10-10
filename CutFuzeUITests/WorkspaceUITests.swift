@@ -1,6 +1,28 @@
 import XCTest
 
 final class WorkspaceUITests: XCTestCase {
+    @MainActor func testCurvePreviewCanBeResizedBothWays() throws {
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Animation"].tap()
+        app.buttons["animationPreset-zoom"].tap()
+        app.buttons["advancedAnimation"].tap()
+        let divider = app.descendants(matching: .any)["curvePreviewDivider"].firstMatch
+        XCTAssertTrue(divider.waitForExistence(timeout: 5))
+        let before = try XCTUnwrap(Int(divider.value as? String ?? ""))
+        let start = divider.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: 90)))
+        let larger = try XCTUnwrap(Int(divider.value as? String ?? ""))
+        XCTAssertGreaterThan(larger, before + 50)
+        capture("curve-preview-expanded")
+        let end = divider.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        end.press(forDuration: 0.05, thenDragTo: end.withOffset(CGVector(dx: 0, dy: -70)))
+        XCTAssertLessThan(try XCTUnwrap(Int(divider.value as? String ?? "")), larger - 40)
+        XCTAssertTrue(app.buttons["keyframeEasing"].exists)
+        capture("curve-preview-reduced")
+        app.terminate()
+    }
+
     @MainActor func testIPadStyleShowsBackgroundControlsWithoutScrolling() throws {
         guard UIDevice.current.userInterfaceIdiom == .pad else { throw XCTSkip("iPad layout") }
         let app = launchDemo()
