@@ -2,6 +2,47 @@ import XCTest
 @testable import CutFuze
 
 final class CoreTests: XCTestCase {
+    func testCreativePresetsRespectClipDomainAndRoundTripAfterSplit() throws {
+        let offset = MediaTime(seconds: 5), duration = MediaTime(seconds: 2)
+        for kind in [EffectKind.impactZoom, .shortGlitch] {
+            let effect = EffectInstance.readyToUse(kind, duration: duration, offset: offset, localTime: 1.99)
+            try effect.validateAnimation()
+            let start = try XCTUnwrap(effect.start), length = try XCTUnwrap(effect.duration)
+            XCTAssertGreaterThanOrEqual(start, offset)
+            XCTAssertLessThanOrEqual(start + length, offset + duration)
+            XCTAssertNil(effect.evaluatedAmount(at: start - .init(value: 1)))
+            XCTAssertNil(effect.evaluatedAmount(at: start + length))
+            XCTAssertGreaterThan(try XCTUnwrap(effect.evaluatedAmount(at: start)), 0.5)
+            XCTAssertEqual(effect.amountKeyframes?.last?.value, 0)
+            XCTAssertTrue(effect.amountKeyframes!.allSatisfy { kind.intensityRange.contains($0.value) })
+            var clip = Clip(kind: .shape, duration: duration, effects: [effect])
+            clip.animationOffset = offset
+            var doc = ProjectDocument(scenes: [.init(duration: duration, clips: [clip])])
+            try DocumentEditor.splitClip(clip.id, at: .init(seconds: 1.8), in: &doc)
+            XCTAssertEqual(doc.scenes[0].clips[1].effects, [effect])
+            XCTAssertEqual(doc.scenes[0].clips[1].effectSeed, clip.effectSeed ?? clip.id)
+            XCTAssertEqual(doc.scenes[0].clips[1].animationOffset, offset + .init(seconds: 1.8))
+            XCTAssertEqual(try DocumentCodec.decode(DocumentCodec.encode(doc)), doc)
+        }
+        let neon = EffectInstance.readyToUse(.neon, duration: duration)
+        XCTAssertEqual(neon.colorHex, "#49E6FF"); XCTAssertNil(neon.amountKeyframes)
+        XCTAssertEqual(neon.neonGlowRadius, 0.45)
+        XCTAssertEqual(EffectInstance.readyToUse(.glow, duration: duration, defaultAmount: 0.3).amount, 0.3)
+        XCTAssertEqual(try JSONDecoder().decode(EffectInstance.self, from: JSONEncoder().encode(neon)), neon)
+        let legacy = Data("{\"id\":\"\(UUID().uuidString)\",\"kind\":\"glow\",\"amount\":0.4,\"enabled\":true}".utf8)
+        XCTAssertNil(try JSONDecoder().decode(EffectInstance.self, from: legacy).colorHex)
+        let oldNeon = try JSONDecoder().decode(EffectInstance.self, from: Data("{\"id\":\"\(UUID().uuidString)\",\"kind\":\"neon\",\"amount\":0.65,\"enabled\":true}".utf8))
+        XCTAssertNil(oldNeon.glowRadius); XCTAssertEqual(oldNeon.neonGlowRadius, 0.45)
+        var wide = neon; wide.glowRadius = 0.9
+        let clip = Clip(kind: .text, duration: duration, text: "Néon", effects: [wide])
+        var doc = ProjectDocument(globalClips: [clip])
+        try DocumentEditor.splitClip(clip.id, at: .init(seconds: 1), in: &doc)
+        XCTAssertTrue(doc.globalClips.allSatisfy { $0.effects.first?.glowRadius == 0.9 })
+        XCTAssertEqual(try DocumentCodec.decode(DocumentCodec.encode(doc)), doc)
+        wide.glowRadius = .nan; XCTAssertThrowsError(try wide.validateAnimation())
+        wide.glowRadius = 1.1; XCTAssertThrowsError(try wide.validateAnimation())
+        try EffectInstance.readyToUse(.shortGlitch, duration: .init(value: 1)).validateAnimation()
+    }
     func testChangingEasingImmediatelyChangesRenderedCurveAndSupportsUndo() throws {
         let start = Keyframe(time: .zero, property: .scale, value: 1)
         let end = Keyframe(time: .init(seconds: 4), property: .scale, value: 2)
@@ -194,6 +235,10 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(effect.amountKeyframes?.count, 2); XCTAssertEqual(effect.amountKeyframes?.last?.id, lastID)
         XCTAssertEqual(effect.start, .init(seconds: 5.5)); XCTAssertEqual(effect.duration, .init(seconds: 3))
         XCTAssertEqual(effect.animatedAmount(at: .init(seconds: 8)), 0.65, accuracy: 0.000001)
+        var eased = effect
+        eased.amountKeyframes?[1].easing = .easeIn
+        XCTAssertEqual(eased.animatedAmount(at: .init(seconds: 8)), 0.575, accuracy: 0.000001)
+        XCTAssertEqual(try JSONDecoder().decode(EffectInstance.self, from: JSONEncoder().encode(eased)), eased)
         XCTAssertNil(effect.evaluatedAmount(at: .init(seconds: 8.5)))
         let saved = effect
         XCTAssertThrowsError(try EffectAnimationEditing.move(firstID, to: .init(seconds: 9), value: 1, domain: domain, in: &effect))

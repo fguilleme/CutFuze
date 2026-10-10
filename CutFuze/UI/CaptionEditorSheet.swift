@@ -174,7 +174,7 @@ struct CaptionEditorSheet: View {
                     HStack(spacing: 8) {
                         Menu {
                             ForEach(EffectKind.allCases, id: \.self) { kind in
-                                Button(effectLabel(kind.rawValue)) { model.changeClip(L("Effets")) { $0.effects.append(.init(kind: kind, amount: 0.3)) } }
+                                Button(effectLabel(kind.rawValue)) { model.changeClip(L("Effets")) { $0.effects.append(.readyToUse(kind, duration: selected.duration, offset: selected.clip.animationOffset, defaultAmount: 0.3)) } }
                             }
                         } label: {
                             Label(L("Ajouter"), systemImage: "plus").frame(height: 44).padding(.horizontal, 10)

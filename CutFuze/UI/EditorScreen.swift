@@ -44,6 +44,7 @@ struct EditorScreen: View {
             let minimumViewerHeight: CGFloat = landscape ? 80 : 130
             let activeToolHeight: CGFloat = switch activeTool {
             case nil: 0
+            case .visual? where visualTool.isEffectCategory: 178
             case .visual?: compact ? 218 : 266
             case .animation?: compact ? 176 : 188
             case .font?: compact ? 192 : 294

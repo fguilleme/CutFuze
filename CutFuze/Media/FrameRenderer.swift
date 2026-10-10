@@ -140,7 +140,7 @@ actor FrameRenderer {
             personMask = try segmentPerson(in: image, cacheKey: key, feather: p.maskFeather)
         }
         let animationTime = time - item.globalStart + clip.animationOffset
-        for var effect in clip.effects {
+        for var effect in clip.effects where effect.kind != .neon {
             guard let amount = effect.evaluatedAmount(at: animationTime), amount != 0 else { continue }
             effect.amount = amount
             image = apply(effect, to: image, time: animationTime.seconds, seed: clip.effectSeed ?? clip.id)
@@ -153,6 +153,13 @@ actor FrameRenderer {
         if p.mask != .none {
             let mask = try maskImage(p, rect: sourceRect)
             image = image.applyingFilter("CIBlendWithMask", parameters: [kCIInputBackgroundImageKey: CIImage(color: .clear).cropped(to: sourceRect), kCIInputMaskImageKey: mask])
+        }
+        // Contour effects must see the alpha produced by cutout/chroma/masks;
+        // otherwise masking would erase their halo after it was generated.
+        for var effect in clip.effects where effect.kind == .neon {
+            guard let amount = effect.evaluatedAmount(at: animationTime), amount != 0 else { continue }
+            effect.amount = amount
+            image = neon(effect, image: image, isolated: clip.kind == .text || clip.kind == .shape || personMask != nil || p.chromaKeyColor != nil || p.mask != .none)
         }
         let fitting = p.fill ? max(rect.width / sourceRect.width, rect.height / sourceRect.height) : min(rect.width / sourceRect.width, rect.height / sourceRect.height)
         let scale = fitting * p.scale
@@ -198,6 +205,27 @@ actor FrameRenderer {
         case .fade: return image.applyingFilter("CIColorControls", parameters: [kCIInputBrightnessKey: a * 0.15, kCIInputContrastKey: 1 - a * 0.25])
         case .blur: return image.clampedToExtent().applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: abs(a) * 24 * radius]).cropped(to: rect)
         case .glow: return image.applyingFilter("CIBloom", parameters: [kCIInputRadiusKey: abs(a) * 20 * radius, kCIInputIntensityKey: abs(a)])
+        case .impactZoom:
+            let strength = min(1, max(0, a)), scale = 1 + strength * 0.18
+            let transform = CGAffineTransform(translationX: rect.midX + sin(time * 43) * strength * 5 * radius, y: rect.midY + cos(time * 59) * strength * 4 * radius)
+                .scaledBy(x: scale, y: scale).translatedBy(x: -rect.midX, y: -rect.midY)
+            return image.clampedToExtent().transformed(by: transform).cropped(to: rect)
+                .clampedToExtent().applyingFilter("CIZoomBlur", parameters: [kCIInputCenterKey: CIVector(x: rect.midX, y: rect.midY), "inputAmount": strength * 8]).cropped(to: rect)
+        case .shortGlitch:
+            let strength = min(1, max(0, a))
+            // A frame-indexed seed is stable across preview, export and splits.
+            var state = seed.uuidString.utf8.reduce(UInt64(1469598103934665603)) { ($0 ^ UInt64($1)) &* 1099511628211 } ^ UInt64(max(0, floor(time * 18)))
+            var displaced = image
+            for index in 0..<7 {
+                state = state &* 6364136223846793005 &+ 1
+                let shift = (Double((state >> 32) % 201) / 100 - 1) * strength * rect.width * 0.07
+                let band = CGRect(x: rect.minX, y: rect.minY + rect.height * Double(index) / 7, width: rect.width, height: rect.height / 7 + 1)
+                let strip = image.clampedToExtent().transformed(by: .init(translationX: shift, y: 0)).cropped(to: band)
+                displaced = strip.composited(over: displaced)
+            }
+            var split = effect; split.kind = .rgbSplit; split.amount = strength * 0.75
+            return apply(split, to: displaced.cropped(to: rect), time: time, seed: seed).cropped(to: rect)
+        case .neon: return neon(effect, image: image, isolated: false)
         case .pixelate: return image.applyingFilter("CIPixellate", parameters: [kCIInputScaleKey: max(1, abs(a) * 45 * radius)])
         case .shake: return image.transformed(by: CGAffineTransform(translationX: sin(time * 47) * a * 12 * radius, y: cos(time * 61) * a * 9 * radius))
         case .retro:
@@ -226,9 +254,9 @@ actor FrameRenderer {
             return alpha(stylized, min(1, abs(a))).composited(over: image)
         case .rgbSplit:
             let shift = abs(a) * 16 * radius
-            let r = image.applyingFilter("CIColorMatrix", parameters: ["inputRVector": CIVector(x: 1,y: 0,z: 0,w: 0), "inputGVector": CIVector(x: 0,y: 0,z: 0,w: 0), "inputBVector": CIVector(x: 0,y: 0,z: 0,w: 0)]).transformed(by: .init(translationX: shift, y: 0))
-            let gb = image.applyingFilter("CIColorMatrix", parameters: ["inputRVector": CIVector(x: 0,y: 0,z: 0,w: 0)]).transformed(by: .init(translationX: -shift, y: 0))
-            return r.applyingFilter("CIAdditionCompositing", parameters: [kCIInputBackgroundImageKey: gb])
+            let r = image.clampedToExtent().applyingFilter("CIColorMatrix", parameters: ["inputRVector": CIVector(x: 1,y: 0,z: 0,w: 0), "inputGVector": CIVector(x: 0,y: 0,z: 0,w: 0), "inputBVector": CIVector(x: 0,y: 0,z: 0,w: 0)]).transformed(by: .init(translationX: shift, y: 0))
+            let gb = image.clampedToExtent().applyingFilter("CIColorMatrix", parameters: ["inputRVector": CIVector(x: 0,y: 0,z: 0,w: 0)]).transformed(by: .init(translationX: -shift, y: 0))
+            return r.applyingFilter("CIAdditionCompositing", parameters: [kCIInputBackgroundImageKey: gb]).cropped(to: rect)
         case .grain:
             var state = seed.uuidString.utf8.reduce(UInt64(1469598103934665603)) { ($0 ^ UInt64($1)) &* 1099511628211 } ^ UInt64(max(0, time * 30))
             var bytes = [UInt8](repeating: 0, count: 64 * 64 * 4)
@@ -240,6 +268,32 @@ actor FrameRenderer {
             let noise = CIImage(bitmapData: Data(bytes), bytesPerRow: 256, size: CGSize(width: 64, height: 64), format: .RGBA8, colorSpace: CGColorSpaceCreateDeviceRGB()).transformed(by: .init(scaleX: rect.width / 64, y: rect.height / 64))
             return alpha(noise, min(0.35, abs(a) * 0.25)).applyingFilter("CISoftLightBlendMode", parameters: [kCIInputBackgroundImageKey: image])
         }
+    }
+
+    private func neon(_ effect: EffectInstance, image: CIImage, isolated: Bool) -> CIImage {
+        let rect = image.extent, unit = max(rect.width, rect.height) / 720
+        let amount = min(1, max(0, effect.amount)), tint = color(effect.colorHex ?? "#49E6FF")
+        let edges: CIImage
+        if isolated {
+            let silhouette = image.applyingFilter("CIColorMatrix", parameters: [
+                "inputRVector": CIVector(x: 0, y: 0, z: 0, w: 1), "inputGVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+                "inputBVector": CIVector(x: 0, y: 0, z: 0, w: 1), "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 0), "inputBiasVector": CIVector(x: 0, y: 0, z: 0, w: 1)])
+            edges = silhouette.applyingFilter("CIMorphologyGradient", parameters: [kCIInputRadiusKey: max(1, 2 * unit)])
+        } else {
+            edges = image.clampedToExtent().applyingFilter("CIEdges", parameters: [kCIInputIntensityKey: 1.4])
+        }
+        let mask = edges.cropped(to: rect).applyingFilter("CIMaskToAlpha")
+        let transparent = CIImage(color: .clear).cropped(to: rect)
+        let outline = CIImage(color: tint).cropped(to: rect).applyingFilter("CIBlendWithAlphaMask", parameters: [kCIInputBackgroundImageKey: transparent, kCIInputMaskImageKey: mask])
+        let spread = effect.neonGlowRadius
+        guard spread > 0 else { return alpha(outline, amount).composited(over: image).cropped(to: rect) }
+        // Give the blur enough luminous energy to remain visible away from a thin edge.
+        // A tight glow and a broad halo keep the neon core crisp without tying spread to intensity.
+        let glowSource = outline.applyingFilter("CIMorphologyMaximum", parameters: [kCIInputRadiusKey: (1 + spread * 5) * unit])
+        let nearGlow = glowSource.applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: (2 + spread * 6) * unit])
+        let halo = glowSource.applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: (2 + spread * 52) * unit])
+        return alpha(outline, amount).composited(over: alpha(nearGlow, amount * 0.85))
+            .composited(over: alpha(halo, amount)).composited(over: image).cropped(to: rect)
     }
 
     private func segmentPerson(in image: CIImage, cacheKey: String, feather: Double) throws -> CIImage {

@@ -19,6 +19,7 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
     @State private var undoStack: [EffectInstance] = []
     @State private var redoStack: [EffectInstance] = []
     @State private var gestureBefore: EffectInstance?
+    @State private var focusBurst = true
 
     private var rendered: RenderClip? { model.plan.clips.first { $0.id == clipID } }
     private var clipStart: MediaTime { rendered?.globalStart ?? .zero }
@@ -33,7 +34,14 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
     private var keys: [EffectAmountKeyframe] { (draft?.amountKeyframes ?? []).sorted { $0.time < $1.time } }
     private var visibleKeys: [EffectAmountKeyframe] { keys.filter { domain.contains($0.time) } }
     private var currentAmount: Double { draft?.animatedAmount(at: animationTime) ?? 0 }
-    private var intensityRange: ClosedRange<Double> { draft?.kind == .exposure ? -2...2 : -1...1 }
+    private var intensityRange: ClosedRange<Double> { draft?.kind.intensityRange ?? -1...1 }
+    private var isBurst: Bool { draft?.kind == .impactZoom || draft?.kind == .shortGlitch }
+    private var focusedWindow: ClosedRange<MediaTime>? {
+        guard focusBurst, isBurst, let start = draft?.start, let duration = draft?.duration else { return nil }
+        let lower = max(clipStart, clipStart + start - animationOffset)
+        let upper = min(clipStart + clipDuration, clipStart + start + duration - animationOffset)
+        return lower < upper ? lower...upper : nil
+    }
     private var graphRange: ClosedRange<Double> {
         let values = (gestureBefore ?? draft)?.amountKeyframes?.map(\.value) ?? []
         return min(intensityRange.lowerBound, values.min() ?? 0)...max(intensityRange.upperBound, values.max() ?? 0)
@@ -44,15 +52,26 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
             VStack(spacing: 0) {
                 if let item = rendered, let effect = draft {
                     VStack(spacing: 5) {
+                        if let description = effectDescription(effect.kind) {
+                            Text(description).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        }
+                        if isBurst {
+                            Button { focusBurst.toggle() } label: {
+                                Label(focusBurst ? EFL("Voir tout le clip", "Show entire clip") : EFL("Zoom sur l’effet", "Focus on effect"), systemImage: "arrow.left.and.right")
+                                    .font(.caption).frame(minHeight: 44)
+                            }.buttonStyle(.plain).accessibilityIdentifier("effectFocusRange")
+                        }
                         // The graph's scalar adapter does not edit clip opacity;
                         // effect values stay in their existing animation domain.
                         KeyframeGraph(clip: item, property: .opacity, globalTime: (clipStart + .init(seconds: localTime)).seconds, selectedID: selectedKeyID, valueRange: graphRange,
                                       pointIDs: Set(keys.map(\.id)),
                                       animationPoints: keys.map { .init(id: $0.id, time: $0.time, property: .opacity, value: $0.value, easing: $0.easing) },
                                       title: L("Intensité"), evaluate: { time in effect.animatedAmount(at: time - item.globalStart + item.clip.animationOffset) },
+                                      timeWindow: focusedWindow,
                                       onScrub: { scrub(($0 - clipStart).seconds) }, onSelect: { selectKey($0.id) }, onMove: movePoint)
                         Slider(value: Binding(get: { localTime }, set: scrub), in: 0...max(0.001, clipDuration.seconds))
                             .tint(DesignTokens.amber).accessibilityLabel(L("Parcourir l’animation")).accessibilityIdentifier("keyframeTimeSlider")
+                        interpolationControl
                         HStack {
                             Button { setKey(at: animationTime, value: currentAmount) } label: {
                                 Label(L(selectedKeyID == nil ? "Ajouter un point" : "Enregistrer le point"), systemImage: selectedKeyID == nil ? "plus.diamond" : "checkmark")
@@ -67,6 +86,9 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
                         if let message = error ?? renderError { Label(message, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.red).accessibilityIdentifier("effectEditorError") }
                     }.padding(.horizontal, 16).padding(.bottom, 6).background(DesignTokens.ink)
                     Form {
+                        if effect.kind == .neon {
+                            Section(EFL("Halo du néon", "Neon glow")) { neonColorControls }
+                        }
                         Section(L("Intensité")) {
                             Toggle(EFL("Effet actif", "Effect enabled"), isOn: Binding(get: { draft?.enabled ?? true }, set: { value in changeDraft { $0.enabled = value } })).accessibilityIdentifier("effectEnabled")
                             ValueSlider(title: L("Intensité"), value: Binding(get: { currentAmount }, set: { value in
@@ -77,14 +99,8 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
                                 Spacer()
                                 Button { seekKey(previous: false) } label: { Label(L("Point suivant"), systemImage: "forward.end").frame(minHeight: 44) }.disabled(!visibleKeys.contains { $0.time > animationTime })
                             }
-                            Picker(L("Interpolation"), selection: $easing) {
-                                ForEach(KeyframeEasing.allCases, id: \.self) { Text(animationEasingLabel($0)).tag($0) }
-                            }.disabled(selectedKeyID == nil).onChange(of: easing) { _, value in
-                                guard let selectedKeyID else { return }
-                                changeDraft { effect in
-                                    if let index = effect.amountKeyframes?.firstIndex(where: { $0.id == selectedKeyID }) { effect.amountKeyframes?[index].easing = value }
-                                }
-                            }
+                            Text(EFL("L’interpolation règle l’arrivée vers le point sélectionné. Le premier point fixe le départ.", "Interpolation controls the approach to the selected keyframe. The first keyframe sets the starting value."))
+                                .font(.caption).foregroundStyle(.secondary)
                             Button(L("Retirer les points")) {
                                 let amount = currentAmount
                                 changeDraft { $0.amountKeyframes = nil; $0.amount = amount }; selectedKeyID = nil
@@ -126,13 +142,63 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
                         Button { apply() } label: { Image(systemName: "checkmark") }.disabled(draft == nil).accessibilityLabel(L("Appliquer")).accessibilityIdentifier("effectApply")
                     }
                 }
-        }.preferredColorScheme(.dark).onAppear(perform: load).task(id: previewKey) { await render() }
+        }.presentationSizing(.page).presentationDetents([.large])
+            .preferredColorScheme(.dark).onAppear(perform: load).task(id: previewKey) { await render() }
+    }
+
+    private var interpolationControl: some View {
+        HStack {
+            Text(L("Interpolation"))
+            Spacer()
+            Picker(L("Interpolation"), selection: $easing) {
+                ForEach(KeyframeEasing.allCases, id: \.self) { Text(animationEasingLabel($0)).tag($0) }
+            }.pickerStyle(.menu).labelsHidden()
+                .accessibilityIdentifier("effectEasing").accessibilityValue(animationEasingLabel(easing))
+                .disabled(selectedKeyID == nil || selectedKeyID == keys.first?.id).onChange(of: easing) { _, value in
+                    guard let selectedKeyID, selectedKeyID != keys.first?.id else { return }
+                    changeDraft { effect in
+                        if let index = effect.amountKeyframes?.firstIndex(where: { $0.id == selectedKeyID }) { effect.amountKeyframes?[index].easing = value }
+                    }
+                }
+        }.font(.caption).frame(minHeight: 44)
+    }
+
+    private var neonColorControls: some View {
+        Group {
+            HStack(spacing: 8) {
+                ForEach(["#49E6FF", "#FF48D7", "#A6FF45", "#FFBC47", "#FFFFFF"], id: \.self) { hex in
+                    Button { changeDraft { $0.colorHex = hex } } label: {
+                        Circle().fill(Color(hex: hex)).frame(width: 24, height: 24)
+                            .overlay { if draft?.colorHex == hex { Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(.black) } }
+                            .frame(width: 44, height: 44)
+                    }.buttonStyle(.plain).accessibilityLabel(hex).accessibilityIdentifier("neonColor-\(hex)").accessibilityAddTraits(draft?.colorHex == hex ? .isSelected : [])
+                }
+            }.accessibilityElement(children: .contain)
+            VStack(spacing: 2) {
+                HStack {
+                    Text(EFL("Étendue du halo", "Glow spread"))
+                    Spacer()
+                    Text("\(Int(((draft?.neonGlowRadius ?? 0.45) * 100).rounded())) %").monospacedDigit().foregroundStyle(DesignTokens.amber)
+                }.font(.caption)
+                Slider(value: Binding(get: { draft?.neonGlowRadius ?? 0.45 }, set: { value in changeDraft { $0.glowRadius = value } }), in: 0...1, onEditingChanged: editGesture)
+                    .accessibilityLabel(EFL("Étendue du halo", "Glow spread")).accessibilityIdentifier("neonGlowRadius")
+                    .accessibilityValue("\(Int(((draft?.neonGlowRadius ?? 0.45) * 100).rounded())) %")
+            }.frame(minHeight: 48)
+            ColorPicker(EFL("Personnaliser", "Custom color"), selection: Binding(get: { Color(hex: draft?.colorHex ?? "#49E6FF") }, set: { color in
+                var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+                UIColor(color).getRed(&r, green: &g, blue: &b, alpha: &a)
+                changeDraft { $0.colorHex = String(format: "#%02X%02X%02X", Int((r * 255).rounded()), Int((g * 255).rounded()), Int((b * 255).rounded())) }
+            }), supportsOpacity: false)
+        }
     }
 
     private func load() {
         guard snapshot == nil, let clip = model.selectedClip, let effect = clip.effects.first(where: { $0.id == effectID }) else { return }
         model.stop(); snapshot = model.document; draft = effect; clipID = clip.id
         scrub(min(max(0, model.playhead - clipStart.seconds), max(0, clipDuration.seconds - 1 / 60_000)))
+        if isBurst, let start = effect.start, effect.evaluatedAmount(at: animationTime) == nil {
+            scrub((start - animationOffset).seconds)
+        }
     }
     private func changeDraft(_ change: (inout EffectInstance) throws -> Void) {
         guard let before = draft else { return }
@@ -220,5 +286,14 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
         guard model.document.revision == snapshot?.revision, model.selectedClipID == clipID else { error = EFL("Le montage a changé. Rouvrez l’effet.", "The edit changed. Reopen this effect."); return }
         model.changeClip(L("Supprimer l’effet")) { $0.effects.removeAll { $0.id == effectID } }
         dismiss()
+    }
+}
+
+private func effectDescription(_ kind: EffectKind) -> String? {
+    switch kind {
+    case .impactZoom: EFL("Zoom rapide, secousse et flou radial.", "Quick zoom, shake and radial blur.")
+    case .shortGlitch: EFL("Décalages en bandes et séparation des couleurs sur une courte rafale.", "Band shifts and color separation in a short burst.")
+    case .neon: EFL("Contour lumineux et halo diffus. Réglez son étendue indépendamment de l’intensité.", "Luminous outline with a soft glow. Adjust its spread independently of intensity.")
+    default: nil
     }
 }

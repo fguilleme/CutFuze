@@ -46,6 +46,7 @@ enum VisualTool: String, CaseIterable, Identifiable {
     case creative = "Créatif"
     case light = "Lumière"
     var id: String { rawValue }
+    var isEffectCategory: Bool { effectCategory != nil }
     fileprivate var effectCategory: EffectCategory? {
         switch self {
         case .beauty: .beauty
@@ -68,7 +69,7 @@ fileprivate enum EffectCategory: String, CaseIterable, Identifiable {
         switch self {
         case .beauty: [.skinSmooth, .skinGlow, .sharpness]
         case .geometry: [.bulge, .pinch, .twirl, .kaleidoscope, .pixelate]
-        case .creative: [.comic, .crystallize, .glow, .rgbSplit, .shake, .retro, .grain, .vignette, .blur, .fade]
+        case .creative: [.impactZoom, .shortGlitch, .neon, .comic, .crystallize, .glow, .rgbSplit, .shake, .retro, .grain, .vignette, .blur, .fade]
         case .light: [.exposure, .brightness, .contrast, .saturation, .temperature, .tint, .highlights, .shadows]
         }
     }
@@ -92,7 +93,7 @@ struct ContextToolPanel: View {
     private var controlsViewportHeight: CGFloat {
         if tool == .textStyle, horizontalSizeClass == .regular, verticalSizeClass != .compact { return 260 }
         if tool == .font { return verticalSizeClass == .compact ? 130 : 232 }
-        if tool == .visual { return verticalSizeClass == .compact ? 96 : 144 }
+        if tool == .visual { return visualTool.isEffectCategory ? 56 : (verticalSizeClass == .compact ? 96 : 144) }
         if tool == .animation { return verticalSizeClass == .compact ? 108 : 122 }
         return verticalSizeClass == .compact ? 56 : 94
     }
@@ -417,7 +418,7 @@ struct ContextToolPanel: View {
                                     if applied != nil { Image(systemName: "checkmark.circle.fill").foregroundStyle(DesignTokens.amber) }
                                 }
                                 .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 10).frame(height: 40)
+                                .padding(.horizontal, 10).frame(height: 44)
                                 .background(applied == nil ? Color.white.opacity(0.07) : DesignTokens.amber.opacity(0.16), in: RoundedRectangle(cornerRadius: 10))
                             }
                             .buttonStyle(.plain)
@@ -475,7 +476,9 @@ struct ContextToolPanel: View {
             editingEffect = applied
             return
         }
-        let effect = EffectInstance(kind: kind, amount: 0.45)
+        let rendered = model.plan.clips.first { $0.id == clip.id }
+        let effect = EffectInstance.readyToUse(kind, duration: rendered?.duration ?? clip.duration, offset: clip.animationOffset,
+                                             localTime: model.playhead - (rendered?.globalStart.seconds ?? 0))
         UISelectionFeedbackGenerator().selectionChanged()
         model.changeClip(L("Effets")) { $0.effects.append(effect) }
         DispatchQueue.main.async { editingEffect = effect }
@@ -528,6 +531,9 @@ private func effectSymbol(_ kind: EffectKind) -> String {
     case .pixelate: "square.grid.3x3.fill"
     case .shake: "waveform.path"
     case .retro: "camera.filters"
+    case .impactZoom: "burst.fill"
+    case .shortGlitch: "bolt.horizontal.fill"
+    case .neon: "lightbulb.max.fill"
     }
 }
 

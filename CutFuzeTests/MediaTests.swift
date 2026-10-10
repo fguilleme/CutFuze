@@ -3,9 +3,112 @@ import AVFoundation
 import CoreImage
 import ImageIO
 import VideoToolbox
+import UIKit
 @testable import CutFuze
 
 @MainActor final class MediaTests: XCTestCase {
+    func testCreativeEffectsRenderDeterministicallyAndSurviveSplitOnCPU() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("pattern.png"); try imageFixture(at: url)
+        let asset = try await MediaImporter().importFile(url: url, to: root)
+        let size = CGSize(width: 160, height: 160), renderer = FrameRenderer(softwareRendering: true)
+        let original = Clip(assetID: asset.id, kind: .image, duration: .init(seconds: 1), sourceDuration: .init(seconds: 1))
+        let plain = ProjectDocument(assets: [asset], scenes: [.init(duration: .init(seconds: 1), clips: [original])])
+        let baseline = try await renderer.render(plan: .compile(document: plain, variantID: nil), time: .init(seconds: 0.15), rootURL: root, size: size)
+        for kind in [EffectKind.impactZoom, .shortGlitch, .neon] {
+            var doc = plain
+            doc.scenes[0].clips[0].effects = [.readyToUse(kind, duration: .init(seconds: 1))]
+            let plan = RenderPlan.compile(document: doc, variantID: nil)
+            let image = try await renderer.render(plan: plan, time: .init(seconds: 0.15), rootURL: root, size: size)
+            XCTAssertNotEqual(image.dataProvider?.data as Data?, baseline.dataProvider?.data as Data?, "\(kind) must visibly change a patterned image")
+            let repeated = try await renderer.render(plan: plan, time: .init(seconds: 0.15), rootURL: root, size: size)
+            XCTAssertEqual(image.dataProvider?.data as Data?, repeated.dataProvider?.data as Data?)
+            try DocumentEditor.splitClip(original.id, at: .init(seconds: 0.12), in: &doc)
+            let split = try await renderer.render(plan: .compile(document: doc, variantID: nil), time: .init(seconds: 0.15), rootURL: root, size: size)
+            XCTAssertEqual(image.dataProvider?.data as Data?, split.dataProvider?.data as Data?, "\(kind) must keep the same phase after splitting")
+            let attachment = XCTAttachment(image: UIImage(cgImage: image)); attachment.name = "creative-render-\(kind.rawValue)"; attachment.lifetime = .keepAlways; add(attachment)
+            let movie = root.appendingPathComponent("\(kind.rawValue).mp4")
+            let settings = MovieExportSettings(longEdge: 160, frameRate: 24, bitrate: 1_000_000)
+            _ = try await MovieExporter().export(document: doc, variantID: doc.variants[1].id, rootURL: root, settings: settings, outputURL: movie, progress: { _ in })
+            let expected = try await renderer.render(plan: .compile(document: doc, variantID: doc.variants[1].id), time: .init(seconds: 0.125), rootURL: root, size: size)
+            let generator = AVAssetImageGenerator(asset: AVURLAsset(url: movie)); generator.appliesPreferredTrackTransform = true
+            generator.requestedTimeToleranceBefore = .zero; generator.requestedTimeToleranceAfter = .zero
+            let frame = try await generator.image(at: CMTime(seconds: 0.125, preferredTimescale: 24))
+            XCTAssertEqual(frame.actualTime.seconds, 0.125, accuracy: 0.0001, "Compare the exact animated frame, not a nearby keyframe")
+            let decoded = frame.image
+            var totalError = 0
+            for y in stride(from: 10, to: 150, by: 5) { for x in stride(from: 10, to: 150, by: 5) {
+                let a = pixel(expected, x: x, y: y), b = pixel(decoded, x: x, y: y)
+                for channel in 0..<3 { totalError += abs(Int(a[channel]) - Int(b[channel])) }
+            } }
+            XCTAssertLessThan(Double(totalError) / (28 * 28 * 3), 15, "\(kind) preview and export agree after a cut")
+            let exported = XCTAttachment(contentsOfFile: movie); exported.name = "creative-export-\(kind.rawValue)"; exported.lifetime = .keepAlways; add(exported)
+            if kind != .neon {
+                let outside = try await renderer.render(plan: plan, time: .init(seconds: 0.6), rootURL: root, size: size)
+                XCTAssertEqual(outside.dataProvider?.data as Data?, baseline.dataProvider?.data as Data?)
+            }
+        }
+    }
+
+    func testNeonFollowsTextAndMaskAlphaWithCustomColorAndMovieExport() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        var effect = EffectInstance.readyToUse(.neon, duration: .init(seconds: 0.5)); effect.colorHex = "#FF48D7"
+        effect.glowRadius = 0.9
+        var clip = Clip(kind: .text, duration: .init(seconds: 0.5), text: "CutFuze", presentation: Presentation(textSize: 0.14), effects: [effect])
+        let renderer = FrameRenderer(softwareRendering: true), size = CGSize(width: 256, height: 256)
+        var doc = ProjectDocument(globalClips: [clip])
+        let pink = try await renderer.render(plan: .compile(document: doc, variantID: doc.variants[1].id), time: .init(seconds: 0.125), rootURL: root, size: size)
+        doc.globalClips[0].effects[0].colorHex = "#49E6FF"
+        let cyan = try await renderer.render(plan: .compile(document: doc, variantID: doc.variants[1].id), time: .init(seconds: 0.125), rootURL: root, size: size)
+        XCTAssertNotEqual(pink.dataProvider?.data as Data?, cyan.dataProvider?.data as Data?)
+        let output = root.appendingPathComponent("neon.mp4")
+        let settings = MovieExportSettings(longEdge: 256, frameRate: 24, bitrate: 2_000_000)
+        _ = try await MovieExporter().export(document: doc, variantID: doc.variants[1].id, rootURL: root, settings: settings, outputURL: output, progress: { _ in })
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: output)); generator.appliesPreferredTrackTransform = true
+        generator.requestedTimeToleranceBefore = .zero; generator.requestedTimeToleranceAfter = .zero
+        let decoded = try await generator.image(at: CMTime(seconds: 0.125, preferredTimescale: 24)).image
+        var totalError = 0
+        for y in stride(from: 50, to: 200, by: 5) { for x in stride(from: 10, to: 245, by: 5) {
+            let expected = pixel(cyan, x: x, y: y), actual = pixel(decoded, x: x, y: y)
+            for channel in 0..<3 { totalError += abs(Int(expected[channel]) - Int(actual[channel])) }
+        } }
+        XCTAssertLessThan(Double(totalError) / (30 * 47 * 3), 15, "Preview and lossy export should agree")
+        let video = XCTAttachment(contentsOfFile: output); video.name = "neon-export"; video.lifetime = .keepAlways; add(video)
+        let screenshot = XCTAttachment(image: UIImage(cgImage: cyan)); screenshot.name = "neon-text"; screenshot.lifetime = .keepAlways; add(screenshot)
+        clip.kind = .shape; clip.presentation.mask = .ellipse; clip.presentation.maskWidth = 0.6; clip.presentation.maskHeight = 0.6
+        doc.globalClips = [clip]
+        let masked = try await renderer.render(plan: .compile(document: doc, variantID: nil), time: .init(seconds: 0.1), rootURL: root, size: size)
+        doc.globalClips[0].effects = []
+        let noHalo = try await renderer.render(plan: .compile(document: doc, variantID: nil), time: .init(seconds: 0.1), rootURL: root, size: size)
+        XCTAssertNotEqual(masked.dataProvider?.data as Data?, noHalo.dataProvider?.data as Data?, "The halo must survive masking")
+        let contour = XCTAttachment(image: UIImage(cgImage: masked)); contour.name = "neon-masked-shape"; contour.lifetime = .keepAlways; add(contour)
+    }
+
+    func testNeonSpreadAddsLightOutsideContourWithoutChangingIntensity() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        var effect = EffectInstance.readyToUse(.neon, duration: .init(seconds: 1)); effect.amount = 1; effect.glowRadius = 0
+        var style = Presentation(); style.mask = .ellipse; style.maskWidth = 0.6; style.maskHeight = 0.6
+        let clip = Clip(kind: .shape, duration: .init(seconds: 1), presentation: style, effects: [effect])
+        var doc = ProjectDocument(globalClips: [clip])
+        let renderer = FrameRenderer(softwareRendering: true), size = CGSize(width: 256, height: 256)
+        let narrow = try await renderer.render(plan: .compile(document: doc, variantID: doc.variants[1].id), time: .init(seconds: 0.25), rootURL: root, size: size)
+        doc.globalClips[0].effects[0].glowRadius = 1
+        let wide = try await renderer.render(plan: .compile(document: doc, variantID: doc.variants[1].id), time: .init(seconds: 0.25), rootURL: root, size: size)
+        let outsideNarrow = pixel(narrow, x: 39, y: 128), outsideWide = pixel(wide, x: 39, y: 128)
+        XCTAssertGreaterThan(Int(outsideWide[1]), Int(outsideNarrow[1]) + 5, "The broad halo must illuminate pixels away from the silhouette, not just recolor the edge")
+        XCTAssertEqual(doc.globalClips[0].effects[0].amount, 1)
+        for (name, image) in [("neon-contour-only", narrow), ("neon-wide-halo", wide)] {
+            let attachment = XCTAttachment(image: UIImage(cgImage: image)); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+        }
+        try DocumentEditor.splitClip(clip.id, at: .init(seconds: 0.2), in: &doc)
+        let split = try await renderer.render(plan: .compile(document: doc, variantID: doc.variants[1].id), time: .init(seconds: 0.25), rootURL: root, size: size)
+        XCTAssertEqual(wide.dataProvider?.data as Data?, split.dataProvider?.data as Data?)
+        doc.globalClips[1].effects[0].amount = 0
+        let zero = try await renderer.render(plan: .compile(document: doc, variantID: doc.variants[1].id), time: .init(seconds: 0.25), rootURL: root, size: size)
+        doc.globalClips[1].effects = []
+        let plain = try await renderer.render(plan: .compile(document: doc, variantID: doc.variants[1].id), time: .init(seconds: 0.25), rootURL: root, size: size)
+        XCTAssertEqual(zero.dataProvider?.data as Data?, plain.dataProvider?.data as Data?)
+    }
     func testColoredCaptionBackdropSurvivesMovieExport() async throws {
         let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
         var style = Presentation(textSize: 0.1, background: "#EF4444", textBackgroundOpacity: 1)

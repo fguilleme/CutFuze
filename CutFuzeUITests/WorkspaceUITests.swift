@@ -1,6 +1,80 @@
 import XCTest
 
 final class WorkspaceUITests: XCTestCase {
+    @MainActor func testCreativePresetsHaveFocusedEditableCurvesAndNeonColor() throws {
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Effets visuels"].tap()
+        app.buttons["visualTool-Créatif"].tap()
+        capture("creative-presets-catalog")
+        let points = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "graphKey-"))
+        for (kind, count) in [("impactZoom", 4), ("shortGlitch", 5)] {
+            app.buttons["effect-\(kind)"].tap()
+            XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+            XCTAssertEqual(points.count, count)
+            XCTAssertTrue(points.allElementsBoundByIndex.allSatisfy { $0.isHittable }, "Burst keyframes should not be clustered at the beginning of a long clip")
+            capture("creative-preset-\(kind)")
+            let last = try XCTUnwrap(points.allElementsBoundByIndex.max { $0.frame.minX < $1.frame.minX })
+            last.tap()
+            XCTAssertTrue(last.isSelected)
+            let interpolation = app.buttons["effectEasing"]
+            XCTAssertTrue(interpolation.isHittable)
+            interpolation.tap()
+            app.buttons["Accélération et décélération"].tap()
+            XCTAssertEqual(interpolation.value as? String, "Accélération et décélération")
+            XCTAssertEqual(last.value as? String, "Accélération et décélération")
+            capture("creative-easing-\(kind)")
+            app.buttons["effectUndo"].tap()
+            XCTAssertEqual(last.value as? String, "Décélération")
+            let position = last.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            let before = last.label
+            position.press(forDuration: 0.1, thenDragTo: position.withOffset(CGVector(dx: -25, dy: -20)))
+            XCTAssertTrue(waitForLabel(last, equals: before, matching: false))
+            XCTAssertFalse(app.descendants(matching: .any)["effectEditorError"].exists)
+            app.buttons["effectUndo"].tap()
+            XCTAssertTrue(waitForLabel(last, equals: before))
+            app.buttons["effectApply"].tap()
+            app.buttons["effect-\(kind)"].tap()
+            XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+            XCTAssertEqual(points.count, count)
+            app.buttons["effectCancel"].tap()
+        }
+        firstTimelineClip(app, kind: "text").tap()
+        app.buttons["tool-Effets visuels"].tap()
+        app.buttons["visualTool-Créatif"].tap()
+        app.buttons["effect-neon"].tap()
+        XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+        app.descendants(matching: .any)["keyframeGraph"].coordinate(withNormalizedOffset: CGVector(dx: 0.35, dy: 0.3)).tap()
+        let pink = app.buttons["neonColor-#FF48D7"]
+        let settings = app.descendants(matching: .any)["effectSettings"]
+        for _ in 0..<5 where !pink.isHittable { settings.swipeUp() }
+        XCTAssertTrue(pink.isHittable, app.debugDescription)
+        pink.tap()
+        XCTAssertTrue(pink.isSelected)
+        let spread = app.sliders["neonGlowRadius"]
+        for _ in 0..<5 where !spread.isHittable { settings.swipeUp() }
+        XCTAssertTrue(spread.isHittable)
+        spread.adjust(toNormalizedSliderPosition: 0.9)
+        let appliedSpread = try XCTUnwrap(spread.value as? String)
+        let percentage = try XCTUnwrap(Double(appliedSpread.replacingOccurrences(of: " %", with: "")))
+        XCTAssertEqual(percentage, 90, accuracy: 5, "Touch positioning has a small device-dependent tolerance")
+        app.buttons["effectUndo"].tap()
+        XCTAssertEqual(spread.value as? String, "45 %")
+        app.buttons["effectRedo"].tap()
+        XCTAssertEqual(spread.value as? String, appliedSpread)
+        Thread.sleep(forTimeInterval: 1)
+        capture("creative-neon-custom-color")
+        app.buttons["effectApply"].tap()
+        app.buttons["effect-neon"].tap()
+        XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+        for _ in 0..<5 where !pink.isHittable { settings.swipeUp() }
+        XCTAssertTrue(pink.isSelected)
+        for _ in 0..<5 where !spread.isHittable { settings.swipeUp() }
+        XCTAssertEqual(spread.value as? String, appliedSpread)
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        app.terminate()
+    }
+
     @MainActor func testCurvePreviewCanBeResizedBothWays() throws {
         let app = launchDemo()
         firstTimelineClip(app, kind: "video").tap()

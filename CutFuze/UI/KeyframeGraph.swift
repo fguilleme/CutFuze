@@ -11,16 +11,22 @@ struct KeyframeGraph: View {
     var animationPoints: [Keyframe]? = nil
     var title: String? = nil
     var evaluate: ((MediaTime) -> Double)? = nil
+    /// Optional focused interval for short effect bursts on long clips.
+    var timeWindow: ClosedRange<MediaTime>? = nil
     var onScrub: (MediaTime) -> Void
     var onSelect: (Keyframe) -> Void
     var onMove: (Keyframe, MediaTime, Double, Bool) -> Void
     @State private var zoom = 1.0
 
+    private var graphStart: MediaTime { max(clip.globalStart, timeWindow?.lowerBound ?? clip.globalStart) }
+    private var graphEnd: MediaTime { min(clip.end, timeWindow?.upperBound ?? clip.end) }
+    private var graphDuration: Double { max(1 / 60_000, (graphEnd - graphStart).seconds) }
+
     private var keys: [Keyframe] {
-        (animationPoints ?? clip.clip.keyframes).filter { pointIDs.contains($0.id) && $0.property == property && $0.time >= clip.clip.animationOffset && $0.time <= clip.clip.animationOffset + clip.duration }.sorted { $0.time < $1.time }
+        (animationPoints ?? clip.clip.keyframes).filter { pointIDs.contains($0.id) && $0.property == property && $0.time >= graphStart - clip.globalStart + clip.clip.animationOffset && $0.time <= graphEnd - clip.globalStart + clip.clip.animationOffset }.sorted { $0.time < $1.time }
     }
     private func time(_ fraction: Double) -> MediaTime {
-        clip.globalStart + MediaTime(seconds: min(1, max(0, fraction)) * clip.duration.seconds)
+        graphStart + MediaTime(seconds: min(1, max(0, fraction)) * graphDuration)
     }
     private func value(at time: MediaTime) -> Double {
         evaluate?(time) ?? AnimationEditing.value(property, in: clip.evaluatedPresentation(at: time))
@@ -59,18 +65,18 @@ struct KeyframeGraph: View {
                         }
                     }.stroke(DesignTokens.amber, lineWidth: 2)
                     HStack(spacing: 0) {
-                        Color.clear.frame(width: 22 + width * min(1, max(0, (globalTime - clip.globalStart.seconds) / max(0.001, clip.duration.seconds))))
+                        Color.clear.frame(width: 22 + width * min(1, max(0, (globalTime - graphStart.seconds) / graphDuration)))
                         Rectangle().fill(Color.white.opacity(0.8)).frame(width: 1, height: height + 16).id("graphPlayhead")
                         Spacer(minLength: 0)
                     }.offset(y: 14).allowsHitTesting(false)
                     ForEach(0...4, id: \.self) { index in
-                        Text(String(format: "%.2f s", clip.duration.seconds * Double(index) / 4))
+                        Text(String(format: "%.2f s", (graphStart - clip.globalStart).seconds + graphDuration * Double(index) / 4))
                             .font(.system(size: 9).monospacedDigit()).foregroundStyle(.secondary)
                             .position(x: 22 + width * Double(index) / 4, y: height + 37)
                     }
                     ForEach(keys) { key in
                         let keyTime = clip.globalStart + key.time - clip.clip.animationOffset
-                        let x = width * (keyTime - clip.globalStart).seconds / max(0.001, clip.duration.seconds)
+                        let x = width * (keyTime - graphStart).seconds / graphDuration
                         let pointY = y(value(at: keyTime), height: height)
                         Button { onSelect(key) } label: {
                             Image(systemName: key.id == selectedID ? "diamond.fill" : "diamond")

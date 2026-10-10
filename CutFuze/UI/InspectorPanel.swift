@@ -75,7 +75,7 @@ struct InspectorPanel: View {
                 Toggle(L("Inverser le masque"), isOn: presentationBool(\.maskInverted)).font(.caption)
             }
             HStack { Text(L("Fusion")); Spacer(); Picker(L("Fusion"), selection: Binding(get: { model.presentation.blend }, set: { value in model.changePresentation { $0.blend = value } })) { ForEach(BlendMode.allCases, id: \.self) { Text(effectLabel($0.rawValue)).tag($0) } }.labelsHidden() }.font(.caption)
-            HStack { Text(L("Effets")).font(.caption.bold()); Spacer(); Menu { ForEach(EffectKind.allCases, id: \.self) { kind in Button(effectLabel(kind.rawValue)) { model.changeClip(L("Effets")) { $0.effects.append(.init(kind: kind, amount: 0.3)) } } } } label: { Image(systemName: "plus.circle").frame(width: 44, height: 32) } }
+            HStack { Text(L("Effets")).font(.caption.bold()); Spacer(); Menu { ForEach(EffectKind.allCases, id: \.self) { kind in Button(effectLabel(kind.rawValue)) { model.changeClip(L("Effets")) { $0.effects.append(.readyToUse(kind, duration: clip.duration, offset: clip.animationOffset, defaultAmount: 0.3)) } } } } label: { Image(systemName: "plus.circle").frame(width: 44, height: 32) } }
             ForEach(clip.effects) { effect in HStack { Button { editingEffect = effect } label: { Image(systemName: "clock.badge.checkmark").frame(width: 36, height: 44) }.accessibilityLabel(L("Plage et animation de l’effet")); ValueSlider(title: effectLabel(effect.kind.rawValue), value: Binding(get: { model.selectedClip?.effects.first { $0.id == effect.id }?.amount ?? 0 }, set: { value in model.changeClip(L("Effets")) { c in if let i = c.effects.firstIndex(where: { $0.id == effect.id }) { c.effects[i].amount = value } } }), range: effect.kind == .exposure ? -2...2 : 0...1, editing: gesture); Button { model.changeClip(L("Supprimer")) { $0.effects.removeAll { $0.id == effect.id } } } label: { Image(systemName: "minus.circle").frame(width: 32, height: 44) } } }
             HStack { Button(L("Au premier plan")) { model.changeClip(L("Ordre des couches")) { $0.layer += 1 } }; Spacer(); Button(L("À l’arrière-plan")) { model.changeClip(L("Ordre des couches")) { $0.layer -= 1 } } }.font(.caption)
             anchorControls(clip)
@@ -179,6 +179,12 @@ struct ValueSlider: View {
     }
 }
 func effectLabel(_ value: String) -> String {
+    switch value {
+    case "impactZoom": return AppLocalization.bilingual("Zoom impact", "Impact zoom")
+    case "shortGlitch": return AppLocalization.bilingual("Glitch court", "Short glitch")
+    case "neon": return AppLocalization.bilingual("Néon", "Neon")
+    default: break
+    }
     let names = ["none":"Aucun", "dissolve":"Fondu enchaîné", "black":"Noir", "white":"Blanc", "slide":"Glissement", "wipe":"Balayage", "zoom":"Zoom", "blur":"Flou", "glitch":"Fragmentation", "exposure":"Exposition", "brightness":"Luminosité", "contrast":"Contraste", "saturation":"Saturation", "temperature":"Température", "tint":"Teinte", "highlights":"Hautes lumières", "shadows":"Ombres", "sharpness":"Netteté", "vignette":"Vignette", "grain":"Grain", "fade":"Noirs adoucis", "glow":"Lueur", "rgbSplit":"Séparation RGB", "pixelate":"Pixelisation", "shake":"Tremblement", "retro":"Rétro", "skinSmooth":"Lissage peau", "skinGlow":"Éclat du teint", "bulge":"Bombement", "pinch":"Pincement", "twirl":"Tourbillon", "kaleidoscope":"Kaléidoscope", "comic":"BD", "crystallize":"Cristallisation", "ellipse":"Ellipse", "rectangle":"Rectangle", "roundedRectangle":"Rectangle arrondi", "linear":"Séparation", "band":"Bande", "normal":"Normal", "multiply":"Produit", "screen":"Écran", "overlay":"Superposition", "lighten":"Éclaircir", "darken":"Assombrir"]
     return L(names[value] ?? value)
 }
