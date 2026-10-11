@@ -54,6 +54,8 @@ enum EffectKind: String, Codable, CaseIterable, Sendable {
     case comic, crystallize
     case impactZoom, shortGlitch, neon
     case dream, lightSweep, liquidDistortion
+    case directionalBlur, popHalftone, duotone
+    case lensPulse, ghostTrail, stopMotion
 }
 enum KeyframeProperty: String, Codable, CaseIterable, Sendable {
     case x, y, scale, rotation, opacity, volume
@@ -131,6 +133,13 @@ struct EffectInstance: Codable, Identifiable, Equatable, Sendable {
     var glowRadius: Double? = nil
     var sweepWidth: Double? = nil
     var liquidSpeed: Double? = nil
+    var blurAngle: Double? = nil
+    var dotScale: Double? = nil
+    var secondaryColorHex: String? = nil
+    var echoCount: Int? = nil
+    var echoSpacing: Double? = nil
+    var echoDecay: Double? = nil
+    var heldFrameRate: Double? = nil
 }
 
 struct Keyframe: Codable, Identifiable, Equatable, Sendable {

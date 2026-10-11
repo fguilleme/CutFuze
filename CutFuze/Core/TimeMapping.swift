@@ -2,6 +2,18 @@ import Foundation
 
 /// Integrates 1/v(s) analytically for each linear source-domain speed segment.
 enum TimeMapping {
+    /// Temporal effects may need a pre-cut frame. Reuse the same speed integral
+    /// over a widened media interval; never change the document's source bounds.
+    static func historicalSourceTime(for localTime: MediaTime, clip: Clip, assetDuration: MediaTime) -> MediaTime {
+        guard localTime < .zero else { return sourceTime(for: localTime, clip: clip) }
+        var extended = clip
+        let currentBoundary = clip.reversed ? clip.sourceStart + clip.sourceDuration : clip.sourceStart
+        if clip.reversed { extended.sourceDuration = max(.zero, assetDuration - clip.sourceStart) }
+        else { extended.sourceStart = .zero; extended.sourceDuration = clip.sourceStart + clip.sourceDuration }
+        let offset = self.localTime(forSource: currentBoundary, clip: extended)
+        return sourceTime(for: max(.zero, offset + localTime), clip: extended)
+    }
+
     static func sourceTime(for localTime: MediaTime, clip: Clip) -> MediaTime {
         let low = clip.sourceStart.seconds
         let high = low + clip.sourceDuration.seconds

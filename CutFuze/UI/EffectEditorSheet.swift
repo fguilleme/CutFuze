@@ -119,6 +119,69 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
                                 parameterSlider(title: EFL("Vitesse des ondes", "Wave speed"), value: Binding(get: { draft?.liquidFlowSpeed ?? 1 }, set: { value in changeDraft { $0.liquidSpeed = value } }), range: 0.25...2, identifier: "liquidFlowSpeed", percentage: false)
                             }
                         }
+                        if effect.kind == .directionalBlur {
+                            Section(EFL("Direction du flou", "Blur direction")) {
+                                parameterSlider(title: EFL("Angle", "Angle"), value: Binding(get: { draft?.directionalBlurAngle ?? 45 }, set: { value in changeDraft { $0.blurAngle = value } }), range: -180...180, identifier: "directionalBlurAngle", suffix: "°")
+                                HStack {
+                                    ForEach([0.0, 45, 90], id: \.self) { angle in
+                                        Button { changeDraft { $0.blurAngle = angle } } label: {
+                                            parameterChoice("\(Int(angle))°", selected: effect.directionalBlurAngle == angle)
+                                        }.buttonStyle(.plain)
+                                            .accessibilityIdentifier("blurDirection-\(Int(angle))")
+                                            .accessibilityAddTraits(effect.directionalBlurAngle == angle ? .isSelected : [])
+                                    }
+                                }
+                            }
+                        }
+                        if effect.kind == .popHalftone {
+                            Section(EFL("Points d’impression", "Print dots")) {
+                                parameterSlider(title: EFL("Taille des points", "Dot size"), value: Binding(get: { draft?.halftoneDotScale ?? 0.45 }, set: { value in changeDraft { $0.dotScale = value } }), range: 0...1, identifier: "halftoneDotScale")
+                            }
+                        }
+                        if effect.kind == .duotone {
+                            Section(EFL("Palette à deux couleurs", "Two-color palette")) {
+                                HStack(spacing: 10) {
+                                    ForEach([("#152A62", "#FFB5DA"), ("#163A32", "#F8DA78"), ("#401E5A", "#91F4FF")], id: \.0) { dark, light in
+                                        Button { changeDraft { $0.colorHex = dark; $0.secondaryColorHex = light } } label: {
+                                            HStack(spacing: 0) { Color(hex: dark); Color(hex: light) }
+                                                .frame(width: 48, height: 28).clipShape(Capsule())
+                                                .overlay(Capsule().stroke(effect.colorHex == dark && effect.secondaryColorHex == light ? DesignTokens.amber : .clear, lineWidth: 2))
+                                                .frame(width: 60, height: 44)
+                                        }.buttonStyle(.plain).accessibilityLabel("\(dark), \(light)").accessibilityIdentifier("duotonePalette-\(dark)")
+                                            .accessibilityAddTraits(effect.colorHex == dark && effect.secondaryColorHex == light ? .isSelected : [])
+                                    }
+                                    Button { changeDraft { let dark = $0.colorHex ?? "#152A62"; $0.colorHex = $0.secondaryColorHex ?? "#FFB5DA"; $0.secondaryColorHex = dark } } label: { Image(systemName: "arrow.left.arrow.right").frame(width: 44, height: 44) }
+                                        .accessibilityLabel(EFL("Inverser les couleurs", "Swap colors")).accessibilityIdentifier("swapDuotoneColors")
+                                }
+                                ColorPicker(EFL("Ombres", "Shadows"), selection: effectColor(secondary: false), supportsOpacity: false)
+                                ColorPicker(EFL("Hautes lumières", "Highlights"), selection: effectColor(secondary: true), supportsOpacity: false)
+                            }
+                        }
+                        if effect.kind == .ghostTrail {
+                            Section(EFL("Images précédentes", "Previous frames")) {
+                                Stepper(value: Binding(get: { draft?.ghostCount ?? 3 }, set: { value in changeDraft { $0.echoCount = value } }), in: 1...5) {
+                                    Text(EFL("Images fantômes", "Ghost frames") + " : \(draft?.ghostCount ?? 3)")
+                                }.accessibilityIdentifier("ghostCount")
+                                parameterSlider(title: EFL("Espacement", "Spacing"), value: Binding(get: { draft?.ghostSpacing ?? 0.12 }, set: { value in changeDraft { $0.echoSpacing = value } }), range: 1.0 / 60...0.4, identifier: "ghostSpacing", percentage: false, suffix: " s", fractionDigits: 2)
+                                parameterSlider(title: EFL("Persistance", "Persistence"), value: Binding(get: { draft?.ghostDecay ?? 0.55 }, set: { value in changeDraft { $0.echoDecay = value } }), range: 0.1...0.85, identifier: "ghostDecay")
+                            }
+                        }
+                        if effect.kind == .stopMotion {
+                            Section(EFL("Cadence du calque", "Layer frame rate")) {
+                                HStack {
+                                    ForEach([4.0, 8, 12, 24], id: \.self) { fps in
+                                        Button { changeDraft { $0.heldFrameRate = fps } } label: {
+                                            parameterChoice("\(Int(fps)) fps", selected: effect.stopMotionFrameRate == fps)
+                                        }.buttonStyle(.plain)
+                                            .accessibilityIdentifier("heldFPS-\(Int(fps))").accessibilityAddTraits(effect.stopMotionFrameRate == fps ? .isSelected : [])
+                                    }
+                                }
+                                Stepper(value: Binding(get: { Int(draft?.stopMotionFrameRate ?? 8) }, set: { value in changeDraft { $0.heldFrameRate = Double(value) } }), in: 2...24) {
+                                    Text("\(Int(draft?.stopMotionFrameRate ?? 8)) fps")
+                                }.accessibilityIdentifier("heldFrameRate")
+                                Text(EFL("À intensité maximale, l’image et la pose sont maintenues entre deux pas. L’audio et les autres pistes restent fluides.", "At full intensity, the image and pose are held between steps. Audio and other tracks stay smooth.")).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
                         Section(L("Intensité")) {
                             Toggle(EFL("Effet actif", "Effect enabled"), isOn: Binding(get: { draft?.enabled ?? true }, set: { value in changeDraft { $0.enabled = value } })).accessibilityIdentifier("effectEnabled")
                             ValueSlider(title: L("Intensité"), value: Binding(get: { currentAmount }, set: { value in
@@ -223,8 +286,17 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
         }
     }
 
-    private func parameterSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>, identifier: String, percentage: Bool = true) -> some View {
-        let label = percentage ? "\(Int((value.wrappedValue * 100).rounded())) %" : String(format: "%.2f ×", value.wrappedValue)
+    private func effectColor(secondary: Bool) -> Binding<Color> {
+        Binding(get: { Color(hex: secondary ? (draft?.secondaryColorHex ?? "#FFB5DA") : (draft?.colorHex ?? "#152A62")) }, set: { color in
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+            UIColor(color).getRed(&r, green: &g, blue: &b, alpha: &a)
+            let hex = String(format: "#%02X%02X%02X", Int((r * 255).rounded()), Int((g * 255).rounded()), Int((b * 255).rounded()))
+            changeDraft { if secondary { $0.secondaryColorHex = hex } else { $0.colorHex = hex } }
+        })
+    }
+
+    private func parameterSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>, identifier: String, percentage: Bool = true, suffix: String? = nil, fractionDigits: Int = 0) -> some View {
+        let label = suffix.map { String(format: "%.*f%@", fractionDigits, value.wrappedValue, $0) } ?? (percentage ? "\(Int((value.wrappedValue * 100).rounded())) %" : String(format: "%.2f ×", value.wrappedValue))
         return VStack(spacing: 2) {
             HStack { Text(title); Spacer(); Text(label).monospacedDigit().foregroundStyle(DesignTokens.amber) }.font(.caption)
             Slider(value: value, in: range, onEditingChanged: editGesture)
@@ -232,11 +304,18 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
         }.frame(minHeight: 48)
     }
 
+    private func parameterChoice(_ title: String, selected: Bool) -> some View {
+        Text(title).font(.caption.weight(.semibold)).lineLimit(1)
+            .foregroundStyle(selected ? DesignTokens.ink : Color.white)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(selected ? DesignTokens.amber : Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
+    }
+
     private func load() {
         guard snapshot == nil, let clip = model.selectedClip, let effect = clip.effects.first(where: { $0.id == effectID }) else { return }
         model.stop(); snapshot = model.document; draft = effect; clipID = clip.id
         scrub(min(max(0, model.playhead - clipStart.seconds), max(0, clipDuration.seconds - 1 / 60_000)))
-        if effect.kind == .lightSweep, let start = effect.start, let duration = effect.duration {
+        if effect.kind == .lightSweep || effect.kind == .lensPulse, let start = effect.start, let duration = effect.duration {
             // Show the reflection itself on entry rather than the empty beginning of its pass.
             scrub((start - animationOffset).seconds + duration.seconds * 0.5)
         } else if isBurst, let start = effect.start, effect.evaluatedAmount(at: animationTime) == nil {
@@ -340,6 +419,12 @@ private func effectDescription(_ kind: EffectKind) -> String? {
     case .dream: EFL("Lumière douce, détails adoucis et couleurs pastel. L’intensité reste animable.", "Soft light, softened details and pastel colors. Intensity can be animated.")
     case .lightSweep: EFL("Reflet mobile : couleur et largeur réglables. La plage définit sa durée.", "Moving reflection: adjustable color and width. The time range sets its duration.")
     case .liquidDistortion: EFL("Ondulations animées, comme une image vue à travers l’eau. Réglez l’intensité et la vitesse des ondes.", "Animated ripples, like an image seen through water. Adjust intensity and wave speed.")
+    case .directionalBlur: EFL("Étire les détails dans une direction. Choisissez l’angle, puis animez l’intensité pour une montée de vitesse.", "Smears details in one direction. Choose the angle, then animate intensity for a burst of speed.")
+    case .popHalftone: EFL("Transforme les tons en points d’impression. Réglez la taille des points et mélangez le résultat avec l’image d’origine.", "Turns tones into printed dots. Adjust dot size and blend the result with the original image.")
+    case .duotone: EFL("Remplace les tons sombres et clairs par deux couleurs. Choisissez une palette, personnalisez-la ou inversez les couleurs.", "Maps dark and light tones to two colors. Choose a palette, customize it or swap the colors.")
+    case .lensPulse: EFL("Une déformation de lentille sur toute l’image accompagne une impulsion de zoom. Modifiez les trois points pour régler l’impact et le retour.", "A full-image lens distortion accompanies a zoom pulse. Edit the three keyframes to shape the impact and return.")
+    case .ghostTrail: EFL("Superpose jusqu’à cinq images précédentes, avec espacement et persistance réglables. Visible sur une vidéo en mouvement ou un calque animé ; calcul plus long.", "Blends up to five previous frames, with adjustable spacing and persistence. Visible on moving video or an animated layer; rendering takes longer.")
+    case .stopMotion: EFL("Maintient les images du calque à une cadence réduite. Le montage conserve sa durée et sa cadence d’export.", "Holds the layer’s frames at a lower rate. Montage duration and export frame rate stay unchanged.")
     default: nil
     }
 }

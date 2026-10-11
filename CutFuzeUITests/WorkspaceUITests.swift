@@ -1,6 +1,128 @@
 import XCTest
 
 final class WorkspaceUITests: XCTestCase {
+    @MainActor private func openCreativeEffect(_ kind: String, in app: XCUIApplication) {
+        let button = app.buttons["effect-\(kind)"]
+        let catalog = app.scrollViews["effectCatalog"]
+        for _ in 0..<15 where !button.isHittable {
+            catalog.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.5)).press(forDuration: 0.1,
+                thenDragTo: catalog.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)), withVelocity: .slow, thenHoldForDuration: 0.1)
+        }
+        XCTAssertTrue(button.isHittable, "\(kind) must be reachable in the scrollable catalog")
+        button.tap()
+    }
+
+    @MainActor func testTemporalCreativeSeriesHasEditableCurvesAndLayerParameters() throws {
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Effets visuels"].tap(); app.buttons["visualTool-Créatif"].tap()
+        capture("temporal-series-catalog")
+        for kind in ["lensPulse", "ghostTrail", "stopMotion"] {
+            openCreativeEffect(kind, in: app)
+            XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+            let settings = app.descendants(matching: .any)["effectSettings"]
+            let points = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "graphKey-"))
+            var spacingValue: String?
+            if kind == "lensPulse" {
+                XCTAssertEqual(points.count, 3)
+                points.matching(NSPredicate(format: "value == %@", "Décélération")).firstMatch.tap()
+                let easing = app.buttons["effectEasing"]
+                XCTAssertTrue(easing.isEnabled)
+                easing.tap(); app.buttons["Accélération"].tap()
+                XCTAssertEqual(easing.value as? String, "Accélération")
+                capture("temporal-series-lensPulse-curve")
+            } else {
+                app.descendants(matching: .any)["keyframeGraph"].coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.25)).tap()
+                app.buttons["effectSaveKeyframe"].tap(); XCTAssertEqual(points.count, 1)
+                capture("temporal-series-\(kind)-curve")
+                if kind == "ghostTrail" {
+                    let spacing = app.sliders["ghostSpacing"]
+                    revealEffectParameter(spacing, in: settings); XCTAssertTrue(spacing.isHittable)
+                    spacing.adjust(toNormalizedSliderPosition: 0.65); spacingValue = try XCTUnwrap(spacing.value as? String)
+                    app.buttons["effectUndo"].tap(); XCTAssertEqual(spacing.value as? String, "0.12 s")
+                    app.buttons["effectRedo"].tap(); XCTAssertEqual(spacing.value as? String, spacingValue)
+                    let decay = app.sliders["ghostDecay"]
+                    revealEffectParameter(decay, in: settings); XCTAssertTrue(decay.isHittable)
+                    decay.adjust(toNormalizedSliderPosition: 0.7)
+                    XCTAssertTrue(app.steppers["ghostCount"].exists)
+                } else {
+                    let fps = app.buttons["heldFPS-4"]
+                    revealEffectParameter(fps, in: settings); XCTAssertTrue(fps.isHittable); fps.tap()
+                    XCTAssertTrue(fps.isSelected)
+                    app.buttons["effectUndo"].tap(); XCTAssertTrue(app.buttons["heldFPS-8"].isSelected)
+                    app.buttons["effectRedo"].tap(); XCTAssertTrue(fps.isSelected)
+                }
+                capture("temporal-series-\(kind)-settings")
+            }
+            XCTAssertFalse(app.descendants(matching: .any)["effectEditorError"].exists)
+            app.buttons["effectApply"].tap(); openCreativeEffect(kind, in: app)
+            XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+            XCTAssertEqual(points.count, kind == "lensPulse" ? 3 : 1)
+            if kind == "ghostTrail" {
+                let spacing = app.sliders["ghostSpacing"]; revealEffectParameter(spacing, in: settings)
+                XCTAssertEqual(spacing.value as? String, spacingValue)
+            } else if kind == "stopMotion" {
+                let fps = app.buttons["heldFPS-4"]; revealEffectParameter(fps, in: settings); XCTAssertTrue(fps.isSelected)
+            }
+            app.buttons["effectCancel"].tap()
+        }
+        XCTAssertFalse(app.alerts.firstMatch.exists); app.terminate()
+    }
+
+    @MainActor func testThirdCreativeSeriesEditsParametersAndCurves() throws {
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Effets visuels"].tap(); app.buttons["visualTool-Créatif"].tap()
+        capture("third-series-catalog")
+        for kind in ["directionalBlur", "popHalftone", "duotone"] {
+            openCreativeEffect(kind, in: app)
+            XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+            let settings = app.descendants(matching: .any)["effectSettings"]
+            let graph = app.descendants(matching: .any)["keyframeGraph"]
+            let points = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "graphKey-"))
+            graph.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.65)).tap()
+            app.buttons["effectSaveKeyframe"].tap(); XCTAssertEqual(points.count, 1)
+            graph.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.25)).tap()
+            app.buttons["effectSaveKeyframe"].tap(); XCTAssertEqual(points.count, 2)
+            let easing = app.buttons["effectEasing"]
+            easing.tap(); app.buttons["Accélération"].tap()
+            XCTAssertEqual(easing.value as? String, "Accélération")
+            capture("third-series-\(kind)-curve")
+            var parameterValue: String?
+            if kind == "directionalBlur" {
+                let direction = app.buttons["blurDirection-90"]
+                revealEffectParameter(direction, in: settings); XCTAssertTrue(direction.isHittable); direction.tap()
+                XCTAssertTrue(direction.isSelected)
+                app.buttons["effectUndo"].tap(); XCTAssertTrue(app.buttons["blurDirection-45"].isSelected)
+                app.buttons["effectRedo"].tap(); XCTAssertTrue(direction.isSelected)
+            } else if kind == "popHalftone" {
+                let dots = app.sliders["halftoneDotScale"]
+                revealEffectParameter(dots, in: settings); XCTAssertTrue(dots.isHittable)
+                dots.adjust(toNormalizedSliderPosition: 0.8); parameterValue = try XCTUnwrap(dots.value as? String)
+                app.buttons["effectUndo"].tap(); XCTAssertEqual(dots.value as? String, "45 %")
+                app.buttons["effectRedo"].tap(); XCTAssertEqual(dots.value as? String, parameterValue)
+            } else {
+                let palette = app.buttons["duotonePalette-#163A32"]
+                revealEffectParameter(palette, in: settings); XCTAssertTrue(palette.isHittable); palette.tap()
+                XCTAssertTrue(palette.isSelected)
+                app.buttons["effectUndo"].tap(); XCTAssertTrue(app.buttons["duotonePalette-#152A62"].isSelected)
+                app.buttons["effectRedo"].tap(); XCTAssertTrue(palette.isSelected)
+                app.buttons["swapDuotoneColors"].tap(); XCTAssertFalse(palette.isSelected)
+                app.buttons["effectUndo"].tap(); XCTAssertTrue(palette.isSelected)
+            }
+            capture("third-series-\(kind)-settings")
+            XCTAssertFalse(app.descendants(matching: .any)["effectEditorError"].exists)
+            app.buttons["effectApply"].tap(); openCreativeEffect(kind, in: app)
+            XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5)); XCTAssertEqual(points.count, 2)
+            let parameter = kind == "directionalBlur" ? app.buttons["blurDirection-90"] : kind == "duotone" ? app.buttons["duotonePalette-#163A32"] : app.sliders["halftoneDotScale"]
+            revealEffectParameter(parameter, in: settings)
+            if kind == "popHalftone" { XCTAssertEqual(parameter.value as? String, parameterValue) }
+            else { XCTAssertTrue(parameter.isSelected) }
+            app.buttons["effectCancel"].tap()
+        }
+        XCTAssertFalse(app.alerts.firstMatch.exists); app.terminate()
+    }
+
     @MainActor func testAudioMenuImportsOrReusesOnlyAudio() throws {
         let app = launchDemo()
         app.buttons["addAudio"].tap()

@@ -76,9 +76,40 @@ actor FrameRenderer {
     }
 
     private func layerImage(_ item: RenderClip, plan: RenderPlan, time: MediaTime, rootURL: URL, rect: CGRect) async throws -> CIImage {
+        func heldTime(_ time: MediaTime) -> MediaTime {
+            let animationTime = time - item.globalStart + item.clip.animationOffset
+            guard let effect = item.clip.effects.last(where: { $0.kind == .stopMotion }),
+                  let amount = effect.evaluatedAmount(at: animationTime), amount > 0 else { return time }
+            // Intensity blends between smooth playback and a held pose; the
+            // sampling grid is anchored before splits, not to the new clip start.
+            let held = floor(max(0, animationTime.seconds) * effect.stopMotionFrameRate + 0.000001) / effect.stopMotionFrameRate
+            let sampled = animationTime.seconds + (held - animationTime.seconds) * min(1, amount)
+            return item.globalStart + .init(seconds: sampled) - item.clip.animationOffset
+        }
+        var result = try await singleLayerImage(item, plan: plan, time: heldTime(time), rootURL: rootURL, rect: rect)
+        let animationTime = time - item.globalStart + item.clip.animationOffset
+        for effect in item.clip.effects where effect.kind == .ghostTrail {
+            guard let amount = effect.evaluatedAmount(at: animationTime), amount > 0 else { continue }
+            var totalWeight = 1.0
+            for index in 1...effect.ghostCount {
+                try Task.checkCancellation()
+                let sample = time - .init(seconds: Double(index) * effect.ghostSpacing)
+                // Never sample another clip or outside the original animation.
+                guard sample - item.globalStart + item.clip.animationOffset >= .zero else { continue }
+                let ghost = try await singleLayerImage(item, plan: plan, time: heldTime(sample), rootURL: rootURL, rect: rect)
+                let weight = min(1, amount) * pow(effect.ghostDecay, Double(index))
+                result = mixEffect(ghost, over: result, amount: weight / (totalWeight + weight))
+                totalWeight += weight
+            }
+        }
+        return result
+    }
+
+    private func singleLayerImage(_ item: RenderClip, plan: RenderPlan, time: MediaTime, rootURL: URL, rect: CGRect) async throws -> CIImage {
         let clip = item.clip
         let p = item.evaluatedPresentation(at: time)
         var image: CIImage
+        var mediaSampleStamp: Int64 = 0
         if clip.kind == .shape {
             image = CIImage(color: color(p.color)).cropped(to: rect)
         } else if clip.kind == .text {
@@ -119,7 +150,7 @@ actor FrameRenderer {
                     if generators.count >= 6 { generators.values.forEach { $0.cancelAllCGImageGeneration() }; generators.removeAll(keepingCapacity: true) }
                     generators[key] = generator
                 }
-                let sourceTime = TimeMapping.sourceTime(for: time - item.globalStart, clip: clip)
+                let sourceTime = TimeMapping.historicalSourceTime(for: time - item.globalStart, clip: clip, assetDuration: asset.duration)
                 // The source interval is half-open, including during reverse playback.
                 let sourceSeconds = min(max(0, sourceTime.seconds), max(0, asset.duration.seconds - 1 / max(asset.nominalFrameRate, 600)))
                 // The generator is cached and shared by consecutive preview renders.
@@ -130,17 +161,19 @@ actor FrameRenderer {
                 let generated = try await generator.image(at: CMTime(seconds: sourceSeconds, preferredTimescale: 60_000))
                 try Task.checkCancellation()
                 image = CIImage(cgImage: generated.image)
+                mediaSampleStamp = MediaTime(seconds: generated.actualTime.seconds).value
             }
         }
         let sourceRect = image.extent
         var personMask: CIImage?
         if p.removePersonBackground, clip.kind == .image || clip.kind == .video {
-            let stamp = clip.kind == .video ? TimeMapping.sourceTime(for: time - item.globalStart, clip: clip).value : 0
-            let key = "\(rootURL.path)|\(clip.assetID?.uuidString ?? "")|\(stamp)|\(sourceRect.width)x\(sourceRect.height)"
+            // Historical samples can precede the new sourceStart after a split.
+            // Cache the actual decoded frame, not a source time clamped to the cut.
+            let key = "\(rootURL.path)|\(clip.assetID?.uuidString ?? "")|\(mediaSampleStamp)|\(sourceRect.width)x\(sourceRect.height)"
             personMask = try segmentPerson(in: image, cacheKey: key, feather: p.maskFeather)
         }
         let animationTime = time - item.globalStart + clip.animationOffset
-        for var effect in clip.effects where effect.kind != .neon && effect.kind != .lightSweep {
+        for var effect in clip.effects where effect.kind != .neon && effect.kind != .lightSweep && !effect.kind.isTemporal {
             guard let amount = effect.evaluatedAmount(at: animationTime), amount != 0 else { continue }
             effect.amount = amount
             image = apply(effect, to: image, time: animationTime.seconds, seed: clip.effectSeed ?? clip.id)
@@ -235,6 +268,35 @@ actor FrameRenderer {
                 .cropped(to: rect)
             return alpha(soft, strength * 0.8).composited(over: image).cropped(to: rect)
         case .lightSweep: return lightSweep(effect, image: image, time: time)
+        case .lensPulse:
+            let strength = min(1, max(0, a))
+            let distorted = image.clampedToExtent().applyingFilter("CIBumpDistortion", parameters: [
+                kCIInputCenterKey: CIVector(x: rect.midX, y: rect.midY),
+                kCIInputRadiusKey: hypot(rect.width, rect.height) * 0.65,
+                kCIInputScaleKey: strength * 0.65
+            ])
+            let zoom = 1 + strength * 0.10
+            return distorted.transformed(by: CGAffineTransform(translationX: rect.midX, y: rect.midY).scaledBy(x: zoom, y: zoom).translatedBy(x: -rect.midX, y: -rect.midY)).cropped(to: rect)
+        case .ghostTrail, .stopMotion:
+            // Temporal effects are evaluated per layer, before compositing the montage.
+            return image
+        case .directionalBlur:
+            return image.clampedToExtent().applyingFilter("CIMotionBlur", parameters: [
+                kCIInputRadiusKey: min(1, max(0, a)) * 42 * radius,
+                kCIInputAngleKey: effect.directionalBlurAngle * .pi / 180
+            ]).cropped(to: rect)
+        case .popHalftone:
+            let printed = image.applyingFilter("CIDotScreen", parameters: [
+                kCIInputCenterKey: CIVector(x: rect.midX, y: rect.midY), kCIInputAngleKey: Double.pi / 4,
+                "inputWidth": max(2, (5 + effect.halftoneDotScale * 24) * radius), "inputSharpness": 0.8
+            ]).cropped(to: rect)
+            return mixEffect(printed, over: image, amount: a)
+        case .duotone:
+            let tinted = image.applyingFilter("CIFalseColor", parameters: [
+                "inputColor0": color(effect.colorHex ?? "#152A62"),
+                "inputColor1": color(effect.secondaryColorHex ?? "#FFB5DA")
+            ]).cropped(to: rect)
+            return mixEffect(tinted, over: image, amount: a)
         case .liquidDistortion:
             // Smooth deterministic height field, not random frame history. Animation time
             // remains unchanged after a cut, so the waves do not restart on the second segment.
@@ -297,6 +359,14 @@ actor FrameRenderer {
             let noise = CIImage(bitmapData: Data(bytes), bytesPerRow: 256, size: CGSize(width: 64, height: 64), format: .RGBA8, colorSpace: CGColorSpaceCreateDeviceRGB()).transformed(by: .init(scaleX: rect.width / 64, y: rect.height / 64))
             return alpha(noise, min(0.35, abs(a) * 0.25)).applyingFilter("CISoftLightBlendMode", parameters: [kCIInputBackgroundImageKey: image])
         }
+    }
+
+    /// Interpolate pixels (including alpha), without duplicating translucent layers
+    /// as a source-over blend would do. Zero intensity is bypassed by the caller.
+    private func mixEffect(_ processed: CIImage, over original: CIImage, amount: Double) -> CIImage {
+        let strength = min(1, max(0, amount))
+        let mask = CIImage(color: CIColor(red: strength, green: strength, blue: strength)).cropped(to: original.extent)
+        return processed.applyingFilter("CIBlendWithMask", parameters: [kCIInputBackgroundImageKey: original, kCIInputMaskImageKey: mask]).cropped(to: original.extent)
     }
 
     private func neon(_ effect: EffectInstance, image: CIImage, isolated: Bool) -> CIImage {

@@ -125,7 +125,7 @@ import UIKit
         let original = Clip(assetID: asset.id, kind: .image, duration: .init(seconds: 1), sourceDuration: .init(seconds: 1))
         let plain = ProjectDocument(assets: [asset], scenes: [.init(duration: .init(seconds: 1), clips: [original])])
         let baseline = try await renderer.render(plan: .compile(document: plain, variantID: nil), time: .init(seconds: 0.15), rootURL: root, size: size)
-        for kind in [EffectKind.impactZoom, .shortGlitch, .neon, .dream, .lightSweep, .liquidDistortion] {
+        for kind in [EffectKind.impactZoom, .shortGlitch, .neon, .dream, .lightSweep, .liquidDistortion, .directionalBlur, .popHalftone, .duotone] {
             let sampleTime = MediaTime(seconds: kind == .lightSweep ? 0.5 : 0.15)
             var doc = plain
             doc.scenes[0].clips[0].effects = [.readyToUse(kind, duration: .init(seconds: 1))]
@@ -148,6 +148,7 @@ import UIKit
             let frame = try await generator.image(at: CMTime(seconds: exportTime, preferredTimescale: 24))
             XCTAssertEqual(frame.actualTime.seconds, exportTime, accuracy: 0.0001, "Compare the exact animated frame, not a nearby keyframe")
             let decoded = frame.image
+            let decodedAttachment = XCTAttachment(image: UIImage(cgImage: decoded)); decodedAttachment.name = "creative-decoded-\(kind.rawValue)"; decodedAttachment.lifetime = .keepAlways; add(decodedAttachment)
             var totalError = 0
             for y in stride(from: 10, to: 150, by: 5) { for x in stride(from: 10, to: 150, by: 5) {
                 let a = pixel(expected, x: x, y: y), b = pixel(decoded, x: x, y: y)
@@ -158,6 +159,121 @@ import UIKit
             if kind == .impactZoom || kind == .shortGlitch {
                 let outside = try await renderer.render(plan: plan, time: .init(seconds: 0.6), rootURL: root, size: size)
                 XCTAssertEqual(outside.dataProvider?.data as Data?, baseline.dataProvider?.data as Data?)
+            }
+        }
+    }
+
+    func testTemporalCreativeEffectsSampleRealVideoHoldOnlyTheirLayerAndExportAfterSplit() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let fixture = try await SyntheticVideoCorpus.make(in: root)
+        let asset = try await MediaImporter().importFile(url: fixture.movieURL, to: root)
+        let renderer = FrameRenderer(softwareRendering: true), size = CGSize(width: 160, height: 90)
+        let clip = Clip(assetID: asset.id, kind: .video, duration: .init(seconds: 1), sourceStart: .init(seconds: 0.25), sourceDuration: .init(seconds: 1))
+        let plain = ProjectDocument(assets: [asset], globalClips: [clip])
+        for kind in [EffectKind.lensPulse, .ghostTrail, .stopMotion] {
+            var document = plain
+            document.globalClips[0].effects = [.readyToUse(kind, duration: clip.duration)]
+            let time = MediaTime(seconds: kind == .lensPulse ? 0.25 : kind == .stopMotion ? 0.68 : 0.64)
+            let image = try await renderer.render(plan: .compile(document: document, variantID: nil), time: time, rootURL: root, size: size)
+            let original = try await renderer.render(plan: .compile(document: plain, variantID: nil), time: time, rootURL: root, size: size)
+            XCTAssertNotEqual(image.dataProvider?.data as Data?, original.dataProvider?.data as Data?, "\(kind) must visibly affect real moving frames")
+            let repeated = try await renderer.render(plan: .compile(document: document, variantID: nil), time: time, rootURL: root, size: size)
+            XCTAssertEqual(repeated.dataProvider?.data as Data?, image.dataProvider?.data as Data?)
+            let changedID = clip.id
+            if kind == .ghostTrail {
+                document.globalClips[0].effects[0].echoSpacing = 0.25
+                let wider = try await renderer.render(plan: .compile(document: document, variantID: nil), time: time, rootURL: root, size: size)
+                XCTAssertNotEqual(image.dataProvider?.data as Data?, wider.dataProvider?.data as Data?)
+                document = plain; document.globalClips[0].effects = [.readyToUse(kind, duration: clip.duration)]
+            }
+            if kind == .stopMotion {
+                let heldA = try await renderer.render(plan: .compile(document: document, variantID: nil), time: .init(seconds: 0.51), rootURL: root, size: size)
+                let heldB = try await renderer.render(plan: .compile(document: document, variantID: nil), time: .init(seconds: 0.59), rootURL: root, size: size)
+                XCTAssertEqual(heldA.dataProvider?.data as Data?, heldB.dataProvider?.data as Data?, "Both times sample the same 8 fps layer frame")
+                XCTAssertNotEqual(heldA.dataProvider?.data as Data?, image.dataProvider?.data as Data?)
+                var overlay = shape("#FF00FF", duration: 1); overlay.layer = 5; overlay.presentation.scale = 0.12
+                overlay.keyframes = [.init(time: .zero, property: .x, value: 0.1), .init(time: .init(seconds: 1), property: .x, value: 0.9)]
+                var montage = document; montage.globalClips.append(overlay)
+                let movingA = try await renderer.render(plan: .compile(document: montage, variantID: nil), time: .init(seconds: 0.51), rootURL: root, size: size)
+                let movingB = try await renderer.render(plan: .compile(document: montage, variantID: nil), time: .init(seconds: 0.59), rootURL: root, size: size)
+                XCTAssertNotEqual(movingA.dataProvider?.data as Data?, movingB.dataProvider?.data as Data?, "Another layer stays smooth")
+            }
+            try DocumentEditor.splitClip(changedID, at: .init(seconds: kind == .lensPulse ? 0.2 : kind == .stopMotion ? 0.66 : 0.6), in: &document)
+            let split = try await renderer.render(plan: .compile(document: document, variantID: nil), time: time, rootURL: root, size: size)
+            XCTAssertEqual(image.dataProvider?.data as Data?, split.dataProvider?.data as Data?, "\(kind) must preserve pre-cut sampling and phase")
+            let attachment = XCTAttachment(image: UIImage(cgImage: image)); attachment.name = "temporal-render-\(kind.rawValue)"; attachment.lifetime = .keepAlways; add(attachment)
+            let variant = document.variants.first { $0.widthRatio > $0.heightRatio }!
+            let movie = root.appendingPathComponent("\(kind.rawValue).mp4")
+            _ = try await MovieExporter().export(document: document, variantID: variant.id, rootURL: root, settings: .init(longEdge: 160, frameRate: 30, bitrate: 1_000_000), outputURL: movie, progress: { _ in })
+            let generator = AVAssetImageGenerator(asset: AVURLAsset(url: movie)); generator.appliesPreferredTrackTransform = true
+            generator.requestedTimeToleranceBefore = .zero; generator.requestedTimeToleranceAfter = .zero
+            let exportTime = kind == .lensPulse ? 0.2666666667 : kind == .stopMotion ? 0.7 : 0.6333333333
+            let encoded = try await generator.image(at: CMTime(seconds: exportTime, preferredTimescale: 30))
+            let expected = try await renderer.render(plan: .compile(document: document, variantID: variant.id), time: .init(seconds: encoded.actualTime.seconds), rootURL: root, size: size)
+            let decodedAttachment = XCTAttachment(image: UIImage(cgImage: encoded.image)); decodedAttachment.name = "temporal-decoded-\(kind.rawValue)"; decodedAttachment.lifetime = .keepAlways; add(decodedAttachment)
+            var difference = 0.0, samples = 0.0
+            for y in stride(from: 5, to: 85, by: 5) { for x in stride(from: 5, to: 155, by: 5) {
+                let a = pixel(expected, x: x, y: y), b = pixel(encoded.image, x: x, y: y)
+                for channel in 0..<3 { difference += Double(abs(Int(a[channel]) - Int(b[channel]))); samples += 1 }
+            } }
+            XCTAssertLessThan(difference / samples, 15, "\(kind) preview and export must agree")
+            let tracks = try await AVURLAsset(url: movie).loadTracks(withMediaType: .video)
+            let track = try XCTUnwrap(tracks.first)
+            let frameRate = try await track.load(.nominalFrameRate)
+            XCTAssertEqual(frameRate, 30, accuracy: 0.01, "Stop-motion must not lower export FPS")
+            let export = XCTAttachment(contentsOfFile: movie); export.name = "temporal-export-\(kind.rawValue)"; export.lifetime = .keepAlways; add(export)
+            for index in document.globalClips.indices { document.globalClips[index].effects[0].amountKeyframes = nil; document.globalClips[index].effects[0].amount = 0 }
+            let neutral = try await renderer.render(plan: .compile(document: document, variantID: nil), time: time, rootURL: root, size: size)
+            XCTAssertEqual(neutral.dataProvider?.data as Data?, original.dataProvider?.data as Data?)
+        }
+    }
+
+    func testThirdCreativeSeriesParametersChangePixelsAndRespectCurvesAndTransparency() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("pattern.png"); try imageFixture(at: url)
+        let asset = try await MediaImporter().importFile(url: url, to: root)
+        let renderer = FrameRenderer(softwareRendering: true), size = CGSize(width: 160, height: 160)
+        let clip = Clip(assetID: asset.id, kind: .image, duration: .init(seconds: 1), sourceDuration: .init(seconds: 1))
+        let plain = ProjectDocument(assets: [asset], globalClips: [clip])
+        let baseline = try await renderer.render(plan: .compile(document: plain, variantID: nil), time: .zero, rootURL: root, size: size)
+        for kind in [EffectKind.directionalBlur, .popHalftone, .duotone] {
+            var document = plain
+            var effect = EffectInstance.readyToUse(kind, duration: clip.duration)
+            effect.amount = 1
+            if kind == .directionalBlur { effect.blurAngle = 0 }
+            document.globalClips[0].effects = [effect]
+            let first = try await renderer.render(plan: .compile(document: document, variantID: nil), time: .zero, rootURL: root, size: size)
+            XCTAssertNotEqual(first.dataProvider?.data as Data?, baseline.dataProvider?.data as Data?)
+            switch kind {
+            case .directionalBlur: effect.blurAngle = 90
+            case .popHalftone: effect.dotScale = 0.95
+            case .duotone: effect.colorHex = "#163A32"; effect.secondaryColorHex = "#F8DA78"
+            default: XCTFail("Unexpected test effect")
+            }
+            document.globalClips[0].effects = [effect]
+            let changed = try await renderer.render(plan: .compile(document: document, variantID: nil), time: .zero, rootURL: root, size: size)
+            XCTAssertNotEqual(first.dataProvider?.data as Data?, changed.dataProvider?.data as Data?, "\(kind) parameter must change the image")
+            effect.amountKeyframes = [.init(time: .zero, value: 0), .init(time: .init(seconds: 1), value: 1, easing: .easeIn)]
+            document.globalClips[0].effects = [effect]
+            let neutral = try await renderer.render(plan: .compile(document: document, variantID: nil), time: .zero, rootURL: root, size: size)
+            XCTAssertEqual(neutral.dataProvider?.data as Data?, baseline.dataProvider?.data as Data?, "Zero on a curve is a true bypass")
+            effect.enabled = false; document.globalClips[0].effects = [effect]
+            let disabled = try await renderer.render(plan: .compile(document: document, variantID: nil), time: .init(seconds: 0.5), rootURL: root, size: size)
+            XCTAssertEqual(disabled.dataProvider?.data as Data?, baseline.dataProvider?.data as Data?)
+            effect.enabled = true; effect.start = .init(seconds: 0.25); effect.duration = .init(seconds: 0.25)
+            document.globalClips[0].effects = [effect]
+            let outside = try await renderer.render(plan: .compile(document: document, variantID: nil), time: .init(seconds: 0.75), rootURL: root, size: size)
+            XCTAssertEqual(outside.dataProvider?.data as Data?, baseline.dataProvider?.data as Data?)
+
+            let back = shape("#F0C020", duration: 1)
+            var text = Clip(kind: .text, duration: .init(seconds: 1), text: "Pop", presentation: Presentation(textSize: 0.22), layer: 1)
+            text.effects = [.readyToUse(kind, duration: text.duration)]
+            let textDocument = ProjectDocument(globalClips: [back, text])
+            let textImage = try await renderer.render(plan: .compile(document: textDocument, variantID: nil), time: .zero, rootURL: root, size: size)
+            let background = try await renderer.render(plan: .compile(document: ProjectDocument(globalClips: [back]), variantID: nil), time: .zero, rootURL: root, size: size)
+            XCTAssertEqual(pixel(textImage, x: 5, y: 5), pixel(background, x: 5, y: 5), "\(kind) must not fill transparent text pixels")
+            for (label, image) in [("default", first), ("parameter", changed), ("text", textImage)] {
+                let attachment = XCTAttachment(image: UIImage(cgImage: image)); attachment.name = "third-series-\(kind.rawValue)-\(label)"; attachment.lifetime = .keepAlways; add(attachment)
             }
         }
     }
@@ -314,6 +430,9 @@ import UIKit
     func testQualityProfilesProduceVerifiedH264AndHEVCFiles() async throws {
         let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
         let doc = ProjectDocument(scenes: [.init(duration: .init(seconds: 0.5), clips: [shape("#387F56")])])
+        let size = MovieExportSettings(longEdge: 320).dimensions(for: doc.variants[0])
+        let expected = try await FrameRenderer(softwareRendering: true).render(plan: .compile(document: doc, variantID: doc.variants[0].id), time: .zero, rootURL: root, size: size)
+        let expectedColor = pixel(expected, x: Int(size.width / 2), y: Int(size.height / 2))
         for codec in MovieCodec.allCases {
             for profile in MovieQualityProfile.allCases {
                 let settings = MovieExportSettings(longEdge: 320, frameRate: 30, codec: codec, qualityProfile: profile)
@@ -323,6 +442,12 @@ import UIKit
                 XCTAssertEqual(receipt.constantQuality, supported.contains(kVTCompressionPropertyKey_ConstantQualityFactor as String))
                 XCTAssertEqual(receipt.frameRate, 30, accuracy: 0.1)
                 XCTAssertGreaterThan(try Data(contentsOf: output).count, 500)
+                let generator = AVAssetImageGenerator(asset: AVURLAsset(url: output)); generator.appliesPreferredTrackTransform = true
+                let decoded = try await generator.image(at: .zero)
+                let exportedColor = pixel(decoded.image, x: Int(size.width / 2), y: Int(size.height / 2))
+                for channel in 0..<3 {
+                    XCTAssertLessThanOrEqual(abs(Int(expectedColor[channel]) - Int(exportedColor[channel])), 5, "\(codec.rawValue) / \(profile.rawValue) must preserve display-referred midtone colors")
+                }
                 print("Export profile \(codec.rawValue) / \(profile.rawValue): constantQuality=\(receipt.constantQuality), bytes=\(try Data(contentsOf: output).count)")
             }
         }

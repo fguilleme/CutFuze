@@ -71,6 +71,16 @@ actor MovieExporter {
     private let renderer = FrameRenderer(softwareRendering: true)
     private var exporting = false
     private let context = CIContext(options: [.useSoftwareRenderer: true, .outputColorSpace: CGColorSpace(name: CGColorSpace.itur_709)!])
+    // Use the transfer function carried by the video tags. The named Core
+    // Graphics Rec.709 display profile does not use the same transfer curve as
+    // Core Video's ITU_R_709_2 buffers; treating their bytes as identical washes
+    // out midtones when AVFoundation decodes the exported movie.
+    private static let videoColorAttachments: [String: String] = [
+        kCVImageBufferColorPrimariesKey as String: kCVImageBufferColorPrimaries_ITU_R_709_2 as String,
+        kCVImageBufferTransferFunctionKey as String: kCVImageBufferTransferFunction_ITU_R_709_2 as String,
+        kCVImageBufferYCbCrMatrixKey as String: kCVImageBufferYCbCrMatrix_ITU_R_709_2 as String
+    ]
+    private static let videoColorSpace = CVImageBufferCreateColorSpaceFromAttachments(videoColorAttachments as CFDictionary)?.takeRetainedValue() ?? CGColorSpace(name: CGColorSpace.itur_709)!
 
     /// The value-type document parameter is a frozen snapshot. Call sequentially for variants.
     func export(document: ProjectDocument, variantID: UUID, rootURL: URL, settings: MovieExportSettings, outputURL: URL, progress: @escaping @Sendable (Double) -> Void) async throws -> ExportReceipt {
@@ -165,7 +175,8 @@ actor MovieExporter {
                     guard let pool = adaptor.pixelBufferPool else { throw MediaFailure.export("Pool de pixels indisponible") }
                     var pixelBuffer: CVPixelBuffer?
                     guard CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &pixelBuffer) == kCVReturnSuccess, let pixelBuffer else { throw MediaFailure.export("Allocation image") }
-                    context.render(CIImage(cgImage: image), to: pixelBuffer, bounds: CGRect(origin: .zero, size: size), colorSpace: CGColorSpace(name: CGColorSpace.itur_709)!)
+                    for (key, value) in Self.videoColorAttachments { CVBufferSetAttachment(pixelBuffer, key as CFString, value as CFString, .shouldPropagate) }
+                    context.render(CIImage(cgImage: image), to: pixelBuffer, bounds: CGRect(origin: .zero, size: size), colorSpace: Self.videoColorSpace)
                     guard adaptor.append(pixelBuffer, withPresentationTime: timestamp) else { throw writer.error ?? MediaFailure.export(String(format: L("Encodage image %d"), frameIndex)) }
                     if frameIndex.isMultiple(of: settings.frameRate * 2) { try MediaFiles.checkSpace(at: parent, bytes: 8_388_608) }
                     frameIndex += 1; advanced = true

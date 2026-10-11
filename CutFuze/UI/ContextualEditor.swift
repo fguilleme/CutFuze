@@ -69,7 +69,7 @@ enum EffectCategory: String, CaseIterable, Identifiable {
         switch self {
         case .beauty: [.skinSmooth, .skinGlow, .sharpness]
         case .geometry: [.bulge, .pinch, .twirl, .kaleidoscope, .pixelate]
-        case .creative: [.dream, .lightSweep, .liquidDistortion, .impactZoom, .shortGlitch, .neon, .comic, .crystallize, .glow, .rgbSplit, .shake, .retro, .grain, .vignette, .blur, .fade]
+        case .creative: [.lensPulse, .ghostTrail, .stopMotion, .directionalBlur, .popHalftone, .duotone, .dream, .lightSweep, .liquidDistortion, .impactZoom, .shortGlitch, .neon, .comic, .crystallize, .glow, .rgbSplit, .shake, .retro, .grain, .vignette, .blur, .fade]
         case .light: [.exposure, .brightness, .contrast, .saturation, .temperature, .tint, .highlights, .shadows]
         }
     }
@@ -452,6 +452,7 @@ struct ContextToolPanel: View {
                         }
                     }
                 }
+                .accessibilityIdentifier("effectCatalog")
                 .frame(maxWidth: .infinity)
             }
     }
@@ -563,6 +564,12 @@ private func effectSymbol(_ kind: EffectKind) -> String {
     case .dream: "cloud.sun.fill"
     case .lightSweep: "rays"
     case .liquidDistortion: "water.waves"
+    case .directionalBlur: "line.diagonal"
+    case .popHalftone: "circle.grid.3x3"
+    case .duotone: "circle.lefthalf.filled"
+    case .lensPulse: "camera.aperture"
+    case .ghostTrail: "square.3.layers.3d"
+    case .stopMotion: "film.stack"
     }
 }
 

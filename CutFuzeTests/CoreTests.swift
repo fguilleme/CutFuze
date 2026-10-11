@@ -2,6 +2,63 @@ import XCTest
 @testable import CutFuze
 
 final class CoreTests: XCTestCase {
+    func testTemporalEffectsKeepParametersAndHistoricalSourceAcrossSplits() throws {
+        let asset = MediaAsset(relativePath: "Media/motion.mp4", kind: .video, name: "Motion", duration: .init(seconds: 2))
+        for reversed in [false, true] {
+            let clip = Clip(assetID: asset.id, kind: .video, duration: .init(seconds: 1.2), sourceDuration: asset.duration, reversed: reversed,
+                            speedPoints: [.init(sourceTime: .zero, speed: 1), .init(sourceTime: asset.duration, speed: 2)])
+            var document = ProjectDocument(assets: [asset], globalClips: [clip])
+            for kind in [EffectKind.lensPulse, .ghostTrail, .stopMotion] {
+                let effect = EffectInstance.readyToUse(kind, duration: clip.duration)
+                try effect.validateAnimation(); document.globalClips[0].effects.append(effect)
+            }
+            try DocumentEditor.splitClip(clip.id, at: .init(seconds: 0.6), in: &document)
+            let right = document.globalClips[1]
+            let historic = TimeMapping.historicalSourceTime(for: .init(seconds: -0.2), clip: right, assetDuration: asset.duration)
+            XCTAssertEqual(historic.seconds, TimeMapping.sourceTime(for: .init(seconds: 0.4), clip: clip).seconds, accuracy: 1 / 60_000)
+            XCTAssertEqual(right.effects, document.globalClips[0].effects)
+            XCTAssertEqual(try DocumentCodec.decode(DocumentCodec.encode(document)), document)
+        }
+        var ghost = EffectInstance.readyToUse(.ghostTrail, duration: .init(seconds: 1))
+        XCTAssertEqual(ghost.ghostCount, 3); XCTAssertEqual(ghost.ghostSpacing, 0.12); XCTAssertEqual(ghost.ghostDecay, 0.55)
+        ghost.echoCount = 6; XCTAssertThrowsError(try ghost.validateAnimation()); ghost.echoCount = 3
+        ghost.echoSpacing = 0; XCTAssertThrowsError(try ghost.validateAnimation()); ghost.echoSpacing = 0.12
+        ghost.echoDecay = .nan; XCTAssertThrowsError(try ghost.validateAnimation())
+        var stop = EffectInstance.readyToUse(.stopMotion, duration: .init(seconds: 1))
+        XCTAssertEqual(stop.stopMotionFrameRate, 8)
+        stop.heldFrameRate = 0; XCTAssertThrowsError(try stop.validateAnimation())
+        let pulse = EffectInstance.readyToUse(.lensPulse, duration: .init(seconds: 1))
+        XCTAssertEqual(pulse.amountKeyframes?.count, 3); XCTAssertEqual(pulse.duration, .init(seconds: 0.7))
+    }
+
+    func testThirdCreativeSeriesParametersPersistAndRejectInvalidValues() throws {
+        let duration = MediaTime(seconds: 2)
+        for kind in [EffectKind.directionalBlur, .popHalftone, .duotone] {
+            var effect = EffectInstance.readyToUse(kind, duration: duration)
+            XCTAssertEqual(kind.intensityRange, 0...1)
+            XCTAssertNil(effect.duration); XCTAssertNil(effect.amountKeyframes)
+            effect.blurAngle = -90; effect.dotScale = 0.7; effect.secondaryColorHex = "#91F4FF"
+            var clip = Clip(kind: .shape, duration: duration, sourceDuration: duration, effects: [effect])
+            clip.effects[0].amountKeyframes = [.init(time: .zero, value: 0), .init(time: duration, value: 1, easing: .easeIn)]
+            let original = ProjectDocument(globalClips: [clip])
+            let history = EditHistory(document: original)
+            try history.perform(name: "Split") { try DocumentEditor.splitClip(clip.id, at: .init(seconds: 1), in: &$0) }
+            XCTAssertEqual(try DocumentCodec.decode(DocumentCodec.encode(history.document)), history.document)
+            XCTAssertTrue(history.document.globalClips.allSatisfy { $0.effects[0] == clip.effects[0] })
+            XCTAssertEqual(history.document.globalClips[1].effects[0].evaluatedAmount(at: .init(seconds: 1.5)) ?? -1, 0.5625, accuracy: 0.0001)
+            history.undo(); XCTAssertEqual(history.document.globalClips, original.globalClips)
+            history.redo(); XCTAssertEqual(history.document.globalClips.count, 2)
+            effect.blurAngle = .nan; XCTAssertThrowsError(try effect.validateAnimation())
+            effect.blurAngle = 181; XCTAssertThrowsError(try effect.validateAnimation())
+            effect.blurAngle = 0; effect.dotScale = -0.1; XCTAssertThrowsError(try effect.validateAnimation())
+            effect.dotScale = .infinity; XCTAssertThrowsError(try effect.validateAnimation())
+        }
+        let legacy = Data("{\"id\":\"\(UUID().uuidString)\",\"kind\":\"glow\",\"amount\":0.4,\"enabled\":true}".utf8)
+        let decoded = try JSONDecoder().decode(EffectInstance.self, from: legacy)
+        XCTAssertNil(decoded.blurAngle); XCTAssertNil(decoded.dotScale); XCTAssertNil(decoded.secondaryColorHex)
+        XCTAssertEqual(decoded.directionalBlurAngle, 45); XCTAssertEqual(decoded.halftoneDotScale, 0.45)
+    }
+
     @MainActor func testImportedAudioIsReusedWithoutNewResourceAndSupportsUndo() throws {
         let root = try temporaryRoot()
         let asset = MediaAsset(relativePath: "Media/music.caf", kind: .audio, name: "Ma musique", duration: .init(seconds: 2), hasAudio: true)
