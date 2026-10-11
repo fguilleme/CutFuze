@@ -1,6 +1,272 @@
 import XCTest
 
 final class WorkspaceUITests: XCTestCase {
+    @MainActor func testPreviewDragRequiresSelectionAndMissedTextResizeDoesNotMoveVideo() throws {
+        let app = launchDemo()
+        let canvas = app.otherElements["previewCanvas"]
+        XCTAssertTrue(canvas.waitForExistence(timeout: 5))
+        let background = canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.65))
+        background.press(forDuration: 0.05, thenDragTo: background.withOffset(CGVector(dx: 22, dy: 12)))
+        XCTAssertFalse(app.otherElements["previewSelectionFrame"].exists, "Dragging an unselected layer must not select it")
+        XCTAssertFalse(app.buttons["Annuler la modification"].isEnabled)
+
+        app.scrollViews["timelineScroll"].coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 88, dy: 15)).tap()
+        XCTAssertNotEqual(app.staticTexts["currentTimecode"].label, "00:00")
+        firstTimelineClip(app, kind: "caption").tap()
+        canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.29)).tap()
+        let selection = app.otherElements["previewSelectionFrame"]
+        XCTAssertTrue(selection.waitForExistence(timeout: 3)); XCTAssertEqual(selection.label, "Lever les yeux")
+        let before = selection.frame
+        let outside = canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.65))
+        outside.press(forDuration: 0.05, thenDragTo: outside.withOffset(CGVector(dx: 22, dy: 12)))
+        XCTAssertEqual(selection.label, "Lever les yeux", "A missed text gesture must keep the text selected")
+        XCTAssertEqual(selection.frame.midX, before.midX, accuracy: 1)
+        XCTAssertFalse(app.buttons["Annuler la modification"].isEnabled, "The underlying video must remain unchanged")
+        capture("preview-missed-drag-preserves-text-selection")
+
+        let handle = app.descendants(matching: .any)["previewResizeHandle"]
+        XCTAssertTrue(handle.isHittable)
+        XCTAssertLessThanOrEqual(handle.frame.width, 44)
+        let start = handle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 18, dy: 16)))
+        XCTAssertEqual(selection.label, "Lever les yeux")
+        // Single-line text keeps a minimum-height selection box; its width reveals the scale change.
+        XCTAssertGreaterThan(selection.frame.width, before.width + 2)
+        XCTAssertTrue(app.buttons["Annuler la modification"].isEnabled)
+        capture("preview-resizes-selected-text-only")
+        app.buttons["Annuler la modification"].tap()
+        XCTAssertFalse(app.buttons["Annuler la modification"].isEnabled)
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        app.terminate()
+    }
+
+    @MainActor func testReplaceVideoOpensPhotosAndAudioOpensFiles() throws {
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        let toolbar = app.scrollViews["contextualToolbar"]
+        for _ in 0..<4 where !app.buttons["Plus"].isHittable { toolbar.swipeLeft() }
+        app.buttons["Plus"].tap(); app.buttons["replaceMedia"].tap()
+        XCTAssertTrue(app.buttons["Annuler"].firstMatch.waitForExistence(timeout: 5))
+        let photos = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Photos")).firstMatch
+        // Photos can remain in its system loading view on an empty simulator library.
+        let photosLoaded = photos.waitForExistence(timeout: 10)
+        XCTAssertTrue(photosLoaded || app.navigationBars["PUPickerUnavailableView"].exists, "Visual media replacement must open the Photos picker, not Files")
+        capture("replace-video-photos")
+        app.buttons["Annuler"].firstMatch.tap()
+        XCTAssertFalse(app.buttons["Annuler la modification"].isEnabled)
+        firstTimelineClip(app, kind: "audio").coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5)).tap()
+        let replace = app.buttons["replaceMedia"]
+        for _ in 0..<4 where !replace.isHittable { toolbar.swipeLeft() }
+        XCTAssertTrue(replace.isHittable); replace.tap()
+        XCTAssertTrue(app.buttons["Annuler"].firstMatch.waitForExistence(timeout: 5))
+        let files = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@ OR label == %@", "Parcourir", "Récents")).firstMatch
+        if !files.exists { let diagnostic = XCTAttachment(string: app.debugDescription); diagnostic.lifetime = .keepAlways; add(diagnostic) }
+        XCTAssertTrue(files.exists, "Audio replacement must open Files")
+        capture("replace-audio-files")
+        app.buttons["Annuler"].firstMatch.tap()
+        XCTAssertFalse(app.buttons["Annuler la modification"].isEnabled)
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        app.terminate()
+    }
+
+    @MainActor func testBrowsingEffectDoesNotApplyUntilConfirmed() throws {
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Effets visuels"].tap(); app.buttons["visualTool-Créatif"].tap()
+        let applied = app.buttons["showAppliedEffects"]
+        XCTAssertEqual(applied.label, "Appliqués · 0")
+        XCTAssertFalse(app.buttons["Annuler la modification"].isEnabled)
+        openCreativeEffect("roughEdges", in: app)
+        XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+        app.buttons["effectCancel"].tap()
+        XCTAssertEqual(applied.label, "Appliqués · 0", "Opening an effect must not apply it")
+        capture("effect-browsed-not-applied")
+
+        openCreativeEffect("roughEdges", in: app)
+        let detail = app.sliders["edgeCoarseness"]
+        revealEffectParameter(detail, in: app.descendants(matching: .any)["effectSettings"])
+        detail.adjust(toNormalizedSliderPosition: 0.8)
+        XCTAssertTrue(app.buttons["effectUndo"].isEnabled)
+        app.buttons["effectCancel"].tap()
+        XCTAssertEqual(applied.label, "Appliqués · 0", "Cancelled adjustments must remain a draft")
+        XCTAssertFalse(app.buttons["Annuler la modification"].isEnabled, "Browsing must not create montage undo entries")
+
+        openCreativeEffect("roughEdges", in: app)
+        app.buttons["effectApply"].tap()
+        XCTAssertEqual(applied.label, "Appliqués · 1")
+        capture("effect-confirmed-applied")
+        openCreativeEffect("roughEdges", in: app)
+        XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+        app.buttons["effectCancel"].tap()
+        XCTAssertEqual(applied.label, "Appliqués · 1", "Reopening an applied effect must not duplicate or remove it")
+        app.buttons["Annuler la modification"].tap()
+        XCTAssertEqual(applied.label, "Appliqués · 0", "A single undo must remove the confirmed effect")
+        XCTAssertFalse(app.buttons["Annuler la modification"].isEnabled)
+        app.buttons["Rétablir"].tap()
+        XCTAssertEqual(applied.label, "Appliqués · 1")
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        app.terminate()
+    }
+
+    @MainActor func testAppliedEffectsIdentifyUsageToggleEditDeleteAndSceneTransition() throws {
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Effets visuels"].tap(); app.buttons["visualTool-Créatif"].tap()
+        XCTAssertTrue(app.staticTexts["Texte / formes"].firstMatch.exists)
+        capture("effects-suggested-usage")
+        openCreativeEffect("roughEdges", in: app)
+        XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5)); app.buttons["effectApply"].tap()
+        app.buttons["showAppliedEffects"].tap()
+        let row = app.buttons["appliedEffect-roughEdges"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        let toggle = app.buttons["toggleAppliedEffect-roughEdges"]
+        XCTAssertEqual(toggle.label, "Désactiver l’effet")
+        capture("effects-applied-active")
+        toggle.tap(); XCTAssertEqual(toggle.label, "Activer l’effet")
+        capture("effects-applied-disabled")
+        row.tap(); XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+        app.buttons["effectCancel"].tap()
+        let outgoing = app.buttons["appliedOutgoingTransition"]
+        let settings = app.scrollViews["contextToolScroll"]
+        revealEffectParameter(outgoing, in: settings); XCTAssertTrue(outgoing.isHittable)
+        outgoing.tap()
+        XCTAssertTrue(app.navigationBars["Transition"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.textFields["Titre du projet"].exists, "Open the transition directly, not the scenario form")
+        capture("effects-shared-transition")
+        app.buttons["Annuler"].tap()
+        let delete = app.buttons["deleteAppliedEffect-roughEdges"]
+        revealEffectParameter(delete, in: settings); delete.tap()
+        XCTAssertFalse(row.exists)
+        XCTAssertTrue(app.staticTexts["Aucun effet appliqué"].exists)
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        app.terminate()
+    }
+
+    @MainActor func testEffectCatalogWithoutThumbnailsPlaysSequenceInCurveEditor() throws {
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Effets visuels"].tap(); app.buttons["visualTool-Créatif"].tap()
+        XCTAssertTrue(app.scrollViews["effectCatalog"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "effectThumbnail-")).count, 0)
+        let card = app.buttons["effect-roughEdges"]
+        XCTAssertGreaterThanOrEqual(card.frame.height, 44)
+        XCTAssertLessThan(card.frame.height, 80)
+        capture("effect-catalog-without-thumbnails")
+        openCreativeEffect("roughEdges", in: app)
+        let play = app.buttons["effectPreviewPlay"]
+        XCTAssertTrue(play.waitForExistence(timeout: 5))
+        let time = app.staticTexts["effectPreviewTime"]
+        let initial = time.label
+        play.tap()
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label != %@", initial), object: time)], timeout: 10), .completed)
+        XCTAssertTrue(play.isSelected)
+        capture("effect-preview-playing")
+        play.tap(); XCTAssertFalse(play.isSelected)
+        let compare = app.buttons["effectPreviewCompare"]
+        compare.tap(); XCTAssertTrue(compare.isSelected)
+        capture("effect-preview-original")
+        compare.tap(); XCTAssertFalse(compare.isSelected)
+        XCTAssertFalse(app.buttons["effectUndo"].isEnabled, "Previewing must not edit effect settings")
+        XCTAssertFalse(app.descendants(matching: .any)["effectEditorError"].exists)
+        app.buttons["effectCancel"].tap(); XCTAssertFalse(app.alerts.firstMatch.exists)
+        app.terminate()
+    }
+
+    @MainActor func testWriteOnDrawingAreaUsesAvailableSpace() throws {
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Effets visuels"].tap(); app.buttons["visualTool-Créatif"].tap()
+        openCreativeEffect("writeOn", in: app)
+        XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+        let settings = app.descendants(matching: .any)["effectSettings"]
+        let openDrawing = app.buttons["brushOpenDrawing"]
+        revealEffectParameter(openDrawing, in: settings); openDrawing.tap()
+        let pad = app.descendants(matching: .any)["brushPathPad"]
+        XCTAssertTrue(pad.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(pad.frame.height, 240, "Drawing must not be confined to the old 140-point pad")
+        let clear = app.buttons["brushDrawingClear"]
+        XCTAssertTrue(clear.isHittable)
+        clear.tap()
+        XCTAssertEqual(pad.value as? String, "0")
+        capture("writeOn-large-drawing-area")
+        pad.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.5)).press(forDuration: 0.1,
+            thenDragTo: pad.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.4)), withVelocity: .slow, thenHoldForDuration: 0.1)
+        capture("writeOn-large-drawing-path")
+        XCTAssertEqual(pad.value as? String, "1")
+        pad.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.7)).press(forDuration: 0.1,
+            thenDragTo: pad.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.8)), withVelocity: .slow, thenHoldForDuration: 0.1)
+        XCTAssertEqual(pad.value as? String, "2", "Lifting the finger must keep the first stroke")
+        capture("writeOn-disconnected-strokes")
+        clear.tap(); XCTAssertEqual(pad.value as? String, "0")
+        app.buttons["brushDrawingUndo"].tap()
+        XCTAssertEqual(pad.value as? String, "2", "Clearing the drawing is undoable")
+        app.buttons["brushDrawingDone"].tap()
+        let undo = app.buttons["effectUndo"]
+        XCTAssertTrue(undo.isEnabled)
+        undo.tap(); XCTAssertTrue(app.buttons["effectRedo"].isEnabled)
+        app.buttons["effectCancel"].tap()
+        app.terminate()
+    }
+
+    @MainActor func testContourAndWriteOnEditCurvesDrawPathAndPersist() throws {
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Effets visuels"].tap(); app.buttons["visualTool-Créatif"].tap()
+        capture("brush-effects-catalog")
+        openCreativeEffect("roughEdges", in: app)
+        XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+        let settings = app.descendants(matching: .any)["effectSettings"]
+        app.descendants(matching: .any)["keyframeGraph"].coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.4)).tap()
+        app.buttons["effectSaveKeyframe"].tap()
+        capture("brush-roughEdges-curve")
+        let detail = app.sliders["edgeCoarseness"]
+        revealEffectParameter(detail, in: settings); XCTAssertTrue(detail.isHittable)
+        detail.adjust(toNormalizedSliderPosition: 0.8)
+        let value = try XCTUnwrap(detail.value as? String)
+        app.buttons["effectUndo"].tap(); XCTAssertEqual(detail.value as? String, "50 %")
+        app.buttons["effectRedo"].tap(); XCTAssertEqual(detail.value as? String, value)
+        capture("brush-roughEdges-settings")
+        app.buttons["effectApply"].tap(); openCreativeEffect("roughEdges", in: app)
+        revealEffectParameter(detail, in: settings); XCTAssertEqual(detail.value as? String, value)
+        app.buttons["effectCancel"].tap()
+        openCreativeEffect("writeOn", in: app)
+        XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+        let points = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "graphKey-"))
+        XCTAssertEqual(points.count, 2)
+        capture("brush-writeOn-curve")
+        let signature = app.buttons["brushSignature"]
+        revealEffectParameter(signature, in: settings); XCTAssertTrue(signature.isHittable); signature.tap()
+        capture("brush-writeOn-signature")
+        XCTAssertTrue(signature.isSelected); XCTAssertTrue(app.buttons["brushMode-stroke"].isSelected)
+        app.buttons["effectUndo"].tap(); XCTAssertTrue(app.buttons["brushMode-reveal"].isSelected)
+        app.buttons["effectRedo"].tap(); XCTAssertTrue(signature.isSelected)
+        let pad = app.descendants(matching: .any)["brushPathPad"]
+        let openDrawing = app.buttons["brushOpenDrawing"]
+        revealEffectParameter(openDrawing, in: settings); openDrawing.tap()
+        XCTAssertTrue(pad.waitForExistence(timeout: 5))
+        XCTAssertTrue(pad.isHittable)
+        capture("brush-writeOn-pad-before-drawing")
+        // Form exposes the whole row as the accessible frame; draw inside its centered canvas.
+        pad.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.65)).press(forDuration: 0.1,
+            thenDragTo: pad.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.35)), withVelocity: .slow, thenHoldForDuration: 0.1)
+        capture("brush-writeOn-pad-after-drawing")
+        app.buttons["brushDrawingDone"].tap()
+        XCTAssertFalse(signature.isSelected, "Drawing replaces the preset")
+        app.buttons["effectUndo"].tap(); XCTAssertTrue(signature.isSelected)
+        app.buttons["effectRedo"].tap(); XCTAssertFalse(signature.isSelected)
+        capture("brush-writeOn-custom-path")
+        let width = app.sliders["brushWidth"]
+        revealEffectParameter(width, in: settings); XCTAssertTrue(width.isHittable); width.adjust(toNormalizedSliderPosition: 0.2)
+        let widthValue = try XCTUnwrap(width.value as? String)
+        capture("brush-writeOn-settings")
+        XCTAssertFalse(app.descendants(matching: .any)["effectEditorError"].exists)
+        app.buttons["effectApply"].tap(); openCreativeEffect("writeOn", in: app)
+        revealEffectParameter(width, in: settings); XCTAssertEqual(width.value as? String, widthValue)
+        XCTAssertTrue(app.buttons["brushMode-stroke"].isSelected); XCTAssertFalse(signature.isSelected)
+        app.buttons["effectCancel"].tap(); XCTAssertFalse(app.alerts.firstMatch.exists)
+        app.terminate()
+    }
+
     @MainActor private func openCreativeEffect(_ kind: String, in app: XCUIApplication) {
         let button = app.buttons["effect-\(kind)"]
         let catalog = app.scrollViews["effectCatalog"]
@@ -344,7 +610,7 @@ final class WorkspaceUITests: XCTestCase {
                 let frame = slider.frame
                 if slider.isHittable, frame.minY >= viewport.minY + 12, frame.maxY <= viewport.maxY - 28 { return }
                 upward = frame.maxY > viewport.maxY - 28
-            } else { upward.toggle() }
+            } else { upward = true } // Form may not materialize a row until it scrolls into view.
             // Hold before lifting to stop inertial scrolling; use the gutter,
             // not the slider itself, as the start of the scroll gesture.
             settings.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: upward ? 0.75 : 0.35))
@@ -1258,17 +1524,29 @@ final class WorkspaceUITests: XCTestCase {
         capture("fit-fill-working")
     }
 
-    @MainActor func testTextKeyboardDoesNotMoveTimelineAndStoryIsSecondary() throws {
+    @MainActor func testTextEditorStaysAboveKeyboardAndStoryIsSecondary() throws {
         let app = launchDemo()
         let text = firstTimelineClip(app, kind: "text")
         XCTAssertTrue(text.waitForExistence(timeout: 10)); text.tap()
         app.buttons["tool-Modifier"].tap()
         let field = app.descendants(matching: .any)["layerTextField"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
-        let timelineTop = app.buttons["timelineStart"].frame.minY
         field.tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
-        XCTAssertEqual(app.buttons["timelineStart"].frame.minY, timelineTop, accuracy: 2)
+        app.typeText(" test")
+        let keyboard = app.keyboards.firstMatch
+        capture("layer-text-editor-keyboard-layout")
+        let update = app.buttons["Mettre à jour"]
+        XCTAssertTrue(update.isHittable)
+        if keyboard.keys.count > 0 {
+            XCTAssertLessThanOrEqual(field.frame.maxY, keyboard.frame.minY + 1)
+            XCTAssertLessThanOrEqual(update.frame.maxY, keyboard.frame.minY + 1)
+        } else {
+            // Hardware-keyboard accessory frames on iPad include a large transparent region.
+            // This checks typing and controls only, not full software-keyboard avoidance.
+            XCTAssertTrue(field.isHittable)
+        }
+        capture("layer-text-editor-above-keyboard")
         app.buttons["Terminé"].tap()
         XCTAssertFalse(app.keyboards.firstMatch.waitForExistence(timeout: 2))
 
@@ -1296,6 +1574,8 @@ final class WorkspaceUITests: XCTestCase {
 
     @MainActor func testPreviewTapSelectsTopmostTextAndDragMovesIt() throws {
         let app = launchDemo()
+        // Timeline selection intentionally preserves the playhead; scrub to visible text first.
+        app.scrollViews["timelineScroll"].coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 88, dy: 15)).tap()
         let caption = firstTimelineClip(app, kind: "caption")
         XCTAssertTrue(caption.waitForExistence(timeout: 10))
         caption.tap()

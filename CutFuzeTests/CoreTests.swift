@@ -2,6 +2,75 @@ import XCTest
 @testable import CutFuze
 
 final class CoreTests: XCTestCase {
+    func testDisconnectedBrushStrokesPreserveBreaksAndIgnoreTravelDistance() throws {
+        let points: [BrushPoint] = [.init(x: 0, y: 0), .init(x: 0.2, y: 0),
+                                   .init(x: 0.8, y: 1, startsStroke: true), .init(x: 1, y: 1)]
+        let half = BrushPaths.prefix(points, progress: 0.5, width: 100, height: 100)
+        XCTAssertEqual(half.last?.x ?? -1, 0.2, accuracy: 0.0001)
+        let later = BrushPaths.prefix(points, progress: 0.75, width: 100, height: 100)
+        XCTAssertEqual(later.last?.x ?? -1, 0.9, accuracy: 0.0001)
+        XCTAssertEqual(later[2].startsStroke, true)
+        XCTAssertEqual(try JSONDecoder().decode([BrushPoint].self, from: JSONEncoder().encode(points)), points)
+        XCTAssertNil(try JSONDecoder().decode(BrushPoint.self, from: Data("{\"x\":0,\"y\":0}".utf8)).startsStroke)
+    }
+    func testEffectUsageRecommendationsDoNotRemoveAnyEffect() {
+        XCTAssertEqual(EffectKind.neon.suggestedUsage, .textAndShapes)
+        XCTAssertEqual(EffectKind.writeOn.suggestedUsage, .textAndShapes)
+        XCTAssertEqual(EffectKind.skinSmooth.suggestedUsage, .portraits)
+        XCTAssertEqual(EffectKind.ghostTrail.suggestedUsage, .movingLayers)
+        XCTAssertEqual(EffectKind.exposure.suggestedUsage, .photoVideo)
+        XCTAssertEqual(EffectKind.twirl.suggestedUsage, .allVisual)
+        XCTAssertEqual(Set(EffectKind.allCases.map(\.suggestedUsage)).count, EffectUsage.allCases.count)
+    }
+
+    func testTransitionsAreReportedOnlyForIntersectingSceneClips() throws {
+        let early = Clip(kind: .image, duration: .init(seconds: 1))
+        let outgoing = Clip(kind: .image, start: .init(seconds: 4), duration: .init(seconds: 1))
+        let incoming = Clip(kind: .text, duration: .init(seconds: 1), text: "Title")
+        let global = Clip(kind: .text, duration: .init(seconds: 10), text: "Global")
+        let first = Scene(duration: .init(seconds: 5), clips: [early, outgoing], transition: .init(kind: .dissolve, duration: .init(seconds: 1)))
+        let second = Scene(duration: .init(seconds: 5), clips: [incoming], transition: .init(kind: .zoom, duration: .init(seconds: 1)))
+        let document = ProjectDocument(scenes: [first, second], globalClips: [global])
+        let plan = RenderPlan.compile(document: document, variantID: nil)
+        func contexts(_ clip: Clip) throws -> [ClipTransitionContext] { ClipTransitionContext.relevant(to: try XCTUnwrap(plan.clips.first { $0.id == clip.id }), in: plan) }
+        XCTAssertTrue(try contexts(early).isEmpty)
+        XCTAssertEqual(try contexts(outgoing), [.init(sceneID: first.id, incoming: false, transition: first.transition)])
+        XCTAssertEqual(try contexts(incoming), [.init(sceneID: first.id, incoming: true, transition: first.transition)])
+        XCTAssertTrue(try contexts(global).isEmpty)
+        XCTAssertEqual(plan.scenes.last?.transition.duration, .zero, "The last scene cannot have an outgoing transition")
+    }
+
+    func testBrushPathUsesPixelArcLengthAndHandlesRepeatedPoints() {
+        let points: [BrushPoint] = [.init(x: 0, y: 0), .init(x: 1, y: 0), .init(x: 1, y: 1)]
+        XCTAssertEqual(BrushPaths.prefix(points, progress: 0, width: 200, height: 100), [])
+        XCTAssertEqual(BrushPaths.prefix(points, progress: 0.5, width: 200, height: 100).last, .init(x: 0.75, y: 0))
+        XCTAssertEqual(BrushPaths.prefix(points, progress: 1, width: 200, height: 100), points)
+        XCTAssertEqual(BrushPaths.prefix([points[0], points[0], points[1]], progress: 0.5, width: 200, height: 100).last, .init(x: 0.5, y: 0))
+    }
+
+    func testBrushEffectsPersistValidateAndKeepCompletedDrawingAfterSplit() throws {
+        var effect = EffectInstance.readyToUse(.writeOn, duration: .init(seconds: 4), offset: .init(seconds: 2), localTime: 1)
+        XCTAssertEqual(effect.evaluatedAmount(at: .init(seconds: 3)), 0)
+        XCTAssertEqual(effect.evaluatedAmount(at: .init(seconds: 3.75)), 0.5)
+        XCTAssertEqual(effect.evaluatedAmount(at: .init(seconds: 6)), 1)
+        XCTAssertNil(effect.duration)
+        effect.brushPath = BrushPaths.signature; effect.brushMode = .stroke; effect.brushWidth = 0.04
+        let clip = Clip(kind: .shape, duration: .init(seconds: 4), effects: [effect], animationOffset: .init(seconds: 2))
+        let history = EditHistory(document: ProjectDocument(globalClips: [clip]))
+        try history.perform(name: "Split brush") { try DocumentEditor.splitClip(clip.id, at: .init(seconds: 2), in: &$0) }
+        XCTAssertEqual(try DocumentCodec.decode(DocumentCodec.encode(history.document)), history.document)
+        XCTAssertEqual(history.document.globalClips[1].effects, [effect])
+        history.undo(); XCTAssertEqual(history.document.globalClips, [clip])
+        history.redo(); XCTAssertEqual(history.document.globalClips.count, 2)
+        effect.brushWidth = 0; XCTAssertThrowsError(try effect.validateAnimation()); effect.brushWidth = 0.04
+        effect.brushPath = [.init(x: .nan, y: 0), .init(x: 1, y: 1)]; XCTAssertThrowsError(try effect.validateAnimation())
+        effect.brushPath = []; XCTAssertNoThrow(try effect.validateAnimation())
+        effect.brushPath = Array(repeating: .init(x: 0, y: 0), count: 4097); XCTAssertThrowsError(try effect.validateAnimation())
+        effect.brushPath = nil; effect.roughnessScale = 2; XCTAssertThrowsError(try effect.validateAnimation())
+        let legacy = try JSONDecoder().decode(EffectInstance.self, from: Data("{\"id\":\"\(UUID())\",\"kind\":\"glow\",\"amount\":0.4,\"enabled\":true}".utf8))
+        XCTAssertNil(legacy.brushPath); XCTAssertEqual(legacy.strokeWidth, 0.18); XCTAssertEqual(legacy.edgeCoarseness, 0.5)
+    }
+
     func testTemporalEffectsKeepParametersAndHistoricalSourceAcrossSplits() throws {
         let asset = MediaAsset(relativePath: "Media/motion.mp4", kind: .video, name: "Motion", duration: .init(seconds: 2))
         for reversed in [false, true] {
@@ -764,6 +833,13 @@ final class CoreTests: XCTestCase {
 
         XCTAssertEqual(layouts.count, 3)
         XCTAssertEqual(PreviewInteractionGeometry.hitTest(CGPoint(x: 54, y: 128), layouts: layouts), caption.id)
+        XCTAssertNil(PreviewInteractionGeometry.dragTarget(CGPoint(x: 54, y: 128), selectedID: nil, layouts: layouts))
+        XCTAssertNil(PreviewInteractionGeometry.dragTarget(CGPoint(x: 54, y: 128), selectedID: background.id, layouts: layouts))
+        XCTAssertEqual(PreviewInteractionGeometry.dragTarget(CGPoint(x: 54, y: 128), selectedID: caption.id, layouts: layouts), caption.id)
+        let backgroundPoint = CGPoint(x: 90, y: 220)
+        XCTAssertEqual(PreviewInteractionGeometry.hitTest(backgroundPoint, layouts: layouts), background.id)
+        XCTAssertNil(PreviewInteractionGeometry.dragTarget(backgroundPoint, selectedID: caption.id, layouts: layouts))
+        XCTAssertEqual(PreviewInteractionGeometry.dragTarget(backgroundPoint, selectedID: background.id, layouts: layouts), background.id)
         XCTAssertTrue(try XCTUnwrap(layouts.first { $0.id == title.id }).contains(CGPoint(x: 54, y: 128)))
 
         var origin = Presentation()

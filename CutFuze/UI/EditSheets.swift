@@ -156,6 +156,7 @@ private extension MediaTime {
 
 struct SceneEditSheet: View {
     @ObservedObject var model: EditorModel
+    var initialSceneID: UUID? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var sceneID: UUID?
     @State private var title = ""
@@ -167,13 +168,13 @@ struct SceneEditSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                if let image = model.preview { Section { Image(decorative: image, scale: 1).resizable().scaledToFit().frame(maxWidth: .infinity, maxHeight: 130) } }
-                Section(L("Scénario")) {
+                if initialSceneID == nil, let image = model.preview { Section { Image(decorative: image, scale: 1).resizable().scaledToFit().frame(maxWidth: .infinity, maxHeight: 130) } }
+                if initialSceneID == nil { Section(L("Scénario")) {
                     TextField(L("Titre du projet"), text: $title)
                     TextField(L("Note de narration"), text: $narration, axis: .vertical).lineLimit(3...6)
                     Text(L("Brouillon éditorial : ne modifie pas les enregistrements.")).font(.caption).foregroundStyle(.secondary)
                     HStack { Text(L("Durée") + " (s)"); TextField(L("Durée"), value: $duration, format: .number.precision(.fractionLength(0...3))).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
-                }
+                } }
                 Section(L("Transition")) {
                     Picker(L("Transition"), selection: $transition) { ForEach(TransitionKind.allCases, id: \.self) { Text(transitionName($0)).tag($0) } }
                     if transition != .none {
@@ -182,12 +183,12 @@ struct SceneEditSheet: View {
                     }
                 }
                 if let validationError { Text(validationError).foregroundStyle(.red) }
-            }.navigationTitle(L("Scénario"))
+            }.navigationTitle(L(initialSceneID == nil ? "Scénario" : "Transition")).navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button(L("Annuler")) { dismiss() } }
                     ToolbarItem(placement: .confirmationAction) { Button(L("Enregistrer")) { save() } }
                 }
-                .onAppear { if let scene = model.selectedScene { sceneID = scene.id; title = scene.title; narration = scene.narration; duration = scene.duration.seconds; transition = scene.transition.kind; overlap = scene.transition.duration.seconds } }
+                .onAppear { if let scene = model.document.scenes.first(where: { $0.id == (initialSceneID ?? model.selectedSceneID) }) { sceneID = scene.id; title = scene.title; narration = scene.narration; duration = scene.duration.seconds; transition = scene.transition.kind; overlap = scene.transition.duration.seconds } }
         }.presentationDetents([.medium, .large]).preferredColorScheme(.dark)
     }
     private func save() {

@@ -37,18 +37,22 @@ struct EditorScreen: View {
     @State private var viewerHeight: CGFloat?
     @State private var viewerHeightAtDragStart: CGFloat?
     @State private var viewerDividerIsDragging = false
+    @State private var editingTextFocused = false
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     private var compact: Bool { verticalSizeClass == .compact }
 
     var body: some View {
         GeometryReader { geometry in
+            let editorHeight = geometry.size.height
+            let typingText = editingTextFocused && activeTool == .textEdit
             let landscape = geometry.size.width > geometry.size.height
-            let defaultViewerHeight = landscape ? max(92, geometry.size.height * 0.27) : min(310, max(220, geometry.size.height * 0.40))
-            let minimumViewerHeight: CGFloat = landscape ? 80 : 130
+            let defaultViewerHeight = landscape ? max(92, editorHeight * 0.27) : min(310, max(220, editorHeight * 0.40))
+            let minimumViewerHeight: CGFloat = landscape || typingText ? 80 : 130
             let activeToolHeight: CGFloat = switch activeTool {
             case nil: 0
-            case .visual? where visualTool.isEffectCategory: 178
+            case .visual? where visualTool == .applied: horizontalSizeClass == .regular ? 382 : 312
+            case .visual? where visualTool.isEffectCategory: 204
             case .visual?: compact ? 218 : 266
             case .animation?: compact ? 176 : 188
             case .font?: compact ? 192 : 294
@@ -57,8 +61,8 @@ struct EditorScreen: View {
             default: compact ? 118 : 156
             }
             let captionScopeHeight: CGFloat = model.selectedClip?.isCaption == true ? 42 : 0
-            let reservedHeight: CGFloat = (compact ? 44 : 50) + (compact ? 36 : 40) + (compact ? 56 : 62) + (compact ? 110 : 170) + 22 + activeToolHeight + captionScopeHeight
-            let maximumViewerHeight = max(minimumViewerHeight, geometry.size.height - reservedHeight)
+            let reservedHeight: CGFloat = (compact ? 44 : 50) + (compact ? 36 : 40) + (typingText ? 0 : (compact ? 56 : 62)) + (typingText ? 80 : (compact ? 110 : 170)) + 22 + activeToolHeight + captionScopeHeight
+            let maximumViewerHeight = max(minimumViewerHeight, editorHeight - reservedHeight)
             let displayedViewerHeight = min(max(viewerHeight ?? defaultViewerHeight, minimumViewerHeight), maximumViewerHeight)
             VStack(spacing: 0) {
                 projectBar
@@ -69,20 +73,21 @@ struct EditorScreen: View {
                 TimelinePanel(model: model, showStory: { model.stop(); showStory = true }, showCaptions: { openCaptionEditor(initialID: nil) })
                     .frame(maxHeight: .infinity).layoutPriority(1)
                 if let activeTool {
-                    ContextToolPanel(model: model, tool: activeTool, visualTool: $visualTool, close: { self.activeTool = nil }, showTiming: { showTiming = true })
+                    ContextToolPanel(model: model, tool: activeTool, visualTool: $visualTool, close: { self.activeTool = nil }, showTiming: { showTiming = true }, onTextFocusChanged: { editingTextFocused = $0 })
                         .frame(width: geometry.size.width, height: activeToolHeight)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                contextualBar
+                if !typingText { contextualBar }
             }
+            .frame(height: editorHeight, alignment: .top)
+            .frame(maxHeight: .infinity, alignment: .top)
         }
         .background(DesignTokens.ink).foregroundStyle(.white).preferredColorScheme(.dark)
-        .ignoresSafeArea(.keyboard, edges: .bottom)
         .overlay { if showFullScreenPreview { FullScreenPreview(model: model) { showFullScreenPreview = false }.transition(.opacity).zIndex(100) } }
         .statusBarHidden(showFullScreenPreview)
-        .photosPicker(isPresented: $showPhotos, selection: $photos, maxSelectionCount: 30, selectionBehavior: .ordered, matching: .any(of: [.images, .videos]))
+        .photosPicker(isPresented: $showPhotos, selection: $photos, maxSelectionCount: replaceID == nil ? 30 : 1, selectionBehavior: .ordered, matching: .any(of: [.images, .videos]))
         .onChange(of: photos) { _, items in importPhotos(items) }
-        .fileImporter(isPresented: $showFiles, allowedContentTypes: [.movie, .image, .audio, .plainText], allowsMultipleSelection: true) { result in
+        .fileImporter(isPresented: $showFiles, allowedContentTypes: replaceID == nil ? [.movie, .image, .audio, .plainText] : [.audio], allowsMultipleSelection: replaceID == nil) { result in
             switch result { case .success(let urls): importURLs(urls); case .failure(let error): model.error = error.localizedDescription }
         }
         .fileImporter(isPresented: $showAudioFiles, allowedContentTypes: [.audio], allowsMultipleSelection: true) { result in
@@ -292,7 +297,9 @@ struct EditorScreen: View {
     }
     @ViewBuilder private var audioActions: some View {
         action("Diviser", "scissors", perform: splitSelected, identifier: "action-Split"); tool("Volume", "speaker.wave.2", .volume); tool("Fondu", "waveform.path", .fade); tool("Vitesse", "speedometer", .speed)
-        action("Dupliquer", "doc.on.doc", perform: duplicateSelected); action("Supprimer", "trash", destructive: true, perform: model.deleteClip)
+        action("Dupliquer", "doc.on.doc", perform: duplicateSelected)
+        action("Remplacer", "arrow.triangle.2.circlepath", perform: replaceSelectedMedia, identifier: "replaceMedia")
+        action("Supprimer", "trash", destructive: true, perform: model.deleteClip)
     }
     @ViewBuilder private var overlayActions: some View {
         if model.selectedClip?.kind == .shape {
@@ -301,6 +308,9 @@ struct EditorScreen: View {
         tool("Effets", "camera.filters", .visual)
         if let clip = model.selectedClip, clip.kind == .image || clip.kind == .video { cutoutAction }
         tool("Animation", "diamond", .animation)
+        if let clip = model.selectedClip, clip.kind == .image || clip.kind == .video {
+            action("Remplacer", "arrow.triangle.2.circlepath", perform: replaceSelectedMedia, identifier: "replaceMedia")
+        }
         action("Dupliquer", "doc.on.doc", perform: duplicateSelected); action("Supprimer", "trash", destructive: true, perform: model.deleteClip)
     }
 
@@ -342,11 +352,20 @@ struct EditorScreen: View {
             Button(L("Sous-titres automatiques"), systemImage: "waveform.and.mic") { model.stop(); showTranscription = true }
             Button(L("Modifier les sous-titres"), systemImage: "captions.bubble") { openCaptionEditor(initialID: nil) }
             Button(L("Arrêt sur image"), systemImage: "camera", action: freezeFrame)
-            Button(L("Remplacer le média"), systemImage: "arrow.triangle.2.circlepath") { replaceID = model.selectedClipID; importingOverlay = false; showFiles = true }
+            Button(L("Remplacer le média"), systemImage: "arrow.triangle.2.circlepath", action: replaceSelectedMedia).accessibilityIdentifier("replaceMedia")
             Button(L("Dupliquer"), systemImage: "doc.on.doc", action: duplicateSelected)
             if model.selectedClip?.isCaption == true { Button(L("Supprimer la piste de sous-titres"), systemImage: "captions.bubble", role: .destructive) { confirmDeleteCaptionTrack = true } }
             Button(L("Supprimer"), systemImage: "trash", role: .destructive, action: model.deleteClip)
         } label: { ContextActionLabel(title: "Plus", symbol: "ellipsis") }
+    }
+
+    private func replaceSelectedMedia() {
+        guard let clip = model.selectedClip, [.image, .video, .audio].contains(clip.kind) else { return }
+        model.stop()
+        replaceID = clip.id
+        importingOverlay = false
+        if clip.kind == .audio { showFiles = true }
+        else { showPhotos = true }
     }
 
     @ViewBuilder private var mediaMenuItems: some View {

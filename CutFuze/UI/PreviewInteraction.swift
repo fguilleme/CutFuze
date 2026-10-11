@@ -41,6 +41,11 @@ enum PreviewInteractionGeometry {
         layouts.reversed().first { $0.contains(point) }?.id
     }
 
+    static func dragTarget(_ point: CGPoint, selectedID: UUID?, layouts: [PreviewElementLayout]) -> UUID? {
+        guard let selectedID, hitTest(point, layouts: layouts) == selectedID else { return nil }
+        return selectedID
+    }
+
     static func movedPresentation(
         from origin: Presentation,
         translation: CGSize,
@@ -136,6 +141,7 @@ struct PreviewCanvasEditor: View {
 
     @State private var pointerTracking = false
     @State private var pointerCandidateID: UUID?
+    @State private var pointerDragID: UUID?
     @State private var dragOrigin: Presentation?
     @State private var transformOrigin: Presentation?
     @State private var handleOrigin: Presentation?
@@ -225,11 +231,11 @@ struct PreviewCanvasEditor: View {
             .overlay { Circle().strokeBorder(.white.opacity(0.72), lineWidth: 1) }
             .frame(width: PreviewInteractionGeometry.handleTouchSize, height: PreviewInteractionGeometry.handleTouchSize)
             .contentShape(Circle())
-            .position(position)
             .gesture(gesture)
             .accessibilityElement()
             .accessibilityLabel(label)
             .accessibilityAddTraits(.isButton)
+            .position(position)
     }
 
     private func scaleHandleGesture(center: CGPoint, canvasSize: CGSize, isShape: Bool) -> some Gesture {
@@ -285,12 +291,10 @@ struct PreviewCanvasEditor: View {
                 if !pointerTracking {
                     pointerTracking = true
                     pointerCandidateID = PreviewInteractionGeometry.hitTest(value.startLocation, layouts: layouts)
-                    if let id = pointerCandidateID {
-                        if model.selectedClipID != id { UISelectionFeedbackGenerator().selectionChanged() }
-                        model.selectClipFromPreview(id)
-                    } else { model.clearSelection() }
+                    // A drag must never select and then move an underlying layer in one gesture.
+                    pointerDragID = PreviewInteractionGeometry.dragTarget(value.startLocation, selectedID: model.selectedClipID, layouts: layouts)
                 }
-                guard let id = pointerCandidateID, model.selectedClipID == id, hypot(value.translation.width, value.translation.height) >= 4 else { return }
+                guard let id = pointerDragID, model.selectedClipID == id, hypot(value.translation.width, value.translation.height) >= 4 else { return }
                 if dragOrigin == nil {
                     guard model.beginGesture(L("Déplacer")) else { return }
                     dragOrigin = model.presentation
@@ -305,10 +309,17 @@ struct PreviewCanvasEditor: View {
                 snappedY = moved.snappedY
                 model.movePreviewElement(toX: moved.presentation.x, y: moved.presentation.y)
             }
-            .onEnded { _ in
+            .onEnded { value in
                 if dragOrigin != nil {
                     model.endGesture()
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                } else if pointerTracking, transformOrigin == nil, handleOrigin == nil,
+                          hypot(value.translation.width, value.translation.height) < 4 {
+                    // Only a completed tap changes the selection; a missed drag keeps it intact.
+                    if let id = pointerCandidateID {
+                        if model.selectedClipID != id { UISelectionFeedbackGenerator().selectionChanged() }
+                        model.selectClipFromPreview(id)
+                    } else { model.clearSelection() }
                 }
                 resetPointerState()
             }
@@ -317,7 +328,7 @@ struct PreviewCanvasEditor: View {
     private func transformGesture(layouts: [PreviewElementLayout]) -> some Gesture {
         SimultaneousGesture(MagnificationGesture(), RotationGesture())
             .onChanged { value in
-                guard let id = model.selectedClipID, layouts.contains(where: { $0.id == id }) else { return }
+                guard handleOrigin == nil, let id = model.selectedClipID, layouts.contains(where: { $0.id == id }) else { return }
                 if transformOrigin == nil {
                     if dragOrigin != nil { model.endGesture(); dragOrigin = nil }
                     guard model.beginGesture(L("Transformer")) else { return }
@@ -343,6 +354,7 @@ struct PreviewCanvasEditor: View {
     private func resetPointerState() {
         pointerTracking = false
         pointerCandidateID = nil
+        pointerDragID = nil
         dragOrigin = nil
         snappedX = false
         snappedY = false

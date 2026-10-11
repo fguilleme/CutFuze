@@ -38,6 +38,7 @@ enum ContextTool: String, Identifiable {
 }
 
 enum VisualTool: String, CaseIterable, Identifiable {
+    case applied = "Appliqués"
     case transform = "Transformer"
     case opacity = "Opacité"
     case mask = "Masque"
@@ -46,7 +47,7 @@ enum VisualTool: String, CaseIterable, Identifiable {
     case creative = "Créatif"
     case light = "Lumière"
     var id: String { rawValue }
-    var isEffectCategory: Bool { effectCategory != nil }
+    var isEffectCategory: Bool { effectCategory != nil || self == .applied }
     fileprivate var effectCategory: EffectCategory? {
         switch self {
         case .beauty: .beauty
@@ -69,7 +70,7 @@ enum EffectCategory: String, CaseIterable, Identifiable {
         switch self {
         case .beauty: [.skinSmooth, .skinGlow, .sharpness]
         case .geometry: [.bulge, .pinch, .twirl, .kaleidoscope, .pixelate]
-        case .creative: [.lensPulse, .ghostTrail, .stopMotion, .directionalBlur, .popHalftone, .duotone, .dream, .lightSweep, .liquidDistortion, .impactZoom, .shortGlitch, .neon, .comic, .crystallize, .glow, .rgbSplit, .shake, .retro, .grain, .vignette, .blur, .fade]
+        case .creative: [.roughEdges, .writeOn, .lensPulse, .ghostTrail, .stopMotion, .directionalBlur, .popHalftone, .duotone, .dream, .lightSweep, .liquidDistortion, .impactZoom, .shortGlitch, .neon, .comic, .crystallize, .glow, .rgbSplit, .shake, .retro, .grain, .vignette, .blur, .fade]
         case .light: [.exposure, .brightness, .contrast, .saturation, .temperature, .tint, .highlights, .shadows]
         }
     }
@@ -81,6 +82,7 @@ struct ContextToolPanel: View {
     @Binding var visualTool: VisualTool
     let close: () -> Void
     let showTiming: () -> Void
+    var onTextFocusChanged: (Bool) -> Void = { _ in }
     @State private var textDraft = ""
     @State private var showCaptions = false
     @State private var showKeyframes = false
@@ -91,9 +93,10 @@ struct ContextToolPanel: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var controlsViewportHeight: CGFloat {
+        if tool == .visual, visualTool == .applied { return horizontalSizeClass == .regular ? 260 : 190 }
         if tool == .textStyle, horizontalSizeClass == .regular, verticalSizeClass != .compact { return 260 }
         if tool == .font { return verticalSizeClass == .compact ? 130 : 232 }
-        if tool == .visual { return visualTool.isEffectCategory ? 56 : (verticalSizeClass == .compact ? 96 : 144) }
+        if tool == .visual { return visualTool.isEffectCategory ? 82 : (verticalSizeClass == .compact ? 96 : 144) }
         if tool == .animation { return verticalSizeClass == .compact ? 108 : 122 }
         if tool == .speed || tool == .volume { return verticalSizeClass == .compact ? 100 : 108 }
         return verticalSizeClass == .compact ? 56 : 94
@@ -114,7 +117,12 @@ struct ContextToolPanel: View {
                 .accessibilityLabel(L("Fermer"))
                 .accessibilityIdentifier("closeContextTool")
                 Spacer()
-                if tool == .visual, visualTool.effectCategory == nil {
+                if tool == .visual, visualTool.isEffectCategory, let clip = model.selectedClip {
+                    Button { visualTool = .applied } label: {
+                        Text(AppLocalization.bilingual("Appliqués", "Applied") + " · \(clip.effects.count)").font(.caption).frame(minHeight: 44)
+                    }.buttonStyle(.plain).foregroundStyle(DesignTokens.amber).accessibilityIdentifier("showAppliedEffects")
+                }
+                if tool == .visual, !visualTool.isEffectCategory {
                     Button { showKeyframes = true } label: {
                         Label(AppLocalization.bilingual("Courbes", "Curves"), systemImage: "chart.xyaxis.line")
                             .font(.caption.weight(.semibold)).frame(minWidth: 44, minHeight: 44)
@@ -122,11 +130,11 @@ struct ContextToolPanel: View {
                         .accessibilityIdentifier("editVisualCurve")
                         .disabled(visualTool == .mask && model.presentation.mask == .none)
                 }
-                if model.localScope, tool == .visual, visualTool.effectCategory == nil {
+                if model.localScope, tool == .visual, !visualTool.isEffectCategory {
                     Text("\(Int(model.variant.widthRatio)):\(Int(model.variant.heightRatio))")
                         .font(.caption2.weight(.bold)).foregroundStyle(DesignTokens.amber)
                 }
-                if tool == .visual, visualTool.effectCategory == nil {
+                if tool == .visual, !visualTool.isEffectCategory {
                     Menu {
                         Button(L("Tous les formats")) { model.localScope = false }
                         Button("\(Int(model.variant.widthRatio)):\(Int(model.variant.heightRatio)) \(L("seulement"))") { model.localScope = true }
@@ -147,7 +155,7 @@ struct ContextToolPanel: View {
                                 visualTool = item
                             } label: {
                                 HStack(spacing: 4) {
-                                    Text(L(item.rawValue))
+                                    Text(item == .applied ? AppLocalization.bilingual("Appliqués", "Applied") : L(item.rawValue))
                                     if let category = item.effectCategory, let clip = model.selectedClip {
                                         let count = clip.effects.filter { category.effects.contains($0.kind) }.count
                                         if count > 0 { Text("\(count)").monospacedDigit().foregroundStyle(DesignTokens.amber) }
@@ -189,9 +197,11 @@ struct ContextToolPanel: View {
             KeyframeEditorSheet(model: model, initialProperty: tool == .volume ? .volume : tool == .visual && visualTool == .opacity ? .opacity : tool == .visual && visualTool == .mask ? .maskWidth : .scale,
                                 properties: tool == .visual ? (visualTool == .mask ? KeyframeProperty.mask : visualTool == .opacity ? [.opacity] : KeyframeProperty.transform + (model.selectedClip?.kind == .shape ? [.maskWidth, .maskHeight] : [])) : nil)
         }
-        .sheet(item: $editingEffect) { effect in EffectEditorSheet(model: model, effectID: effect.id) }
+        .sheet(item: $editingEffect) { effect in EffectEditorSheet(model: model, effectID: effect.id, initialEffect: effect) }
         .onAppear { textDraft = model.selectedClip?.text ?? "" }
         .onChange(of: model.selectedClipID) { _, _ in textDraft = model.selectedClip?.text ?? ""; textFocused = false }
+        .onChange(of: textFocused) { _, focused in onTextFocusChanged(focused) }
+        .onDisappear { onTextFocusChanged(false) }
         .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button(L("Terminé")) { textFocused = false } } }
     }
 
@@ -242,6 +252,8 @@ struct ContextToolPanel: View {
 
     @ViewBuilder private func visualControls(for clip: Clip) -> some View {
         switch visualTool {
+        case .applied:
+            AppliedEffectsPanel(model: model, clip: clip) { editingEffect = $0 }
         case .transform:
             VStack(spacing: 6) {
                 HStack(spacing: 8) {
@@ -432,22 +444,27 @@ struct ContextToolPanel: View {
     private func effectControls(for clip: Clip) -> some View {
         let category = visualTool.effectCategory ?? .beauty
         return
-            VStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(AppLocalization.bilingual("Usages conseillés — tous les effets restent accessibles", "Suggested uses — all effects remain available"))
+                    .font(.caption2).foregroundStyle(.secondary)
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 7) {
+                    LazyHStack(spacing: 7) {
                         ForEach(category.effects, id: \.self) { kind in
                             let applied = clip.effects.first { $0.kind == kind }
                             Button { selectEffect(kind, from: clip) } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: effectSymbol(kind))
-                                    Text(effectLabel(kind.rawValue))
-                                    if applied != nil { Image(systemName: "checkmark.circle.fill").foregroundStyle(DesignTokens.amber) }
+                                VStack(spacing: 4) {
+                                    Text(effectLabel(kind.rawValue)).lineLimit(2).frame(width: 104, height: 32)
+                                    Text(kind.suggestedUsage.label).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                                 }
                                 .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 10).frame(height: 44)
+                                .padding(5)
                                 .background(applied == nil ? Color.white.opacity(0.07) : DesignTokens.amber.opacity(0.16), in: RoundedRectangle(cornerRadius: 10))
+                                .overlay(alignment: .topTrailing) {
+                                    if applied != nil { Image(systemName: "checkmark.circle.fill").foregroundStyle(DesignTokens.amber).font(.caption2).padding(2) }
+                                }
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel(effectLabel(kind.rawValue))
                             .accessibilityIdentifier("effect-\(kind.rawValue)")
                         }
                     }
@@ -507,8 +524,7 @@ struct ContextToolPanel: View {
         let effect = EffectInstance.readyToUse(kind, duration: rendered?.duration ?? clip.duration, offset: clip.animationOffset,
                                              localTime: model.playhead - (rendered?.globalStart.seconds ?? 0))
         UISelectionFeedbackGenerator().selectionChanged()
-        model.changeClip(L("Effets")) { $0.effects.append(effect) }
-        DispatchQueue.main.async { editingEffect = effect }
+        editingEffect = effect
     }
 }
 
@@ -570,6 +586,8 @@ private func effectSymbol(_ kind: EffectKind) -> String {
     case .lensPulse: "camera.aperture"
     case .ghostTrail: "square.3.layers.3d"
     case .stopMotion: "film.stack"
+    case .roughEdges: "square.dashed"
+    case .writeOn: "pencil.tip.crop.circle"
     }
 }
 

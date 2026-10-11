@@ -7,6 +7,125 @@ import UIKit
 @testable import CutFuze
 
 @MainActor final class MediaTests: XCTestCase {
+    func testBrushMaskDoesNotConnectSeparateStrokesAndCanBeCleared() throws {
+        var effect = EffectInstance(kind: .writeOn, amount: 1)
+        effect.brushWidth = 0.05
+        effect.brushPath = [.init(x: 0.1, y: 0.2), .init(x: 0.3, y: 0.2),
+                            .init(x: 0.7, y: 0.8, startsStroke: true), .init(x: 0.9, y: 0.8)]
+        let rect = CGRect(x: 0, y: 0, width: 100, height: 100)
+        let context = CIContext(options: [.useSoftwareRenderer: true])
+        let image = try XCTUnwrap(context.createCGImage(BrushRasterizer.mask(effect, rect: rect), from: rect))
+        XCTAssertGreaterThan(pixel(image, x: 20, y: 80)[0], 200)
+        XCTAssertGreaterThan(pixel(image, x: 80, y: 20)[0], 200)
+        XCTAssertEqual(pixel(image, x: 50, y: 50)[0], 0, "No bridge between strokes")
+        effect.brushPath = []
+        let empty = try XCTUnwrap(context.createCGImage(BrushRasterizer.mask(effect, rect: rect), from: rect))
+        XCTAssertEqual(pixel(empty, x: 20, y: 80)[0], 0)
+    }
+    func testBrushEffectsPreserveReadableTextAndOperateOnIndividualPhotos() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let renderer = FrameRenderer(softwareRendering: true), size = CGSize(width: 320, height: 320)
+        let text = Clip(kind: .text, duration: .init(seconds: 2), text: "CutFuze", presentation: Presentation(textSize: 0.065))
+        let plain = ProjectDocument(globalClips: [text])
+        let baseline = try await renderer.render(plan: .compile(document: plain, variantID: nil), time: .zero, rootURL: root, size: size)
+        var document = plain; document.globalClips[0].effects = [.readyToUse(.roughEdges, duration: text.duration)]
+        let torn = try await renderer.render(plan: .compile(document: document, variantID: nil), time: .zero, rootURL: root, size: size)
+        var before = 0, after = 0
+        for y in 140..<180 { for x in 100..<230 {
+            if pixel(baseline, x: x, y: y)[0] > 60 { before += 1 }
+            if pixel(torn, x: x, y: y)[0] > 60 { after += 1 }
+        } }
+        XCTAssertGreaterThan(before, 30)
+        XCTAssertGreaterThan(after, before / 10, "Default torn edges must not erase the caption")
+        XCTAssertNotEqual(torn.dataProvider?.data as Data?, baseline.dataProvider?.data as Data?)
+        document.globalClips[0].effects = [.readyToUse(.writeOn, duration: text.duration)]
+        let completed = try await renderer.render(plan: .compile(document: document, variantID: nil), time: .init(seconds: 1.75), rootURL: root, size: size)
+        XCTAssertEqual(completed.dataProvider?.data as Data?, baseline.dataProvider?.data as Data?)
+        let url = root.appendingPathComponent("photo.png"); try imageFixture(at: url)
+        let asset = try await MediaImporter().importFile(url: url, to: root)
+        let photo = Clip(assetID: asset.id, kind: .image, duration: .init(seconds: 2), sourceDuration: .init(seconds: 2), presentation: Presentation(fill: false), effects: [.readyToUse(.roughEdges, duration: .init(seconds: 2))])
+        let photoFrame = try await renderer.render(plan: .compile(document: ProjectDocument(assets: [asset], globalClips: [photo]), variantID: nil), time: .zero, rootURL: root, size: size)
+        XCTAssertEqual(pixel(photoFrame, x: 160, y: 5)[0], 0)
+        for (name, frame) in [("brush-readable-text", torn), ("brush-individual-photo", photoFrame)] {
+            let attachment = XCTAttachment(image: UIImage(cgImage: frame)); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+        }
+    }
+
+    func testBrushRevealCoverageColoredStrokeAndZeroProgress() throws {
+        let context = CIContext(options: [.useSoftwareRenderer: true])
+        for size in [CGSize(width: 160, height: 90), CGSize(width: 90, height: 160), CGSize(width: 120, height: 120)] {
+            let rect = CGRect(origin: .zero, size: size)
+            var effect = EffectInstance.readyToUse(.writeOn, duration: .init(seconds: 2))
+            effect.amount = 1
+            let full = try XCTUnwrap(context.createCGImage(try BrushRasterizer.mask(effect, rect: rect), from: rect))
+            for y in stride(from: 0, to: Int(size.height), by: 3) { for x in stride(from: 0, to: Int(size.width), by: 3) {
+                XCTAssertGreaterThan(pixel(full, x: x, y: y)[0], 250, "Default sweep must cover every aspect ratio")
+            } }
+            effect.amount = 0
+            let empty = try XCTUnwrap(context.createCGImage(try BrushRasterizer.mask(effect, rect: rect), from: rect))
+            XCTAssertEqual(pixel(empty, x: 0, y: 0)[0], 0)
+            effect.amount = 0.5; effect.brushWidth = 0.1; effect.brushPath = [.init(x: 0.1, y: 0.5), .init(x: 0.9, y: 0.5)]
+            let half = try XCTUnwrap(context.createCGImage(try BrushRasterizer.mask(effect, rect: rect), from: rect))
+            XCTAssertGreaterThan(pixel(half, x: Int(size.width * 0.25), y: Int(size.height * 0.5))[0], 250)
+            XCTAssertEqual(pixel(half, x: Int(size.width * 0.8), y: Int(size.height * 0.5))[0], 0)
+        }
+    }
+
+    func testContourBrushEffectsRenderDeterministicallyAndExportAfterSplit() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let renderer = FrameRenderer(softwareRendering: true), size = CGSize(width: 320, height: 320)
+        var original = shape("#F0C020", duration: 2)
+        original.presentation.mask = .rectangle; original.presentation.maskWidth = 0.8; original.presentation.maskHeight = 0.8
+        let baseline = try await renderer.render(plan: .compile(document: ProjectDocument(globalClips: [original]), variantID: nil), time: .zero, rootURL: root, size: size)
+        for kind in [EffectKind.roughEdges, .writeOn] {
+            var clip = original, effect = EffectInstance.readyToUse(kind, duration: original.duration)
+            if kind == .roughEdges { effect.amount = 1 }
+            clip.effects = [effect]
+            var document = ProjectDocument(globalClips: [clip])
+            let time = MediaTime(seconds: 0.75)
+            let image = try await renderer.render(plan: .compile(document: document, variantID: nil), time: time, rootURL: root, size: size)
+            XCTAssertNotEqual(image.dataProvider?.data as Data?, baseline.dataProvider?.data as Data?)
+            let repeated = try await renderer.render(plan: .compile(document: document, variantID: nil), time: time, rootURL: root, size: size)
+            XCTAssertEqual(image.dataProvider?.data as Data?, repeated.dataProvider?.data as Data?)
+            XCTAssertEqual(pixel(image, x: 2, y: 2), pixel(baseline, x: 2, y: 2), "Do not fill transparent corners")
+            if kind == .roughEdges {
+                let edges = stride(from: 50, to: 270, by: 10).compactMap { y in (25..<65).first { pixel(image, x: $0, y: y)[0] > 100 } }
+                XCTAssertGreaterThan((edges.max() ?? 0) - (edges.min() ?? 0), 1, "The contour must be irregular, not a uniform inset")
+                document.globalClips[0].effects[0].roughnessScale = 1
+            } else {
+                let zero = try await renderer.render(plan: .compile(document: document, variantID: nil), time: .zero, rootURL: root, size: size)
+                XCTAssertEqual(pixel(zero, x: 160, y: 160)[0], 0, "Reveal starts hidden, not bypassed")
+                let completed = try await renderer.render(plan: .compile(document: document, variantID: nil), time: .init(seconds: 1.75), rootURL: root, size: size)
+                XCTAssertEqual(completed.dataProvider?.data as Data?, baseline.dataProvider?.data as Data?)
+                document.globalClips[0].effects[0].brushMode = .stroke
+                document.globalClips[0].effects[0].brushPath = BrushPaths.signature
+                document.globalClips[0].effects[0].brushWidth = 0.08
+                document.globalClips[0].effects[0].colorHex = "#FF00FF"
+            }
+            let parameter = try await renderer.render(plan: .compile(document: document, variantID: nil), time: time, rootURL: root, size: size)
+            XCTAssertNotEqual(parameter.dataProvider?.data as Data?, image.dataProvider?.data as Data?)
+            try DocumentEditor.splitClip(clip.id, at: .init(seconds: 0.5), in: &document)
+            let split = try await renderer.render(plan: .compile(document: document, variantID: nil), time: time, rootURL: root, size: size)
+            XCTAssertEqual(split.dataProvider?.data as Data?, parameter.dataProvider?.data as Data?)
+            for (label, frame) in [("default", image), ("parameter", parameter)] {
+                let attachment = XCTAttachment(image: UIImage(cgImage: frame)); attachment.name = "brush-\(kind.rawValue)-\(label)"; attachment.lifetime = .keepAlways; add(attachment)
+            }
+            let movie = root.appendingPathComponent("\(kind.rawValue).mp4")
+            _ = try await MovieExporter().export(document: document, variantID: document.variants[1].id, rootURL: root, settings: MovieExportSettings(longEdge: 320, frameRate: 24, bitrate: 1_000_000), outputURL: movie, progress: { _ in })
+            let generator = AVAssetImageGenerator(asset: AVURLAsset(url: movie)); generator.appliesPreferredTrackTransform = true
+            generator.requestedTimeToleranceBefore = .zero; generator.requestedTimeToleranceAfter = .zero
+            let decoded = try await generator.image(at: CMTime(seconds: 0.75, preferredTimescale: 24))
+            XCTAssertEqual(decoded.actualTime.seconds, 0.75, accuracy: 0.0001)
+            var error = 0
+            for y in stride(from: 10, to: 310, by: 10) { for x in stride(from: 10, to: 310, by: 10) {
+                let a = pixel(parameter, x: x, y: y), b = pixel(decoded.image, x: x, y: y)
+                for channel in 0..<3 { error += abs(Int(a[channel]) - Int(b[channel])) }
+            } }
+            XCTAssertLessThan(Double(error) / 2700, 15)
+            let attachment = XCTAttachment(contentsOfFile: movie); attachment.name = "brush-export-\(kind.rawValue)"; attachment.lifetime = .keepAlways; add(attachment)
+        }
+    }
+
     func testAnimatedMaskChangesRenderedAndExportedSilhouette() async throws {
         let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
         var clip = Clip(kind: .shape, duration: .init(seconds: 2))
@@ -549,7 +668,12 @@ import UIKit
         let first = try await renderer.render(plan: .compile(document: doc, variantID: nil), time: .init(seconds: 0.2), rootURL: root, size: size)
         XCTAssertGreaterThan(pixel(first, x: 80, y: 80)[2], 220)
         XCTAssertGreaterThan(pixel(first, x: 5, y: 5)[0], 220)
-        back.effects = EffectKind.allCases.map { .init(kind: $0, amount: 0) }
+        back.effects = EffectKind.allCases.map { kind in
+            var effect = EffectInstance(kind: kind, amount: 0)
+            // Zero progress hides a reveal; in stroke mode it adds no paint and is neutral.
+            if kind == .writeOn { effect.brushMode = .stroke }
+            return effect
+        }
         doc.scenes[0].clips[0] = back
         let neutral = try await renderer.render(plan: .compile(document: doc, variantID: nil), time: .init(seconds: 0.2), rootURL: root, size: size)
         XCTAssertEqual(first.dataProvider?.data as Data?, neutral.dataProvider?.data as Data?)

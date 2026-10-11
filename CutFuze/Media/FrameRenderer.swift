@@ -173,7 +173,7 @@ actor FrameRenderer {
             personMask = try segmentPerson(in: image, cacheKey: key, feather: p.maskFeather)
         }
         let animationTime = time - item.globalStart + clip.animationOffset
-        for var effect in clip.effects where effect.kind != .neon && effect.kind != .lightSweep && !effect.kind.isTemporal {
+        for var effect in clip.effects where effect.kind != .neon && effect.kind != .lightSweep && effect.kind != .roughEdges && effect.kind != .writeOn && !effect.kind.isTemporal {
             guard let amount = effect.evaluatedAmount(at: animationTime), amount != 0 else { continue }
             effect.amount = amount
             image = apply(effect, to: image, time: animationTime.seconds, seed: clip.effectSeed ?? clip.id)
@@ -186,6 +186,12 @@ actor FrameRenderer {
         if p.mask != .none {
             let mask = try maskImage(p, rect: sourceRect)
             image = image.applyingFilter("CIBlendWithMask", parameters: [kCIInputBackgroundImageKey: CIImage(color: .clear).cropped(to: sourceRect), kCIInputMaskImageKey: mask])
+        }
+        for var effect in clip.effects where effect.kind == .roughEdges || effect.kind == .writeOn {
+            guard let amount = effect.evaluatedAmount(at: animationTime) else { continue }
+            effect.amount = amount
+            if effect.kind == .writeOn { image = try paintStroke(effect, image: image) }
+            else if amount > 0 { image = roughEdges(effect, image: image, seed: clip.effectSeed ?? clip.id, textSize: clip.kind == .text ? p.textSize : nil) }
         }
         // Contour effects must see the alpha produced by cutout/chroma/masks;
         // otherwise masking would erase their halo after it was generated.
@@ -208,6 +214,42 @@ actor FrameRenderer {
         if clip.fadeIn.seconds > 0 { opacity *= min(1, max(0, elapsed / clip.fadeIn.seconds)) }
         if clip.fadeOut.seconds > 0 { opacity *= min(1, max(0, (envelopeDuration - elapsed) / clip.fadeOut.seconds)) }
         return alpha(image, opacity).cropped(to: rect)
+    }
+
+    private func paintStroke(_ effect: EffectInstance, image: CIImage) throws -> CIImage {
+        let rect = image.extent, mask = try BrushRasterizer.mask(effect, rect: image.extent)
+        let clear = CIImage(color: .clear).cropped(to: rect)
+        let ink = effect.paintMode == .reveal ? image : CIImage(color: color(effect.colorHex ?? "#FFD58A")).cropped(to: rect)
+        let painted = ink.applyingFilter("CIBlendWithMask", parameters: [kCIInputBackgroundImageKey: clear, kCIInputMaskImageKey: mask])
+        return effect.paintMode == .reveal ? painted : painted.composited(over: image).cropped(to: rect)
+    }
+
+    private func roughEdges(_ effect: EffectInstance, image: CIImage, seed: UUID, textSize: Double?) -> CIImage {
+        let rect = image.extent, dimension = min(rect.width, rect.height)
+        // Erode only alpha, not the interior colors. Text uses shallower erosion to preserve thin letters.
+        let depth = effect.amount * (textSize.map { max(2, $0 * dimension * 0.09) } ?? (dimension * 0.025))
+        let padded = rect.insetBy(dx: -depth * 3 - 2, dy: -depth * 3 - 2)
+        let silhouette = image.applyingFilter("CIColorMatrix", parameters: [
+            "inputRVector": CIVector(x: 0, y: 0, z: 0, w: 1), "inputGVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+            "inputBVector": CIVector(x: 0, y: 0, z: 0, w: 1), "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+            "inputBiasVector": CIVector(x: 0, y: 0, z: 0, w: 1)])
+            .composited(over: CIImage(color: .black).cropped(to: padded))
+        let side = Int(12 + effect.edgeCoarseness * 44)
+        var state = seed.uuidString.utf8.reduce(UInt64(1469598103934665603)) { ($0 ^ UInt64($1)) &* 1099511628211 }
+        var bytes = [UInt8](repeating: 255, count: side * side * 4)
+        for index in 0..<(side * side) {
+            state = state &* 6364136223846793005 &+ 1442695040888963407
+            let value = UInt8(truncatingIfNeeded: state >> 32)
+            bytes[index * 4] = value; bytes[index * 4 + 1] = value; bytes[index * 4 + 2] = value
+        }
+        let texture = CIImage(bitmapData: Data(bytes), bytesPerRow: side * 4, size: CGSize(width: side, height: side), format: .RGBA8, colorSpace: nil)
+            .applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: 0.7])
+            .transformed(by: .init(scaleX: rect.width / Double(side), y: rect.height / Double(side)))
+            .transformed(by: .init(translationX: rect.minX, y: rect.minY)).cropped(to: padded)
+        let mask = silhouette.applyingFilter("CIMorphologyMinimum", parameters: [kCIInputRadiusKey: depth])
+            .applyingFilter("CIDisplacementDistortion", parameters: ["inputDisplacementImage": texture, kCIInputScaleKey: depth * dimension / Double(side) * 8])
+            .cropped(to: rect)
+        return image.applyingFilter("CIBlendWithMask", parameters: [kCIInputBackgroundImageKey: CIImage(color: .clear).cropped(to: rect), kCIInputMaskImageKey: mask])
     }
 
     private func alpha(_ image: CIImage, _ value: Double) -> CIImage {
@@ -277,7 +319,7 @@ actor FrameRenderer {
             ])
             let zoom = 1 + strength * 0.10
             return distorted.transformed(by: CGAffineTransform(translationX: rect.midX, y: rect.midY).scaledBy(x: zoom, y: zoom).translatedBy(x: -rect.midX, y: -rect.midY)).cropped(to: rect)
-        case .ghostTrail, .stopMotion:
+        case .ghostTrail, .stopMotion, .roughEdges, .writeOn:
             // Temporal effects are evaluated per layer, before compositing the montage.
             return image
         case .directionalBlur:

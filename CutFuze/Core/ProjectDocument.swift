@@ -56,6 +56,7 @@ enum EffectKind: String, Codable, CaseIterable, Sendable {
     case dream, lightSweep, liquidDistortion
     case directionalBlur, popHalftone, duotone
     case lensPulse, ghostTrail, stopMotion
+    case roughEdges, writeOn
 }
 enum KeyframeProperty: String, Codable, CaseIterable, Sendable {
     case x, y, scale, rotation, opacity, volume
@@ -140,6 +141,11 @@ struct EffectInstance: Codable, Identifiable, Equatable, Sendable {
     var echoSpacing: Double? = nil
     var echoDecay: Double? = nil
     var heldFrameRate: Double? = nil
+    var roughnessScale: Double? = nil
+    var brushWidth: Double? = nil
+    var brushMode: BrushPaintMode? = nil
+    /// Source-plane coordinates, y downwards; independent of format and layer transform.
+    var brushPath: [BrushPoint]? = nil
 }
 
 struct Keyframe: Codable, Identifiable, Equatable, Sendable {

@@ -393,7 +393,7 @@ final class TimelineDrawingView: UIView {
                 context.setFillColor(UIColor.systemOrange.withAlphaComponent(0.55).cgColor)
                 let marker = CGRect(x: end - 5, y: 23, width: max(12, scene.transition.duration.seconds*pointsPerSecond + 10), height: 18)
                 UIBezierPath(roundedRect: marker, cornerRadius: 4).fill()
-                ("◇" as NSString).draw(at: CGPoint(x: marker.midX - 5, y: 23), withAttributes: [.font:UIFont.systemFont(ofSize:11, weight:.bold),.foregroundColor:UIColor.white])
+                ("↔" as NSString).draw(at: CGPoint(x: marker.midX - 5, y: 23), withAttributes: [.font:UIFont.systemFont(ofSize:11, weight:.bold),.foregroundColor:UIColor.white])
             }
         }
         let colors = [UIColor(red: 0.44, green: 0.61, blue: 0.61, alpha: 1), UIColor(red: 0.51, green: 0.58, blue: 0.75, alpha: 1), UIColor(red: 0.9, green: 0.64, blue: 0.35, alpha: 1), UIColor(red: 0.55, green: 0.69, blue: 0.54, alpha: 1)]
@@ -424,7 +424,12 @@ final class TimelineDrawingView: UIView {
                 }
             }
             let label = (rc.sceneID == nil ? "⌖ " : "") + (clipNames[rc.id] ?? L(rc.clip.kind.rawValue))
-            (label as NSString).draw(in: CGRect(x:r.minX+7, y:r.minY+13,width:r.width-14,height:16), withAttributes: [.font:UIFont.systemFont(ofSize:10, weight:.semibold),.foregroundColor:UIColor.white])
+            (label as NSString).draw(in: CGRect(x:r.minX+7, y:r.minY+(rc.clip.effects.isEmpty ? 13 : 16),width:r.width-14,height:16), withAttributes: [.font:UIFont.systemFont(ofSize:10, weight:.semibold),.foregroundColor:UIColor.white])
+            if !rc.clip.effects.isEmpty, r.width >= 46 {
+                let badge = CGRect(x: r.minX + 8, y: r.minY + 2, width: 26, height: 12)
+                UIColor.black.withAlphaComponent(0.7).setFill(); UIBezierPath(roundedRect: badge, cornerRadius: 3).fill()
+                ("fx \(rc.clip.effects.count)" as NSString).draw(in: badge.insetBy(dx: 3, dy: 0), withAttributes: [.font: UIFont.systemFont(ofSize: 8, weight: .bold), .foregroundColor: UIColor.white])
+            }
             context.restoreGState()
             if rc.id == selectedID {
                 UIColor(red:0.92,green:0.65,blue:0.35,alpha:1).setStroke(); let p=UIBezierPath(roundedRect:r.insetBy(dx:1,dy:1),cornerRadius:5); p.lineWidth=3; p.stroke()

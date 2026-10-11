@@ -5,7 +5,11 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
 @MainActor struct EffectEditorSheet: View {
     @ObservedObject var model: EditorModel
     let effectID: UUID
+    var initialEffect: EffectInstance? = nil
     @Environment(\.dismiss) private var dismiss
+    @State private var showingBrushDrawing = false
+    @State private var playingPreview = false
+    @State private var showingOriginal = false
     @State private var draft: EffectInstance?
     @State private var snapshot: ProjectDocument?
     @State private var clipID: UUID?
@@ -34,14 +38,27 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
         return animationOffset + .init(seconds: localTime)
     }
     private var domain: ClosedRange<MediaTime> { animationOffset...(animationOffset + clipDuration) }
-    private var previewKey: String { "\(localTime)|\(String(describing: draft))" }
+    private var previewKey: String { "\(playingPreview)|\(showingOriginal)|\(playingPreview ? "playing" : String(localTime))|\(String(describing: draft))" }
     private var keys: [EffectAmountKeyframe] { (draft?.amountKeyframes ?? []).sorted { $0.time < $1.time } }
     private var visibleKeys: [EffectAmountKeyframe] { keys.filter { domain.contains($0.time) } }
     private var currentAmount: Double { draft?.animatedAmount(at: animationTime) ?? 0 }
     private var intensityRange: ClosedRange<Double> { draft?.kind.intensityRange ?? -1...1 }
-    private var isBurst: Bool { draft?.kind.isTimedPreset == true }
+    private var isBurst: Bool { draft?.kind.isTimedPreset == true || draft?.kind == .writeOn }
+    private var amountTitle: String { draft?.kind == .writeOn ? EFL("Progression", "Progress") : L("Intensité") }
+    private var brushSourceAspect: Double {
+        if let assetID = rendered?.clip.assetID, let asset = model.document.assets.first(where: { $0.id == assetID }), asset.width > 0, asset.height > 0 {
+            return Double(asset.width) / Double(asset.height)
+        }
+        return model.variant.ratio
+    }
     private var focusedWindow: ClosedRange<MediaTime>? {
-        guard focusBurst, isBurst, let start = draft?.start, let duration = draft?.duration else { return nil }
+        guard focusBurst, isBurst else { return nil }
+        if draft?.kind == .writeOn, let first = keys.first, let last = keys.last {
+            let lower = max(clipStart, clipStart + first.time - animationOffset)
+            let upper = min(clipStart + clipDuration, clipStart + last.time - animationOffset)
+            return lower < upper ? lower...upper : nil
+        }
+        guard let start = draft?.start, let duration = draft?.duration else { return nil }
         let lower = max(clipStart, clipStart + start - animationOffset)
         let upper = min(clipStart + clipDuration, clipStart + start + duration - animationOffset)
         return lower < upper ? lower...upper : nil
@@ -61,6 +78,20 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
                                 Image(decorative: image, scale: 1).resizable().scaledToFit()
                                     .frame(maxWidth: .infinity).frame(height: min(previewHeight, previewHeightRange.upperBound))
                                     .accessibilityLabel(L("Aperçu du réglage")).accessibilityIdentifier("effectCurvePreview")
+                                HStack {
+                                    Button {
+                                        selectedKeyID = nil; playingPreview.toggle()
+                                    } label: { Image(systemName: playingPreview ? "pause.fill" : "play.fill").frame(width: 44, height: 44) }
+                                        .accessibilityLabel(EFL(playingPreview ? "Suspendre l’aperçu" : "Lire l’aperçu", playingPreview ? "Pause preview" : "Play preview"))
+                                        .accessibilityIdentifier("effectPreviewPlay").accessibilityAddTraits(playingPreview ? .isSelected : [])
+                                    Text(String(format: "%.2f s", localTime)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                                        .accessibilityIdentifier("effectPreviewTime")
+                                    Spacer()
+                                    Button { showingOriginal.toggle() } label: {
+                                        Label(EFL(showingOriginal ? "Original" : "Avec effet", showingOriginal ? "Original" : "With effect"), systemImage: "square.on.square")
+                                            .font(.caption).frame(minHeight: 44)
+                                    }.accessibilityIdentifier("effectPreviewCompare").accessibilityAddTraits(showingOriginal ? .isSelected : [])
+                                }
                                 CurvePreviewResizeHandle(value: previewHeight, active: previewHeightAtDragStart != nil, changed: { translation, ended in
                                     if previewHeightAtDragStart == nil {
                                         previewHeightAtDragStart = min(previewHeight, previewHeightRange.upperBound)
@@ -88,7 +119,7 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
                         KeyframeGraph(clip: item, property: .opacity, globalTime: (clipStart + .init(seconds: localTime)).seconds, selectedID: selectedKeyID, valueRange: graphRange,
                                       pointIDs: Set(keys.map(\.id)),
                                       animationPoints: keys.map { .init(id: $0.id, time: $0.time, property: .opacity, value: $0.value, easing: $0.easing) },
-                                      title: L("Intensité"), evaluate: { time in effect.animatedAmount(at: time - item.globalStart + item.clip.animationOffset) },
+                                      title: amountTitle, evaluate: { time in effect.animatedAmount(at: time - item.globalStart + item.clip.animationOffset) },
                                       timeWindow: focusedWindow,
                                       onScrub: { scrub(($0 - clipStart).seconds) }, onSelect: { selectKey($0.id) }, onMove: movePoint)
                         Slider(value: Binding(get: { localTime }, set: scrub), in: 0...max(0.001, clipDuration.seconds))
@@ -182,9 +213,15 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
                                 Text(EFL("À intensité maximale, l’image et la pose sont maintenues entre deux pas. L’audio et les autres pistes restent fluides.", "At full intensity, the image and pose are held between steps. Audio and other tracks stay smooth.")).font(.caption).foregroundStyle(.secondary)
                             }
                         }
-                        Section(L("Intensité")) {
+                        if effect.kind == .roughEdges {
+                            Section(EFL("Contour irrégulier", "Irregular contour")) {
+                                parameterSlider(title: EFL("Finesse des déchirures", "Edge detail"), value: Binding(get: { draft?.edgeCoarseness ?? 0.5 }, set: { value in changeDraft { $0.roughnessScale = value } }), range: 0...1, identifier: "edgeCoarseness")
+                            }
+                        }
+                        if effect.kind == .writeOn { Section(EFL("Pinceau et tracé", "Brush and path")) { brushControls } }
+                        Section(amountTitle) {
                             Toggle(EFL("Effet actif", "Effect enabled"), isOn: Binding(get: { draft?.enabled ?? true }, set: { value in changeDraft { $0.enabled = value } })).accessibilityIdentifier("effectEnabled")
-                            ValueSlider(title: L("Intensité"), value: Binding(get: { currentAmount }, set: { value in
+                            ValueSlider(title: amountTitle, value: Binding(get: { currentAmount }, set: { value in
                                 if keys.isEmpty { changeDraft { $0.amount = value } } else { setKey(at: animationTime, value: value) }
                             }), range: intensityRange, editing: editGesture)
                             HStack {
@@ -219,7 +256,12 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
                         }
                         Section {
                             Text(EFL("Effet commun à tous les formats", "Effect shared by every format")).font(.caption).foregroundStyle(DesignTokens.amber)
-                            Button(L("Supprimer l’effet"), role: .destructive) { removeEffect() }.frame(minHeight: 44)
+                            if snapshot?.clip(clipID)?.effects.contains(where: { $0.id == effectID }) == true {
+                                Button(role: .destructive) { removeEffect() } label: {
+                                    Image(systemName: "trash").foregroundStyle(.red).frame(width: 44, height: 44)
+                                }
+                                .accessibilityLabel(L("Supprimer l’effet")).accessibilityIdentifier("effectDelete")
+                            }
                         }
                 }
             }.buttonStyle(.borderless).scrollDismissesKeyboard(.interactively).accessibilityIdentifier("effectSettings")
@@ -237,12 +279,80 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
                     }
                 }
         }.presentationSizing(.page).presentationDetents([.large])
-            .preferredColorScheme(.dark).onAppear(perform: load).task(id: previewKey) { await render() }
+            .preferredColorScheme(.dark).onAppear(perform: load).task(id: previewKey) { await previewFrames() }
+            .onDisappear { playingPreview = false }
     }
 
     private func setPreviewHeight(_ value: CGFloat) {
         var transaction = Transaction(); transaction.animation = nil
         withTransaction(transaction) { previewHeight = min(previewHeightRange.upperBound, max(previewHeightRange.lowerBound, value)) }
+    }
+
+    @ViewBuilder private var brushControls: some View {
+        if let effect = draft {
+            HStack {
+                ForEach(BrushPaintMode.allCases, id: \.self) { mode in
+                    Button { changeDraft { $0.brushMode = mode } } label: {
+                        parameterChoice(mode == .reveal ? EFL("Révéler", "Reveal") : EFL("Trait coloré", "Colored stroke"), selected: effect.paintMode == mode)
+                    }.buttonStyle(.plain).accessibilityIdentifier("brushMode-\(mode.rawValue)").accessibilityAddTraits(effect.paintMode == mode ? .isSelected : [])
+                }
+            }
+            Button { showingBrushDrawing = true } label: {
+                Label(EFL("Dessiner le tracé", "Draw the path"), systemImage: "pencil.tip.crop.circle")
+                    .frame(minHeight: 44)
+            }.accessibilityIdentifier("brushOpenDrawing")
+                .fullScreenCover(isPresented: $showingBrushDrawing) { brushDrawingWindow }
+            HStack {
+                Button { changeDraft { $0.brushPath = nil; $0.brushWidth = 0.18 } } label: { parameterChoice(EFL("Balayage", "Sweep"), selected: effect.brushPath == nil) }
+                    .buttonStyle(.plain).accessibilityIdentifier("brushSweep").accessibilityAddTraits(effect.brushPath == nil ? .isSelected : [])
+                Button { changeDraft { $0.brushPath = BrushPaths.signature; $0.brushWidth = 0.04; $0.brushMode = .stroke } } label: { parameterChoice(EFL("Signature", "Signature"), selected: effect.brushPath == BrushPaths.signature) }
+                    .buttonStyle(.plain).accessibilityIdentifier("brushSignature").accessibilityAddTraits(effect.brushPath == BrushPaths.signature ? .isSelected : [])
+            }
+            parameterSlider(title: EFL("Largeur du pinceau", "Brush width"), value: Binding(get: { draft?.strokeWidth ?? 0.18 }, set: { value in changeDraft { $0.brushWidth = value } }), range: 0.01...0.5, identifier: "brushWidth")
+            if effect.paintMode == .stroke {
+                ColorPicker(EFL("Couleur du trait", "Stroke color"), selection: Binding(get: { Color(hex: draft?.colorHex ?? "#FFD58A") }, set: { color in
+                    var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+                    UIColor(color).getRed(&r, green: &g, blue: &b, alpha: &a)
+                    changeDraft { $0.colorHex = String(format: "#%02X%02X%02X", Int((r * 255).rounded()), Int((g * 255).rounded()), Int((b * 255).rounded())) }
+                }), supportsOpacity: false)
+            }
+            Text(effect.paintMode == .reveal ? EFL("Seules les zones parcourues apparaissent. Élargissez le pinceau pour révéler tout le texte ; le tracé ne suit pas automatiquement les lettres.", "Only painted areas appear. Widen the brush to reveal all the text; the path does not automatically follow letters.") : EFL("Le trait coloré se dessine sur le calque. Animez la progression avec les points de la courbe.", "The colored stroke draws over the layer. Animate progress with the curve’s keyframes.")).font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private var brushDrawingWindow: some View {
+        NavigationStack {
+            VStack(spacing: 12) {
+                GeometryReader { proxy in
+                    BrushPathEditor(points: draft?.strokePath ?? BrushPaths.sweep, progress: 1,
+                                    width: draft?.strokeWidth ?? 0.18, sourceAspect: brushSourceAspect,
+                                    maximumHeight: max(1, proxy.size.height)) { points in changeDraft { $0.brushPath = points } }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                }
+                parameterSlider(title: EFL("Largeur du pinceau", "Brush width"), value: Binding(get: { draft?.strokeWidth ?? 0.18 }, set: { value in changeDraft { $0.brushWidth = value } }), range: 0.01...0.5, identifier: "brushDrawingWidth")
+                Text(EFL("Levez le doigt pour commencer un autre trait. Effacer permet de repartir de zéro. La courbe règle la progression du tracé dans le montage.", "Lift your finger to start another stroke. Clear starts a new drawing. The curve controls the path’s progress in the montage."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }.padding(16).background(DesignTokens.ink)
+                .navigationTitle(EFL("Dessiner le tracé", "Draw the path")).navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button { changeDraft { $0.brushPath = [] } } label: {
+                            Label(EFL("Effacer", "Clear"), systemImage: "trash").frame(minHeight: 44)
+                        }.tint(.red).disabled(draft?.strokePath.isEmpty ?? true)
+                            .accessibilityIdentifier("brushDrawingClear")
+                    }
+                    ToolbarItemGroup(placement: .topBarLeading) {
+                        Button { undoDraft() } label: { Image(systemName: "arrow.uturn.backward").frame(width: 44, height: 44) }
+                            .disabled(undoStack.isEmpty).accessibilityLabel(L("Annuler")).accessibilityIdentifier("brushDrawingUndo")
+                        Button { redoDraft() } label: { Image(systemName: "arrow.uturn.forward").frame(width: 44, height: 44) }
+                            .disabled(redoStack.isEmpty).accessibilityLabel(L("Rétablir"))
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button { showingBrushDrawing = false } label: { Image(systemName: "checkmark").frame(width: 44, height: 44) }
+                            .accessibilityLabel(EFL("Terminé", "Done")).accessibilityIdentifier("brushDrawingDone")
+                    }
+                }
+        }.preferredColorScheme(.dark)
     }
 
     private var interpolationControl: some View {
@@ -312,10 +422,14 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
     }
 
     private func load() {
-        guard snapshot == nil, let clip = model.selectedClip, let effect = clip.effects.first(where: { $0.id == effectID }) else { return }
+        guard snapshot == nil, let clip = model.selectedClip,
+              let effect = clip.effects.first(where: { $0.id == effectID }) ?? initialEffect,
+              effect.id == effectID else { return }
         model.stop(); snapshot = model.document; draft = effect; clipID = clip.id
         scrub(min(max(0, model.playhead - clipStart.seconds), max(0, clipDuration.seconds - 1 / 60_000)))
-        if effect.kind == .lightSweep || effect.kind == .lensPulse, let start = effect.start, let duration = effect.duration {
+        if effect.kind == .writeOn, let first = keys.first, let last = keys.last, currentAmount == 0 {
+            scrub(((first.time - animationOffset).seconds + (last.time - animationOffset).seconds) * 0.5)
+        } else if effect.kind == .lightSweep || effect.kind == .lensPulse, let start = effect.start, let duration = effect.duration {
             // Show the reflection itself on entry rather than the empty beginning of its pass.
             scrub((start - animationOffset).seconds + duration.seconds * 0.5)
         } else if isBurst, let start = effect.start, effect.evaluatedAmount(at: animationTime) == nil {
@@ -349,6 +463,7 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
         undoStack.append(current); draft = next; error = nil; refreshSelection()
     }
     private func scrub(_ seconds: Double) {
+        playingPreview = false
         localTime = min(clipDuration.seconds, max(0, seconds)); selectedKeyID = nil; refreshSelection()
     }
     private func refreshSelection() {
@@ -387,13 +502,38 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
         let target = previous ? visibleKeys.last(where: { $0.time < animationTime }) : visibleKeys.first(where: { $0.time > animationTime })
         if let target { selectKey(target.id) }
     }
+    private func previewFrames() async {
+        guard playingPreview else { await render(); return }
+        let lower = focusedWindow.map { ($0.lowerBound - clipStart).seconds } ?? 0
+        let upper = focusedWindow.map { ($0.upperBound - clipStart).seconds } ?? clipDuration.seconds
+        let length = max(1 / 60_000, upper - lower)
+        let initial = localTime >= lower && localTime < upper ? localTime - lower : 0
+        let clock = ContinuousClock(); let started = clock.now
+        while playingPreview && !Task.isCancelled {
+            let elapsed = started.duration(to: clock.now).components
+            localTime = lower + (initial + Double(elapsed.seconds) + Double(elapsed.attoseconds) / 1e18).truncatingRemainder(dividingBy: length)
+            selectedKeyID = nil
+            await render()
+            do { try await Task.sleep(for: .milliseconds(70)) } catch { return }
+        }
+    }
+
     private func render() async {
         guard var document = snapshot, let effect = draft, let clipID else { return }
         generation += 1; let token = generation
-        document.updateClip(clipID) { clip in if let index = clip.effects.firstIndex(where: { $0.id == effectID }) { clip.effects[index] = effect } }
+        // The preview uses a copy: browsing and adjusting a new effect never edits the montage.
+        var previewEffect = effect
+        if showingOriginal { previewEffect.enabled = false }
+        document.updateClip(clipID) { clip in
+            if let index = clip.effects.firstIndex(where: { $0.id == effectID }) {
+                clip.effects[index] = previewEffect
+            } else {
+                clip.effects.append(previewEffect)
+            }
+        }
         let plan = RenderPlan.compile(document: document, variantID: model.variantID), ratio = model.variant.ratio
         do {
-            try await Task.sleep(for: .milliseconds(60))
+            if !playingPreview { try await Task.sleep(for: .milliseconds(60)) }
             let time = clipStart + .init(seconds: min(localTime, max(0, clipDuration.seconds - 1 / 60_000)))
             let image = try await model.renderer.render(plan: plan, time: time, rootURL: model.rootURL, size: CGSize(width: ratio >= 1 ? 480 : 480 * ratio, height: ratio >= 1 ? 480 / ratio : 480))
             if token == generation && !Task.isCancelled { preview = image; renderError = nil }
@@ -401,7 +541,10 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
     }
     private func apply() {
         guard let effect = draft, model.document.revision == snapshot?.revision, model.selectedClipID == clipID else { error = EFL("Le montage a changé. Rouvrez l’effet.", "The edit changed. Reopen this effect."); return }
-        model.changeClip(L("Effets")) { clip in if let index = clip.effects.firstIndex(where: { $0.id == effectID }) { clip.effects[index] = effect } }
+        model.changeClip(L("Effets")) { clip in
+            if let index = clip.effects.firstIndex(where: { $0.id == effectID }) { clip.effects[index] = effect }
+            else { clip.effects.append(effect) }
+        }
         dismiss()
     }
     private func removeEffect() {
@@ -425,6 +568,8 @@ private func effectDescription(_ kind: EffectKind) -> String? {
     case .lensPulse: EFL("Une déformation de lentille sur toute l’image accompagne une impulsion de zoom. Modifiez les trois points pour régler l’impact et le retour.", "A full-image lens distortion accompanies a zoom pulse. Edit the three keyframes to shape the impact and return.")
     case .ghostTrail: EFL("Superpose jusqu’à cinq images précédentes, avec espacement et persistance réglables. Visible sur une vidéo en mouvement ou un calque animé ; calcul plus long.", "Blends up to five previous frames, with adjustable spacing and persistence. Visible on moving video or an animated layer; rendering takes longer.")
     case .stopMotion: EFL("Maintient les images du calque à une cadence réduite. Le montage conserve sa durée et sa cadence d’export.", "Holds the layer’s frames at a lower rate. Montage duration and export frame rate stay unchanged.")
+    case .roughEdges: EFL("Érode le contour avec des déchirures irrégulières. Agit aussi sur les lettres, les masques et les silhouettes détourées, sans modifier les couleurs intérieures.", "Erodes the contour with irregular tears. Also works on letters, masks and cutout silhouettes without changing interior colors.")
+    case .writeOn: EFL("Un pinceau révèle le calque ou dessine un trait coloré. La courbe règle sa progression ; le dessin terminé reste visible.", "A brush reveals the layer or draws a colored stroke. The curve controls progress; the completed drawing stays visible.")
     default: nil
     }
 }

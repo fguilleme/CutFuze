@@ -185,10 +185,10 @@ struct CaptionEditorSheet: View {
                                 Button { editingEffect = effect } label: {
                                     Text(effectLabel(effect.kind.rawValue)).font(.caption.weight(.semibold)).padding(.horizontal, 10).frame(height: 44)
                                 }
-                                Button { model.changeClip(L("Supprimer")) { $0.effects.removeAll { $0.id == effect.id } } } label: {
-                                    Image(systemName: "xmark").frame(width: 38, height: 44)
+                                Button(role: .destructive) { model.changeClip(L("Supprimer")) { $0.effects.removeAll { $0.id == effect.id } } } label: {
+                                    Image(systemName: "trash").foregroundStyle(.red).frame(width: 44, height: 44)
                                 }
-                                .accessibilityLabel(L("Supprimer"))
+                                .accessibilityLabel(L("Supprimer l’effet"))
                             }
                             .background(DesignTokens.ink, in: RoundedRectangle(cornerRadius: 10))
                         }
