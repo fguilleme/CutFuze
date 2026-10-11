@@ -7,6 +7,38 @@ import UIKit
 @testable import CutFuze
 
 @MainActor final class MediaTests: XCTestCase {
+    func testTemporalScanFreezesCompletedLayerAndSupportsAllDirections() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let fixture = try await SyntheticVideoCorpus.make(in: root)
+        let asset = try await MediaImporter().importFile(url: fixture.movieURL, to: root)
+        let renderer = FrameRenderer(softwareRendering: true), size = CGSize(width: 160, height: 90)
+        var effect = EffectInstance.readyToUse(.timeScan, duration: .init(seconds: 1.5))
+        effect.scanDuration = 0.6; effect.scanLineVisible = false
+        let clip = Clip(assetID: asset.id, kind: .video, duration: .init(seconds: 1.5), sourceDuration: asset.duration)
+        var document = ProjectDocument(assets: [asset], globalClips: [clip])
+        var results: [Data] = []
+        for direction in ScanDirection.allCases {
+            effect.scanDirection = direction; document.globalClips[0].effects = [effect]
+            let plan = RenderPlan.compile(document: document, variantID: nil)
+            let first = try await renderer.render(plan: plan, time: .init(seconds: 0.8), rootURL: root, size: size)
+            let later = try await renderer.render(plan: plan, time: .init(seconds: 1.2), rootURL: root, size: size)
+            XCTAssertEqual(first.dataProvider?.data as Data?, later.dataProvider?.data as Data?, "Completed scan must remain frozen: \(direction)")
+            results.append(try XCTUnwrap(first.dataProvider?.data as Data?))
+            let attachment = XCTAttachment(image: UIImage(cgImage: first)); attachment.name = "time-scan-frozen-\(direction)"; attachment.lifetime = .keepAlways; add(attachment)
+        }
+        XCTAssertEqual(Set(results).count, 4, "Each scan direction must capture a different moving image")
+        effect.scanDirection = .right; effect.scanDuration = 1.2; effect.scanLineVisible = true
+        document.globalClips[0].effects = [effect]
+        let withLine = try await renderer.render(plan: .compile(document: document, variantID: nil), time: .init(seconds: 0.5), rootURL: root, size: size)
+        document.globalClips[0].effects[0].scanLineVisible = false
+        let withoutLine = try await renderer.render(plan: .compile(document: document, variantID: nil), time: .init(seconds: 0.5), rootURL: root, size: size)
+        XCTAssertNotEqual(withLine.dataProvider?.data as Data?, withoutLine.dataProvider?.data as Data?)
+        document.globalClips[0].effects[0].enabled = false
+        let disabled = try await renderer.render(plan: .compile(document: document, variantID: nil), time: .init(seconds: 0.5), rootURL: root, size: size)
+        document.globalClips[0].effects = []
+        let plain = try await renderer.render(plan: .compile(document: document, variantID: nil), time: .init(seconds: 0.5), rootURL: root, size: size)
+        XCTAssertEqual(disabled.dataProvider?.data as Data?, plain.dataProvider?.data as Data?)
+    }
     func testBrushMaskDoesNotConnectSeparateStrokesAndCanBeCleared() throws {
         var effect = EffectInstance(kind: .writeOn, amount: 1)
         effect.brushWidth = 0.05
@@ -289,7 +321,7 @@ import UIKit
         let renderer = FrameRenderer(softwareRendering: true), size = CGSize(width: 160, height: 90)
         let clip = Clip(assetID: asset.id, kind: .video, duration: .init(seconds: 1), sourceStart: .init(seconds: 0.25), sourceDuration: .init(seconds: 1))
         let plain = ProjectDocument(assets: [asset], globalClips: [clip])
-        for kind in [EffectKind.lensPulse, .ghostTrail, .stopMotion] {
+        for kind in [EffectKind.lensPulse, .ghostTrail, .stopMotion, .timeScan] {
             var document = plain
             document.globalClips[0].effects = [.readyToUse(kind, duration: clip.duration)]
             let time = MediaTime(seconds: kind == .lensPulse ? 0.25 : kind == .stopMotion ? 0.68 : 0.64)

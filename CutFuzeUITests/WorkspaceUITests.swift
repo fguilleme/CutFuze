@@ -172,6 +172,47 @@ final class WorkspaceUITests: XCTestCase {
         app.terminate()
     }
 
+    @MainActor func testTemporalScanSettingsAndPlaybackDoNotApplyUntilConfirmed() throws {
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Effets visuels"].tap(); app.buttons["visualTool-Créatif"].tap()
+        openCreativeEffect("timeScan", in: app)
+        XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+        let settings = app.descendants(matching: .any)["effectSettings"]
+        let direction = app.segmentedControls["scanDirection"]
+        revealEffectParameter(direction, in: settings)
+        direction.buttons["Droite"].tap()
+        XCTAssertTrue(direction.buttons["Droite"].isSelected)
+        let duration = app.sliders["scanDuration"]
+        revealEffectParameter(duration, in: settings)
+        duration.adjust(toNormalizedSliderPosition: 0.1)
+        let line = app.switches["scanLineVisible"]
+        revealEffectParameter(line, in: settings)
+        line.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        XCTAssertEqual(line.value as? String, "0")
+        capture("time-scan-settings")
+        let play = app.buttons["effectPreviewPlay"]
+        for _ in 0..<12 {
+            if play.exists && play.isHittable { break }
+            settings.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.2)).press(forDuration: 0.05,
+                thenDragTo: settings.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.85)))
+        }
+        XCTAssertTrue(play.waitForExistence(timeout: 5))
+        let time = app.staticTexts["effectPreviewTime"], initial = time.label
+        play.tap()
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label != %@", initial), object: time)], timeout: 15), .completed)
+        capture("time-scan-playing")
+        play.tap()
+        app.buttons["effectCancel"].tap()
+        XCTAssertTrue(app.buttons["showAppliedEffects"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["showAppliedEffects"].label.contains("0"))
+        openCreativeEffect("timeScan", in: app)
+        app.buttons["effectApply"].tap()
+        XCTAssertTrue(app.buttons["showAppliedEffects"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["showAppliedEffects"].label.contains("1"))
+        app.terminate()
+    }
+
     @MainActor func testWriteOnDrawingAreaUsesAvailableSpace() throws {
         let app = launchDemo()
         firstTimelineClip(app, kind: "video").tap()

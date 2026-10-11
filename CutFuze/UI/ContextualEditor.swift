@@ -70,7 +70,7 @@ enum EffectCategory: String, CaseIterable, Identifiable {
         switch self {
         case .beauty: [.skinSmooth, .skinGlow, .sharpness]
         case .geometry: [.bulge, .pinch, .twirl, .kaleidoscope, .pixelate]
-        case .creative: [.roughEdges, .writeOn, .lensPulse, .ghostTrail, .stopMotion, .directionalBlur, .popHalftone, .duotone, .dream, .lightSweep, .liquidDistortion, .impactZoom, .shortGlitch, .neon, .comic, .crystallize, .glow, .rgbSplit, .shake, .retro, .grain, .vignette, .blur, .fade]
+        case .creative: [.timeScan, .roughEdges, .writeOn, .lensPulse, .ghostTrail, .stopMotion, .directionalBlur, .popHalftone, .duotone, .dream, .lightSweep, .liquidDistortion, .impactZoom, .shortGlitch, .neon, .comic, .crystallize, .glow, .rgbSplit, .shake, .retro, .grain, .vignette, .blur, .fade]
         case .light: [.exposure, .brightness, .contrast, .saturation, .temperature, .tint, .highlights, .shadows]
         }
     }
@@ -588,6 +588,7 @@ private func effectSymbol(_ kind: EffectKind) -> String {
     case .stopMotion: "film.stack"
     case .roughEdges: "square.dashed"
     case .writeOn: "pencil.tip.crop.circle"
+    case .timeScan: "line.3.horizontal"
     }
 }
 

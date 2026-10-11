@@ -20,11 +20,12 @@ actor FrameRenderer {
     private var rendering = false
     private var chromaCubes: [String: Data] = [:]
     private var personMasks: [String: CIImage] = [:]
+    private var scanStrips: [String: CGImage] = [:]
 
     func clearCaches() {
         generators.values.forEach { $0.cancelAllCGImageGeneration() }
         generators.removeAll(); images.removeAll(); textImages.removeAll(); chromaCubes.removeAll(); personMasks.removeAll()
-        context.clearCaches()
+        scanStrips.removeAll(); context.clearCaches()
     }
 
     func render(plan: RenderPlan, time: MediaTime, rootURL: URL, size: CGSize) async throws -> CGImage {
@@ -101,6 +102,59 @@ actor FrameRenderer {
                 result = mixEffect(ghost, over: result, amount: weight / (totalWeight + weight))
                 totalWeight += weight
             }
+        }
+        for effect in item.clip.effects where effect.kind == .timeScan {
+            guard let amount = effect.evaluatedAmount(at: animationTime), amount > 0,
+                  animationTime >= effect.temporalScanStart else { continue }
+            let progress = effect.scanProgress(at: animationTime)
+            let direction = effect.temporalScanDirection
+            let bands = max(rect.width, rect.height) > 720 ? 96 : 48
+            let dimension = direction.isHorizontal ? rect.width : rect.height
+            let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+            let signature = "\(try encoder.encode(item.clip).base64EncodedString())|\(try encoder.encode(item.presentation).base64EncodedString())|\(item.globalStart.value)|\(rootURL.path)|\(rect)|\(bands)|\(effect.id)"
+            var scanned = result
+            for index in 0..<bands {
+                let fraction = (Double(index) + 0.5) / Double(bands)
+                guard fraction <= progress else { break }
+                try Task.checkCancellation()
+                // Core Image's y axis points upwards; the direction names follow the screen.
+                let physicalIndex = (direction == .down || direction == .left) ? bands - 1 - index : index
+                let lower = floor(Double(physicalIndex) * dimension / Double(bands))
+                let upper = floor(Double(physicalIndex + 1) * dimension / Double(bands))
+                let stripRect = direction.isHorizontal
+                    ? CGRect(x: rect.minX + lower, y: rect.minY, width: upper - lower, height: rect.height)
+                    : CGRect(x: rect.minX, y: rect.minY + lower, width: rect.width, height: upper - lower)
+                guard !stripRect.isEmpty else { continue }
+                let key = "\(signature)|\(index)"
+                let raster: CGImage
+                if let cached = scanStrips[key] { raster = cached }
+                else {
+                    let captured = effect.scanCaptureTime(at: fraction)
+                    let sampleTime = item.globalStart + captured - item.clip.animationOffset
+                    let image = try await singleLayerImage(item, plan: plan, time: heldTime(sampleTime), rootURL: rootURL, rect: rect)
+                    guard let strip = context.createCGImage(image, from: stripRect) else { throw MediaFailure.rendering("Scan temporel") }
+                    raster = strip
+                    if scanStrips.values.reduce(0, { $0 + $1.bytesPerRow * $1.height }) + strip.bytesPerRow * strip.height > 48_000_000 {
+                        scanStrips.removeAll(keepingCapacity: true)
+                    }
+                    if strip.bytesPerRow * strip.height <= 48_000_000 { scanStrips[key] = strip }
+                }
+                let strip = CIImage(cgImage: raster).transformed(by: .init(translationX: stripRect.minX, y: stripRect.minY))
+                // Replace, rather than composite, to preserve transparent holes in frozen layers.
+                let mask = CIImage(color: CIColor.white).cropped(to: stripRect)
+                scanned = strip.applyingFilter("CIBlendWithMask", parameters: [kCIInputBackgroundImageKey: scanned, kCIInputMaskImageKey: mask]).cropped(to: rect)
+            }
+            if effect.temporalScanShowsLine, progress > 0, progress < 1 {
+                let coordinate = (direction == .down || direction == .left) ? 1 - progress : progress
+                let lineWidth = max(1, dimension / 360)
+                let lineRect = direction.isHorizontal
+                    ? CGRect(x: rect.minX + coordinate * dimension - lineWidth / 2, y: rect.minY, width: lineWidth, height: rect.height)
+                    : CGRect(x: rect.minX, y: rect.minY + coordinate * dimension - lineWidth / 2, width: rect.width, height: lineWidth)
+                let line = CIImage(color: CIColor(red: 0.3, green: 0.9, blue: 1)).cropped(to: lineRect)
+                let clippedLine = line.applyingFilter("CIBlendWithAlphaMask", parameters: [kCIInputBackgroundImageKey: CIImage(color: .clear).cropped(to: rect), kCIInputMaskImageKey: scanned])
+                scanned = clippedLine.composited(over: scanned).cropped(to: rect)
+            }
+            result = mixEffect(scanned, over: result, amount: min(1, amount))
         }
         return result
     }
@@ -319,7 +373,7 @@ actor FrameRenderer {
             ])
             let zoom = 1 + strength * 0.10
             return distorted.transformed(by: CGAffineTransform(translationX: rect.midX, y: rect.midY).scaledBy(x: zoom, y: zoom).translatedBy(x: -rect.midX, y: -rect.midY)).cropped(to: rect)
-        case .ghostTrail, .stopMotion, .roughEdges, .writeOn:
+        case .ghostTrail, .stopMotion, .roughEdges, .writeOn, .timeScan:
             // Temporal effects are evaluated per layer, before compositing the montage.
             return image
         case .directionalBlur:

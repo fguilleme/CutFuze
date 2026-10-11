@@ -2,6 +2,22 @@ import XCTest
 @testable import CutFuze
 
 final class CoreTests: XCTestCase {
+    func testTemporalScanParametersPersistAndKeepPhaseAfterSplit() throws {
+        var effect = EffectInstance.readyToUse(.timeScan, duration: .init(seconds: 5), offset: .init(seconds: 2), localTime: 1)
+        XCTAssertEqual(effect.scanStart, .init(seconds: 3))
+        XCTAssertEqual(effect.scanProgress(at: .init(seconds: 4)), 0.5)
+        XCTAssertEqual(effect.scanCaptureTime(at: 0.25), .init(seconds: 3.5))
+        XCTAssertEqual(effect.scanProgress(at: .init(seconds: 8)), 1)
+        effect.scanDirection = .left; effect.scanLineVisible = false
+        let clip = Clip(kind: .shape, duration: .init(seconds: 5), effects: [effect], animationOffset: .init(seconds: 2))
+        var document = ProjectDocument(globalClips: [clip])
+        try DocumentEditor.splitClip(clip.id, at: .init(seconds: 2), in: &document)
+        XCTAssertEqual(document.globalClips[1].effects[0], effect)
+        XCTAssertEqual(try DocumentCodec.decode(DocumentCodec.encode(document)), document)
+        for invalid in [0.0, 11, .nan, .infinity] {
+            effect.scanDuration = invalid; XCTAssertThrowsError(try effect.validateAnimation())
+        }
+    }
     func testDisconnectedBrushStrokesPreserveBreaksAndIgnoreTravelDistance() throws {
         let points: [BrushPoint] = [.init(x: 0, y: 0), .init(x: 0.2, y: 0),
                                    .init(x: 0.8, y: 1, startsStroke: true), .init(x: 1, y: 1)]

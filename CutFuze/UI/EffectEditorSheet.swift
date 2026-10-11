@@ -213,6 +213,21 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
                                 Text(EFL("À intensité maximale, l’image et la pose sont maintenues entre deux pas. L’audio et les autres pistes restent fluides.", "At full intensity, the image and pose are held between steps. Audio and other tracks stay smooth.")).font(.caption).foregroundStyle(.secondary)
                             }
                         }
+                        if effect.kind == .timeScan {
+                            Section(EFL("Balayage temporel", "Temporal sweep")) {
+                                Picker(EFL("Direction", "Direction"), selection: Binding(get: { draft?.temporalScanDirection ?? .down }, set: { value in changeDraft { $0.scanDirection = value } })) {
+                                    Text(EFL("Bas", "Down")).tag(ScanDirection.down)
+                                    Text(EFL("Haut", "Up")).tag(ScanDirection.up)
+                                    Text(EFL("Droite", "Right")).tag(ScanDirection.right)
+                                    Text(EFL("Gauche", "Left")).tag(ScanDirection.left)
+                                }.pickerStyle(.segmented).frame(minHeight: 44).accessibilityIdentifier("scanDirection")
+                                parameterSlider(title: EFL("Durée du balayage", "Sweep duration"), value: Binding(get: { draft?.temporalScanDuration ?? 2 }, set: { value in changeDraft { $0.scanDuration = value } }), range: 0.2...10, identifier: "scanDuration", percentage: false, suffix: " s", fractionDigits: 1)
+                                Button(EFL("Démarrer au curseur", "Start at playhead")) { changeDraft { $0.scanStart = animationTime } }
+                                    .frame(minHeight: 44).accessibilityIdentifier("scanStartAtPlayhead")
+                                Toggle(EFL("Afficher la ligne", "Show scan line"), isOn: Binding(get: { draft?.temporalScanShowsLine ?? true }, set: { value in changeDraft { $0.scanLineVisible = value } }))
+                                    .accessibilityIdentifier("scanLineVisible")
+                            }
+                        }
                         if effect.kind == .roughEdges {
                             Section(EFL("Contour irrégulier", "Irregular contour")) {
                                 parameterSlider(title: EFL("Finesse des déchirures", "Edge detail"), value: Binding(get: { draft?.edgeCoarseness ?? 0.5 }, set: { value in changeDraft { $0.roughnessScale = value } }), range: 0...1, identifier: "edgeCoarseness")
@@ -568,6 +583,7 @@ private func effectDescription(_ kind: EffectKind) -> String? {
     case .lensPulse: EFL("Une déformation de lentille sur toute l’image accompagne une impulsion de zoom. Modifiez les trois points pour régler l’impact et le retour.", "A full-image lens distortion accompanies a zoom pulse. Edit the three keyframes to shape the impact and return.")
     case .ghostTrail: EFL("Superpose jusqu’à cinq images précédentes, avec espacement et persistance réglables. Visible sur une vidéo en mouvement ou un calque animé ; calcul plus long.", "Blends up to five previous frames, with adjustable spacing and persistence. Visible on moving video or an animated layer; rendering takes longer.")
     case .stopMotion: EFL("Maintient les images du calque à une cadence réduite. Le montage conserve sa durée et sa cadence d’export.", "Holds the layer’s frames at a lower rate. Montage duration and export frame rate stay unchanged.")
+    case .timeScan: EFL("La ligne fige progressivement les zones qu’elle traverse. Utilisez une vidéo ou un calque en mouvement. La courbe règle l’intensité ; la durée règle le balayage. Les zones figées restent visibles après son passage. Calcul plus long.", "The line progressively freezes the areas it crosses. Use moving video or an animated layer. The curve controls intensity; duration controls the sweep. Frozen areas remain after it passes. Rendering takes longer.")
     case .roughEdges: EFL("Érode le contour avec des déchirures irrégulières. Agit aussi sur les lettres, les masques et les silhouettes détourées, sans modifier les couleurs intérieures.", "Erodes the contour with irregular tears. Also works on letters, masks and cutout silhouettes without changing interior colors.")
     case .writeOn: EFL("Un pinceau révèle le calque ou dessine un trait coloré. La courbe règle sa progression ; le dessin terminé reste visible.", "A brush reveals the layer or draws a colored stroke. The curve controls progress; the completed drawing stays visible.")
     default: nil

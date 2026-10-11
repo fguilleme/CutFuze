@@ -4,12 +4,12 @@ extension EffectKind {
     var intensityRange: ClosedRange<Double> {
         switch self {
         case .exposure: -2...2
-        case .impactZoom, .shortGlitch, .neon, .dream, .lightSweep, .liquidDistortion, .directionalBlur, .popHalftone, .duotone, .lensPulse, .ghostTrail, .stopMotion, .roughEdges, .writeOn: 0...1
+        case .impactZoom, .shortGlitch, .neon, .dream, .lightSweep, .liquidDistortion, .directionalBlur, .popHalftone, .duotone, .lensPulse, .ghostTrail, .stopMotion, .roughEdges, .writeOn, .timeScan: 0...1
         default: -1...1
         }
     }
     var isTimedPreset: Bool { self == .impactZoom || self == .shortGlitch || self == .lightSweep || self == .lensPulse }
-    var isTemporal: Bool { self == .ghostTrail || self == .stopMotion }
+    var isTemporal: Bool { self == .ghostTrail || self == .stopMotion || self == .timeScan }
 }
 
 struct EffectAmountKeyframe: Codable, Identifiable, Equatable, Sendable {
@@ -46,6 +46,11 @@ extension EffectInstance {
         if kind == .duotone { effect.amount = 1; effect.colorHex = "#152A62"; effect.secondaryColorHex = "#FFB5DA" }
         if kind == .ghostTrail { effect.amount = 0.75; effect.echoCount = 3; effect.echoSpacing = 0.12; effect.echoDecay = 0.55 }
         if kind == .stopMotion { effect.amount = 1; effect.heldFrameRate = 8 }
+        if kind == .timeScan {
+            effect.amount = 1; effect.scanDirection = .down; effect.scanLineVisible = true
+            effect.scanDuration = max(0.2, min(2, duration.seconds))
+            effect.scanStart = offset + .init(seconds: min(max(0, localTime), max(0, duration.seconds - (effect.scanDuration ?? 2))))
+        }
         if kind == .roughEdges { effect.amount = 0.55; effect.roughnessScale = 0.5 }
         if kind == .writeOn {
             effect.amount = 1; effect.brushWidth = 0.18; effect.brushMode = .reveal; effect.colorHex = "#FFD58A"
@@ -98,6 +103,8 @@ extension EffectInstance {
               echoSpacing.map({ $0.isFinite && (1 / 60...0.4).contains($0) }) ?? true,
               echoDecay.map({ $0.isFinite && (0.1...0.85).contains($0) }) ?? true,
               heldFrameRate.map({ $0.isFinite && (2...24).contains($0) }) ?? true,
+              scanDuration.map({ $0.isFinite && (0.2...10).contains($0) }) ?? true,
+              scanStart.map(valid) ?? true,
               roughnessScale.map({ $0.isFinite && (0...1).contains($0) }) ?? true,
               brushWidth.map({ $0.isFinite && (0.01...0.5).contains($0) }) ?? true,
               brushPath.map({ ($0.isEmpty || $0.count >= 2) && $0.count <= 4096 && $0.allSatisfy { $0.x.isFinite && $0.y.isFinite && (0...1).contains($0.x) && (0...1).contains($0.y) } }) ?? true,

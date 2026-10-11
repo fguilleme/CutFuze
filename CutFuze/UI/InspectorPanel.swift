@@ -197,6 +197,7 @@ func effectLabel(_ value: String) -> String {
     case "stopMotion": return AppLocalization.bilingual("Stop-motion", "Stop motion")
     case "roughEdges": return AppLocalization.bilingual("Bords déchirés", "Torn edges")
     case "writeOn": return AppLocalization.bilingual("Écriture tracée", "Write-on")
+    case "timeScan": return AppLocalization.bilingual("Scan temporel", "Time scan")
     default: break
     }
     let names = ["none":"Aucun", "dissolve":"Fondu enchaîné", "black":"Noir", "white":"Blanc", "slide":"Glissement", "wipe":"Balayage", "zoom":"Zoom", "blur":"Flou", "glitch":"Fragmentation", "exposure":"Exposition", "brightness":"Luminosité", "contrast":"Contraste", "saturation":"Saturation", "temperature":"Température", "tint":"Teinte", "highlights":"Hautes lumières", "shadows":"Ombres", "sharpness":"Netteté", "vignette":"Vignette", "grain":"Grain", "fade":"Noirs adoucis", "glow":"Lueur", "rgbSplit":"Séparation RGB", "pixelate":"Pixelisation", "shake":"Tremblement", "retro":"Rétro", "skinSmooth":"Lissage peau", "skinGlow":"Éclat du teint", "bulge":"Bombement", "pinch":"Pincement", "twirl":"Tourbillon", "kaleidoscope":"Kaléidoscope", "comic":"BD", "crystallize":"Cristallisation", "ellipse":"Ellipse", "rectangle":"Rectangle", "roundedRectangle":"Rectangle arrondi", "linear":"Séparation", "band":"Bande", "normal":"Normal", "multiply":"Produit", "screen":"Écran", "overlay":"Superposition", "lighten":"Éclaircir", "darken":"Assombrir"]
