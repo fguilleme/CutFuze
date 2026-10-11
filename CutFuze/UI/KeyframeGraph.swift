@@ -29,7 +29,7 @@ struct KeyframeGraph: View {
         graphStart + MediaTime(seconds: min(1, max(0, fraction)) * graphDuration)
     }
     private func value(at time: MediaTime) -> Double {
-        evaluate?(time) ?? AnimationEditing.value(property, in: clip.evaluatedPresentation(at: time))
+        evaluate?(time) ?? (property == .volume ? clip.evaluatedVolume(at: time) : AnimationEditing.value(property, in: clip.evaluatedPresentation(at: time)))
     }
     private func y(_ value: Double, height: Double) -> Double {
         height * (1 - min(1, max(0, (value - valueRange.lowerBound) / (valueRange.upperBound - valueRange.lowerBound))))

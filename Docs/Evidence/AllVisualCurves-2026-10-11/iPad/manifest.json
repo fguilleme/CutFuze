@@ -1,0 +1,62 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "C92C72AB-1726-4A12-9732-4E518F429DC8",
+        "deviceName" : "CutFuze App Store iPad",
+        "exportedFileName" : "FDEA0EB1-0E25-4F1C-B74B-D4E975F50F39.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "effect-curve-exposure_0_2F5C91A2-1446-48EA-89D5-9F69ACEEC8B8.png",
+        "timestamp" : 1791713031.955
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "C92C72AB-1726-4A12-9732-4E518F429DC8",
+        "deviceName" : "CutFuze App Store iPad",
+        "exportedFileName" : "F8543B93-2BB2-45B6-A196-F784A0DACFAD.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "effect-curve-bulge_0_AF22F527-608E-4A2F-B1E7-50D6316E3214.png",
+        "timestamp" : 1791713027.232
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "C92C72AB-1726-4A12-9732-4E518F429DC8",
+        "deviceName" : "CutFuze App Store iPad",
+        "exportedFileName" : "38E828FC-BC95-4FAB-82BF-6F9DA107CB17.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "effect-curve-skinSmooth_0_15B92BF7-05DC-466F-9BD8-FC1DDAC428F3.png",
+        "timestamp" : 1791713022.569
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "C92C72AB-1726-4A12-9732-4E518F429DC8",
+        "deviceName" : "CutFuze App Store iPad",
+        "exportedFileName" : "F2A54C8F-2C77-464F-9CD6-C2A9A6973FA6.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "visual-curve-maskWidth_0_D8928294-CBAC-4158-8411-25277BF2D9DE.png",
+        "timestamp" : 1791713015.797
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "C92C72AB-1726-4A12-9732-4E518F429DC8",
+        "deviceName" : "CutFuze App Store iPad",
+        "exportedFileName" : "0FE04AAC-1C00-429F-82AC-4726ADDB8DAA.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "visual-curve-opacity_0_B1EE87F5-9784-44C6-870A-B0F352B472A0.png",
+        "timestamp" : 1791713010.967
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "C92C72AB-1726-4A12-9732-4E518F429DC8",
+        "deviceName" : "CutFuze App Store iPad",
+        "exportedFileName" : "C9BB0ECD-01FF-43AB-B039-DFBE74AAA950.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "visual-curve-scale_0_09EFC8E8-3670-41E5-9E43-4AA6B91FDF28.png",
+        "timestamp" : 1791713006.372
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testVisualToolsOpenFocusedCurvesAndEffectsResizePreview()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testVisualToolsOpenFocusedCurvesAndEffectsResizePreview"
+  }
+]

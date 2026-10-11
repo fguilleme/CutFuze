@@ -77,6 +77,39 @@ final class EditHistory {
 }
 
 enum DocumentEditor {
+    /// Constant-speed shortcuts use the visible source interval, never extend the
+    /// source beyond its media, and replace any prior variable-speed curve.
+    static func setConstantSpeed(_ speed: Double, clipID: UUID, in document: inout ProjectDocument) throws {
+        guard speed.isFinite, (0.1...100).contains(speed), let original = document.clip(clipID),
+              original.kind == .audio || original.kind == .video else { throw DocumentError.invalid("Vitesse") }
+        var updated = original
+        let availableOutput = TimeMapping.outputDuration(clip: original)
+        if original.duration < availableOutput {
+            let boundary = TimeMapping.sourceTime(for: original.duration, clip: original)
+            if original.reversed {
+                updated.sourceDuration = original.sourceStart + original.sourceDuration - boundary
+                updated.sourceStart = boundary
+            } else { updated.sourceDuration = boundary - original.sourceStart }
+        }
+        updated.speed = speed; updated.speedPoints = []
+        updated.duration = max(.init(value: 1), TimeMapping.outputDuration(clip: updated))
+        updated.fadeIn = min(updated.fadeIn, updated.duration)
+        updated.fadeOut = min(updated.fadeOut, updated.duration)
+        if let si = document.scenes.firstIndex(where: { $0.clips.contains { $0.id == clipID } }), updated.end > document.scenes[si].duration {
+            if updated.kind == .audio {
+                // A music/narration segment may grow across a scene boundary without
+                // shifting the following pictures or reading nonexistent source audio.
+                guard let start = RenderPlan.compile(document: document, variantID: nil).clips.first(where: { $0.id == clipID })?.globalStart else { throw DocumentError.missing("Clip") }
+                document.scenes[si].clips.removeAll { $0.id == clipID }
+                updated.start = start; document.globalClips.append(updated)
+            } else {
+                try updateClip(clipID, in: &document) { $0 = updated }
+                document.scenes[si].duration = updated.end
+            }
+        } else { try updateClip(clipID, in: &document) { $0 = updated } }
+        CaptionBindingUpdater.refresh(&document)
+    }
+
     static func reorderScene(_ id: UUID, to index: Int, in document: inout ProjectDocument) throws {
         guard let from = document.scenes.firstIndex(where: { $0.id == id }) else { throw DocumentError.missing("Scène") }
         let scene = document.scenes.remove(at: from)

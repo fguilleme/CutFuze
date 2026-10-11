@@ -1,0 +1,35 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "722DD606-8CF8-47F7-9FF6-E8B88C1E6D4C.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "overlay-dimensions-panel_0_42D58CC5-F323-490A-AE6D-53FE3AD55998.png",
+        "timestamp" : 1791711673.997
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "DA62B10B-16FF-4627-BF71-FF438A8BAA48.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "overlay-free-height_0_6E62E9DF-5981-4255-BC5A-3590A8598BDF.png",
+        "timestamp" : 1791711666.529
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "E3B164E9-2048-41A7-BAF7-8969F9FAD76D.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "overlay-free-width_0_763D5A16-F7E7-4325-82DE-681E5B764837.png",
+        "timestamp" : 1791711664.531
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testShapePreviewResizesWithoutLockedAspectRatio()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testShapePreviewResizesWithoutLockedAspectRatio"
+  }
+]

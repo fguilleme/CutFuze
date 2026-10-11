@@ -1,0 +1,89 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "981FD3C4-11DF-4FB2-933F-CE08B079AEDF.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "effect-curve-exposure_0_9911DDFC-2761-4871-8278-4D7424406B05.png",
+        "timestamp" : 1791713162.102
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "CE779236-F9E3-4659-9FFA-1A2676C95FC5.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "effect-curve-bulge_0_27E9E53B-8B3C-4838-BB11-493A32EBFDAD.png",
+        "timestamp" : 1791713157.659
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "856CE2BB-5A8E-4785-BFBF-7A2CDA465D94.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "effect-curve-skinSmooth_0_977D19D3-4A3A-4DCD-94A2-0DF3AF3D4EA9.png",
+        "timestamp" : 1791713153.299
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "AB9E6AF1-D34C-4013-8283-3FCB6285EA2B.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "visual-curve-maskWidth_0_4C60E14C-7CF0-4466-85F3-DE3EAFBB7496.png",
+        "timestamp" : 1791713147.227
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "206BC905-D36F-419C-8841-CF8D348E5D5F.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "visual-tools-maskWidth-shortcut_0_E1EEA102-919F-43D5-82FC-3940F7EC875F.png",
+        "timestamp" : 1791713144.19
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "8EA7A9B1-CDFC-4D1B-B916-A2FC21EE4C63.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "visual-curve-opacity_0_73A4CA15-0DCC-41B9-B872-EFB39530F1E6.png",
+        "timestamp" : 1791713142.243
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "7AD57EA9-619B-466C-8ECA-9BBEBF61D65A.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "visual-tools-opacity-shortcut_0_23A8AC4D-84B0-46D3-93A0-EC5405E4B7FB.png",
+        "timestamp" : 1791713139.215
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "553F1EDF-7EC8-41AD-A1AA-F25510AB1A6A.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "visual-curve-scale_0_47C5B22C-403B-4190-ADA0-C1AEF3EC8DF2.png",
+        "timestamp" : 1791713137.624
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "7059C801-6CA3-405E-8351-FCEC3653E9DA.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "visual-tools-scale-shortcut_0_73DA71C3-340C-4A91-BAC8-11E7044AFDCB.png",
+        "timestamp" : 1791713134.864
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testVisualToolsOpenFocusedCurvesAndEffectsResizePreview()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testVisualToolsOpenFocusedCurvesAndEffectsResizePreview"
+  }
+]

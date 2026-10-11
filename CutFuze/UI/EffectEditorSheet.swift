@@ -20,6 +20,10 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
     @State private var redoStack: [EffectInstance] = []
     @State private var gestureBefore: EffectInstance?
     @State private var focusBurst = true
+    @State private var previewHeight: CGFloat = 160
+    @State private var previewHeightAtDragStart: CGFloat?
+    @State private var availableHeight: CGFloat = 700
+    private var previewHeightRange: ClosedRange<CGFloat> { 80...max(100, min(500, availableHeight * 0.48)) }
 
     private var rendered: RenderClip? { model.plan.clips.first { $0.id == clipID } }
     private var clipStart: MediaTime { rendered?.globalStart ?? .zero }
@@ -49,8 +53,26 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            Form {
                 if let item = rendered, let effect = draft {
+                    if let image = preview ?? model.preview {
+                        Section {
+                            VStack(spacing: 0) {
+                                Image(decorative: image, scale: 1).resizable().scaledToFit()
+                                    .frame(maxWidth: .infinity).frame(height: min(previewHeight, previewHeightRange.upperBound))
+                                    .accessibilityLabel(L("Aperçu du réglage")).accessibilityIdentifier("effectCurvePreview")
+                                CurvePreviewResizeHandle(value: previewHeight, active: previewHeightAtDragStart != nil, changed: { translation, ended in
+                                    if previewHeightAtDragStart == nil {
+                                        previewHeightAtDragStart = min(previewHeight, previewHeightRange.upperBound)
+                                        UISelectionFeedbackGenerator().selectionChanged()
+                                    }
+                                    setPreviewHeight((previewHeightAtDragStart ?? previewHeight) + translation)
+                                    if ended { previewHeightAtDragStart = nil; UIImpactFeedbackGenerator(style: .light).impactOccurred() }
+                                }, adjusted: { setPreviewHeight(previewHeight + $0) }).frame(maxWidth: .infinity).frame(height: 22)
+                            }
+                        }.listRowBackground(DesignTokens.ink)
+                    }
+                    Section {
                     VStack(spacing: 5) {
                         if let description = effectDescription(effect.kind) {
                             Text(description).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
@@ -84,8 +106,8 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
                             }
                         }
                         if let message = error ?? renderError { Label(message, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.red).accessibilityIdentifier("effectEditorError") }
-                    }.padding(.horizontal, 16).padding(.bottom, 6).background(DesignTokens.ink)
-                    Form {
+                    }.padding(.bottom, 6)
+                    }.listRowBackground(DesignTokens.ink)
                         if effect.kind == .neon {
                             Section(EFL("Halo du néon", "Neon glow")) { coloredEffectControls }
                         }
@@ -136,9 +158,10 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
                             Text(EFL("Effet commun à tous les formats", "Effect shared by every format")).font(.caption).foregroundStyle(DesignTokens.amber)
                             Button(L("Supprimer l’effet"), role: .destructive) { removeEffect() }.frame(minHeight: 44)
                         }
-                    }.buttonStyle(.borderless).accessibilityIdentifier("effectSettings")
                 }
-            }.pinnedPreview(preview ?? model.preview).navigationTitle(draft.map { effectLabel($0.kind.rawValue) } ?? L("Effets")).navigationBarTitleDisplayMode(.inline)
+            }.buttonStyle(.borderless).scrollDismissesKeyboard(.interactively).accessibilityIdentifier("effectSettings")
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { availableHeight = $0 }
+                .navigationTitle(draft.map { effectLabel($0.kind.rawValue) } ?? L("Effets")).navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button { dismiss() } label: { Image(systemName: "xmark") }
@@ -152,6 +175,11 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
                 }
         }.presentationSizing(.page).presentationDetents([.large])
             .preferredColorScheme(.dark).onAppear(perform: load).task(id: previewKey) { await render() }
+    }
+
+    private func setPreviewHeight(_ value: CGFloat) {
+        var transaction = Transaction(); transaction.animation = nil
+        withTransaction(transaction) { previewHeight = min(previewHeightRange.upperBound, max(previewHeightRange.lowerBound, value)) }
     }
 
     private var interpolationControl: some View {

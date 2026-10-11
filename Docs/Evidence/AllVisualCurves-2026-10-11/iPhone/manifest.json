@@ -1,0 +1,62 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "98445389-D71E-4A88-98E3-001EBBAC2AE1.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "effect-curve-exposure_0_8D8CF6CE-DB03-4DD8-A755-DD8D90604E12.png",
+        "timestamp" : 1791712928.276
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "BD18D653-39ED-4340-9270-1A9042C87390.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "effect-curve-bulge_0_CDBFCF45-5E72-4923-AA81-90602C0D5CE3.png",
+        "timestamp" : 1791712923.907
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "DAB9832B-2502-40B0-AC14-60329D3E87AD.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "effect-curve-skinSmooth_0_C60BB9BF-8E14-49D5-BEBF-DBDF9A81BB94.png",
+        "timestamp" : 1791712919.572
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "0F47790D-3C19-43A6-8E60-853F5BB0E64C.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "visual-curve-maskWidth_0_0C244C83-C82B-41C5-9362-BEC36C29EB11.png",
+        "timestamp" : 1791712913.1
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "766E9275-53E9-4467-9CA3-107D3DFC5303.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "visual-curve-opacity_0_E380A791-8659-40C0-8D51-2B5C65830712.png",
+        "timestamp" : 1791712908.569
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "77C37E58-2B7C-4FF8-9DB4-33E7CB0802BC.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "visual-curve-scale_0_6D3B2E4B-5F6D-4A72-A410-177F874541D6.png",
+        "timestamp" : 1791712904.419
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testVisualToolsOpenFocusedCurvesAndEffectsResizePreview()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testVisualToolsOpenFocusedCurvesAndEffectsResizePreview"
+  }
+]

@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ImportReviewSheet: View {
     @ObservedObject var model: EditorModel
@@ -46,16 +47,36 @@ struct ImportReviewSheet: View {
 }
 struct MediaLibrarySheet: View {
     @ObservedObject var model: EditorModel
+    var audioOnly = false
     @Environment(\.dismiss) private var dismiss
     @State private var filter: ClipKind?
     @State private var overlay = false
+    @State private var showAudioFiles = false
+    private var assets: [MediaAsset] { model.document.assets.filter { audioOnly ? $0.kind == .audio : filter == nil || $0.kind == filter } }
     var body: some View {
         NavigationStack { List {
-            Section { Picker(L("Filtre"), selection: $filter) { Text(L("Tous")).tag(ClipKind?.none); Text(L("Vidéo")).tag(ClipKind?.some(.video)); Text(L("Image")).tag(ClipKind?.some(.image)); Text(L("Son")).tag(ClipKind?.some(.audio)) }.pickerStyle(.segmented); Toggle(L("Ajouter en superposition"), isOn: $overlay).disabled(model.selectedScene == nil) }
-            ForEach(model.document.assets.filter { filter == nil || $0.kind == filter }) { asset in
-                Button { model.importFiles([model.rootURL.appendingPathComponent(asset.relativePath)], asOverlay: overlay); dismiss() } label: { MediaAssetRow(asset: asset, rootURL: model.rootURL, displayName: model.displayName(for: asset)) }.accessibilityIdentifier("resource-\(asset.id)")
+            if audioOnly {
+                Section {
+                    Button { showAudioFiles = true } label: { Label(L("Importer un audio"), systemImage: "square.and.arrow.down").frame(minHeight: 44) }
+                        .foregroundStyle(DesignTokens.amber).accessibilityIdentifier("libraryImportAudio")
+                }
+                if assets.isEmpty { Text(L("Aucun audio importé")).foregroundStyle(.secondary).accessibilityIdentifier("emptyAudioLibrary") }
+            } else {
+                Section { Picker(L("Filtre"), selection: $filter) { Text(L("Tous")).tag(ClipKind?.none); Text(L("Vidéo")).tag(ClipKind?.some(.video)); Text(L("Image")).tag(ClipKind?.some(.image)); Text(L("Son")).tag(ClipKind?.some(.audio)) }.pickerStyle(.segmented); Toggle(L("Ajouter en superposition"), isOn: $overlay).disabled(model.selectedScene == nil) }
             }
-        }.navigationTitle(L("Ressources locales")).toolbar { Button(L("Fermer")) { dismiss() } } }.preferredColorScheme(.dark)
+            ForEach(assets) { asset in
+                Button { model.reuseImportedAsset(asset.id, asOverlay: !audioOnly && overlay); dismiss() } label: { MediaAssetRow(asset: asset, rootURL: model.rootURL, displayName: model.displayName(for: asset)) }.accessibilityIdentifier("resource-\(asset.id)")
+            }
+        }.navigationTitle(L(audioOnly ? "Audios déjà importés" : "Ressources locales"))
+                .accessibilityIdentifier(audioOnly ? "audioLibrary" : "mediaLibrary")
+                .toolbar { Button(L("Fermer")) { dismiss() }.accessibilityIdentifier("closeMediaLibrary") }
+        }.preferredColorScheme(.dark)
+            .fileImporter(isPresented: $showAudioFiles, allowedContentTypes: [.audio], allowsMultipleSelection: true) { result in
+                switch result {
+                case .success(let urls): model.importFiles(urls); dismiss()
+                case .failure(let error): model.error = error.localizedDescription; dismiss()
+                }
+            }
     }
 }
 struct MediaAssetRow: View {

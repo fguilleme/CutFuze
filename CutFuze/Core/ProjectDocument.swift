@@ -41,7 +41,10 @@ struct MediaTime: Codable, Hashable, Comparable, Sendable {
 
 enum ClipKind: String, Codable, CaseIterable, Sendable { case video, image, audio, text, shape }
 enum BlendMode: String, Codable, CaseIterable, Sendable { case normal, multiply, screen, overlay, lighten, darken }
-enum MaskKind: String, Codable, CaseIterable, Sendable { case none, ellipse, rectangle, roundedRectangle, linear, band }
+enum MaskKind: String, Codable, CaseIterable, Sendable {
+    case none, ellipse, rectangle, roundedRectangle, linear, band, cloud, star, heart
+    static let overlayShapes: [MaskKind] = [.ellipse, .rectangle, .roundedRectangle, .cloud, .star, .heart]
+}
 enum TransitionKind: String, Codable, CaseIterable, Sendable { case none, dissolve, black, white, slide, wipe, zoom, blur, glitch }
 enum EffectKind: String, Codable, CaseIterable, Sendable {
     case exposure, brightness, contrast, saturation, temperature, tint, highlights, shadows, sharpness
@@ -52,7 +55,13 @@ enum EffectKind: String, Codable, CaseIterable, Sendable {
     case impactZoom, shortGlitch, neon
     case dream, lightSweep, liquidDistortion
 }
-enum KeyframeProperty: String, Codable, CaseIterable, Sendable { case x, y, scale, rotation, opacity }
+enum KeyframeProperty: String, Codable, CaseIterable, Sendable {
+    case x, y, scale, rotation, opacity, volume
+    case maskWidth, maskHeight, maskX, maskY, maskRotation, maskFeather
+    static let transform: [Self] = [.x, .y, .scale, .rotation]
+    static let visual: [Self] = transform + [.opacity]
+    static let mask: [Self] = [.maskWidth, .maskHeight, .maskX, .maskY, .maskRotation, .maskFeather]
+}
 enum KeyframeEasing: String, Codable, CaseIterable, Sendable { case linear, easeIn, easeOut, easeInOut }
 
 struct Presentation: Codable, Equatable, Sendable {

@@ -1,6 +1,217 @@
 import XCTest
 
 final class WorkspaceUITests: XCTestCase {
+    @MainActor func testAudioMenuImportsOrReusesOnlyAudio() throws {
+        let app = launchDemo()
+        app.buttons["addAudio"].tap()
+        XCTAssertTrue(app.buttons["importAudio"].exists)
+        XCTAssertTrue(app.buttons["importedAudioLibrary"].exists)
+        XCTAssertTrue(app.buttons["Voix off"].exists)
+        XCTAssertTrue(app.buttons["Synthèse vocale"].exists)
+        capture("audio-import-menu")
+        app.buttons["importAudio"].tap()
+        let cancel = app.buttons["Annuler"].firstMatch
+        XCTAssertTrue(cancel.waitForExistence(timeout: 5), "The system file importer must open")
+        capture("audio-file-importer")
+        cancel.tap()
+        app.buttons["addAudio"].tap(); app.buttons["importedAudioLibrary"].tap()
+        let library = app.descendants(matching: .any)["audioLibrary"]
+        XCTAssertTrue(library.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["libraryImportAudio"].exists)
+        app.buttons["libraryImportAudio"].tap()
+        XCTAssertTrue(cancel.waitForExistence(timeout: 5))
+        cancel.tap()
+        XCTAssertTrue(library.waitForExistence(timeout: 5))
+        let resources = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "resource-"))
+        XCTAssertEqual(resources.count, 1, "The demo has one audio asset, not its video resources")
+        capture("imported-audio-library")
+        resources.firstMatch.tap()
+        XCTAssertTrue(app.buttons["Ajouter"].waitForExistence(timeout: 5))
+        // Insert at the active scene so both audio clips are visible in the
+        // accessibility viewport. Appending at montage end is covered in CoreTests.
+        app.buttons.containing(.staticText, identifier: "En superposition").firstMatch.tap()
+        capture("reuse-audio-review")
+        app.buttons["Ajouter"].tap()
+        XCTAssertTrue(app.buttons["tool-Volume"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "timelineClip-audio-")).count, 2)
+        capture("reused-audio-timeline")
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        app.terminate()
+    }
+
+    @MainActor func testVisualToolsOpenFocusedCurvesAndEffectsResizePreview() throws {
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Effets visuels"].tap()
+        for (tool, property) in [("Transformer", "scale"), ("Opacité", "opacity"), ("Masque", "maskWidth")] {
+            app.buttons["visualTool-\(tool)"].tap()
+            if tool == "Masque" { app.buttons["mask-ellipse"].tap() }
+            capture("visual-tools-\(property)-shortcut")
+            app.buttons["editVisualCurve"].tap()
+            let propertyButton = app.buttons["keyframeProperty-\(property)"]
+            XCTAssertTrue(propertyButton.waitForExistence(timeout: 5))
+            XCTAssertTrue(propertyButton.isSelected)
+            if tool == "Opacité" { XCTAssertFalse(app.buttons["keyframeProperty-scale"].exists) }
+            app.buttons["saveKeyframe"].tap()
+            XCTAssertGreaterThan(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "graphKey-")).count, 0)
+            capture("visual-curve-\(property)")
+            app.buttons["closeCurveEditor"].tap()
+        }
+        let tabs = app.scrollViews["visualTools"]
+        for (category, kind) in [("Beauté", "skinSmooth"), ("Géométrie", "bulge"), ("Lumière", "exposure")] {
+            let button = app.buttons["visualTool-\(category)"]
+            for _ in 0..<4 where !button.isHittable { tabs.swipeLeft() }
+            XCTAssertTrue(button.isHittable); button.tap()
+            app.buttons["effect-\(kind)"].tap()
+            XCTAssertTrue(app.descendants(matching: .any)["effectSettings"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.descendants(matching: .any)["keyframeGraph"].exists)
+            app.buttons["effectSaveKeyframe"].tap()
+            XCTAssertGreaterThan(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "graphKey-")).count, 0)
+            if kind == "skinSmooth" {
+                let divider = app.descendants(matching: .any)["curvePreviewDivider"].firstMatch
+                let before = try XCTUnwrap(Int(divider.value as? String ?? ""))
+                let start = divider.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: 70)))
+                XCTAssertGreaterThan(try XCTUnwrap(Int(divider.value as? String ?? "")), before + 40)
+            }
+            capture("effect-curve-\(kind)")
+            app.buttons["effectApply"].tap()
+        }
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        app.terminate()
+    }
+
+    @MainActor func testShapePreviewResizesWithoutLockedAspectRatio() throws {
+        let app = launchDemo()
+        app.buttons["Overlay"].tap(); app.buttons["Forme"].tap()
+        app.buttons["overlayShape-rectangle"].tap()
+        let frame = app.descendants(matching: .any)["previewSelectionFrame"]
+        XCTAssertTrue(frame.waitForExistence(timeout: 5))
+        let initial = frame.frame
+        let handle = app.descendants(matching: .any)["previewResizeHandle"]
+        let start = handle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        start.press(forDuration: 0.1, thenDragTo: start.withOffset(CGVector(dx: 30, dy: 0)))
+        Thread.sleep(forTimeInterval: 0.5)
+        let wide = frame.frame
+        XCTAssertGreaterThan(wide.width, initial.width + 25)
+        XCTAssertEqual(wide.height, initial.height, accuracy: 5)
+        capture("overlay-free-width")
+        app.buttons["Annuler la modification"].tap()
+        XCTAssertEqual(frame.frame.width, initial.width, accuracy: 5)
+        let verticalStart = handle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        verticalStart.press(forDuration: 0.1, thenDragTo: verticalStart.withOffset(CGVector(dx: 0, dy: 25)))
+        Thread.sleep(forTimeInterval: 0.5)
+        XCTAssertGreaterThan(frame.frame.height, initial.height + 25)
+        XCTAssertEqual(frame.frame.width, initial.width, accuracy: 5)
+        capture("overlay-free-height")
+        app.buttons["tool-Effets visuels"].tap()
+        app.buttons["visualTool-Transformer"].tap()
+        let panel = app.scrollViews["contextToolScroll"]
+        let width = app.sliders["Largeur"]
+        let height = app.sliders["Hauteur"]
+        for _ in 0..<3 where !width.isHittable { panel.swipeUp() }
+        XCTAssertTrue(width.isHittable)
+        let oldHeight = height.value as? String
+        width.adjust(toNormalizedSliderPosition: 0.4)
+        XCTAssertEqual(height.value as? String, oldHeight)
+        for _ in 0..<3 where !height.isHittable { panel.swipeUp() }
+        XCTAssertTrue(height.isHittable)
+        let oldWidth = width.value as? String
+        height.adjust(toNormalizedSliderPosition: 0.3)
+        XCTAssertEqual(width.value as? String, oldWidth)
+        capture("overlay-dimensions-panel")
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        app.terminate()
+    }
+
+    @MainActor func testOverlayShapePickerAddsAndChangesShape() throws {
+        let app = launchDemo()
+        app.buttons["Overlay"].tap()
+        app.buttons["Forme"].tap()
+        for kind in ["ellipse", "rectangle", "roundedRectangle", "cloud", "star", "heart"] {
+            XCTAssertTrue(app.buttons["overlayShape-\(kind)"].waitForExistence(timeout: 3))
+        }
+        capture("overlay-shape-picker")
+        app.buttons["overlayShape-heart"].tap()
+        XCTAssertTrue(app.buttons["editOverlayShape"].waitForExistence(timeout: 3))
+        capture("overlay-heart")
+        app.buttons["editOverlayShape"].tap()
+        XCTAssertTrue(app.buttons["overlayShape-heart"].isSelected)
+        app.buttons["overlayShape-cloud"].tap()
+        app.buttons["editOverlayShape"].tap()
+        XCTAssertTrue(app.buttons["overlayShape-cloud"].isSelected)
+        app.buttons["closeShapePicker"].tap()
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        capture("overlay-cloud")
+        app.terminate()
+    }
+
+    @MainActor func testAudioSpeedVolumeCurveAndUnifiedEffectScrolling() throws {
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "audio").tap()
+        app.buttons["tool-Vitesse"].tap()
+        app.buttons["speedPreset-200"].tap()
+        XCTAssertTrue(app.buttons["speedPreset-200"].isSelected)
+        XCTAssertEqual(app.sliders["Vitesse"].value as? String, "2.00×")
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        capture("audio-double-speed")
+        app.buttons["tool-Volume"].tap()
+        let panel = app.scrollViews["contextToolScroll"]
+        for _ in 0..<3 where !app.buttons["editVolumeCurve"].isHittable { panel.swipeUp() }
+        app.buttons["editVolumeCurve"].tap()
+        let form = app.descendants(matching: .any)["keyframeEditorForm"]
+        XCTAssertTrue(form.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["keyframeProperty-volume"].exists)
+        XCTAssertFalse(app.buttons["keyframeProperty-scale"].exists)
+        let graph = app.descendants(matching: .any)["keyframeGraph"]
+        graph.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.4)).tap()
+        app.buttons["saveKeyframe"].tap()
+        XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "graphKey-")).count, 1)
+        capture("volume-curve-point")
+        let preview = app.descendants(matching: .any)["curvePreview"]
+        let before = preview.frame.minY
+        form.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.8)).press(forDuration: 0.1, thenDragTo: form.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.4)), withVelocity: XCUIGestureVelocity(rawValue: 150), thenHoldForDuration: 0.3)
+        XCTAssertTrue(!preview.exists || !preview.isHittable || preview.frame.minY < before - 20, "The preview scrolls with the curve and settings")
+        XCTAssertTrue(app.textFields["keyframeValueField"].waitForExistence(timeout: 3))
+        capture("volume-curve-settings")
+        form.swipeDown()
+        for _ in 0..<4 where !app.buttons["listenVolumeCurve"].isHittable { form.swipeUp() }
+        app.buttons["listenVolumeCurve"].tap()
+        Thread.sleep(forTimeInterval: 1)
+        XCTAssertFalse(app.descendants(matching: .any)["volumeAuditionError"].exists)
+        app.buttons["closeCurveEditor"].tap()
+        app.buttons["closeContextTool"].tap()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Effets visuels"].tap()
+        app.buttons["visualTool-Créatif"].tap()
+        app.buttons["effect-neon"].tap()
+        let effects = app.descendants(matching: .any)["effectSettings"]
+        XCTAssertTrue(effects.waitForExistence(timeout: 5))
+        let effectPreview = app.descendants(matching: .any)["effectCurvePreview"]
+        let effectTop = effectPreview.frame.minY
+        capture("effect-curve-top")
+        effects.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.8)).press(forDuration: 0.1, thenDragTo: effects.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.4)), withVelocity: XCUIGestureVelocity(rawValue: 150), thenHoldForDuration: 0.3)
+        XCTAssertTrue(!effectPreview.exists || !effectPreview.isHittable || effectPreview.frame.minY < effectTop - 20)
+        revealEffectParameter(app.sliders["neonGlowRadius"], in: effects)
+        XCTAssertTrue(app.sliders["neonGlowRadius"].isHittable)
+        capture("effect-curve-scrolled")
+        app.terminate()
+    }
+
+    @MainActor func testTextMenuHasTextAutoCaptionsAndSRTWithoutDuplicateManualCaption() throws {
+        let app = launchDemo()
+        app.buttons["Texte"].tap()
+        XCTAssertTrue(app.buttons["Ajouter du texte"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Sous-titres automatiques"].exists)
+        XCTAssertTrue(app.buttons["Importer un SRT"].exists)
+        XCTAssertFalse(app.buttons["Sous-titres"].exists)
+        capture("simplified-text-menu")
+        app.buttons["Ajouter du texte"].tap()
+        XCTAssertTrue(app.buttons["tool-Modifier"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        app.terminate()
+    }
+
     @MainActor private func revealEffectParameter(_ slider: XCUIElement, in settings: XCUIElement) {
         // A full swipe can skip the short first section on an iPhone.
         // Bring the complete thumb inside the viewport with small, reversible scrolls.
@@ -40,7 +251,7 @@ final class WorkspaceUITests: XCTestCase {
                 XCTAssertEqual(points.count, 4)
                 XCTAssertTrue(points.allElementsBoundByIndex.allSatisfy { $0.isHittable })
                 let color = app.buttons["effectColor-#49E6FF"]
-                for _ in 0..<5 where !color.isHittable { settings.swipeUp() }
+                revealEffectParameter(color, in: settings)
                 XCTAssertTrue(color.isHittable); color.tap(); XCTAssertTrue(color.isSelected)
                 let width = app.sliders["lightSweepWidth"]
                 revealEffectParameter(width, in: settings)
@@ -166,6 +377,7 @@ final class WorkspaceUITests: XCTestCase {
         let divider = app.descendants(matching: .any)["curvePreviewDivider"].firstMatch
         XCTAssertTrue(divider.waitForExistence(timeout: 5))
         let before = try XCTUnwrap(Int(divider.value as? String ?? ""))
+        capture("curve-preview-before-resize")
         let start = divider.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: 90)))
         let larger = try XCTUnwrap(Int(divider.value as? String ?? ""))

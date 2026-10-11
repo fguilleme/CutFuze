@@ -28,6 +28,8 @@ extension ProjectDocument {
             for effect in clip.effects { try effect.validateAnimation() }
             guard clip.effects.allSatisfy({ $0.amount.isFinite }), clip.keyframes.allSatisfy({ validTime($0.time) && $0.value.isFinite }), clip.speedPoints.allSatisfy({ validTime($0.sourceTime) && $0.speed.isFinite && (0.1...100).contains($0.speed) }) else { throw DocumentError.invalid("Animation ou effet") }
             guard Set(clip.speedPoints.map(\.sourceTime)).count == clip.speedPoints.count else { throw DocumentError.invalid("Points de vitesse superposés") }
+            guard clip.keyframes.filter({ $0.property == .volume }).allSatisfy({ (0...8).contains($0.value) }) else { throw DocumentError.invalid("Volume") }
+            guard clip.keyframes.filter({ $0.property == .maskWidth || $0.property == .maskHeight }).allSatisfy({ $0.value > 0 }) else { throw DocumentError.invalid("Dimensions du masque") }
             if let sourceID = clip.captionSourceClipID {
                 guard clip.isCaption, let source = self.clip(sourceID), !source.isCaption, source.assetID == clip.captionSourceAssetID, let start = clip.captionSourceStart, let end = clip.captionSourceEnd, validTime(start), validTime(end), end > start else { throw DocumentError.invalid("Rattachement du sous-titre") }
             }

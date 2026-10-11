@@ -1,0 +1,53 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "B26EE025-A629-40F0-B9EF-0987D3DBAAFE.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "reused-audio-timeline_0_7C58B263-7BAE-4853-9C75-25CCFDF240F4.png",
+        "timestamp" : 1791713662.839
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "0F6F0257-4B1F-43FD-B88E-DE7CDADFD685.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "reuse-audio-review_0_1465919F-B837-4716-9F9F-8A5BDA638924.png",
+        "timestamp" : 1791713660.299
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "F2FA4A84-3BCF-4C48-AE30-A1ECC2C30CBF.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "imported-audio-library_0_9815C4EE-50A6-4636-9715-F1C0573EC569.png",
+        "timestamp" : 1791713657.519
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "177F99BA-67A8-45A3-9EC3-74CB9D1EC70B.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "audio-file-importer_0_C962032C-992C-4C4C-BC5F-1A546A74684A.png",
+        "timestamp" : 1791713647.786
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "7B75FB72-7F29-4558-9929-2B4DAC7DAA9A.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "audio-import-menu_0_836292A5-305B-4C46-924A-49D3CFF7801B.png",
+        "timestamp" : 1791713642.396
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testAudioMenuImportsOrReusesOnlyAudio()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testAudioMenuImportsOrReusesOnlyAudio"
+  }
+]

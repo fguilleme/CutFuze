@@ -310,6 +310,11 @@ final class EditorModel: ObservableObject {
     }
     func stop() { playing = false; playbackTask?.cancel(); playbackTask = nil; audioPlayer?.pause() }
     func changeClip(_ name: String, _ change: (inout Clip) -> Void) { guard let id = selectedClipID else { return }; if gestureActive { updateGesture { $0.updateClip(id, change) } } else { edit(name) { $0.updateClip(id, change) } } }
+    func changeSpeed(_ speed: Double) {
+        guard let id = selectedClipID else { return }
+        if gestureActive { updateGesture { try DocumentEditor.setConstantSpeed(speed, clipID: id, in: &$0) } }
+        else { edit(L("Vitesse")) { try DocumentEditor.setConstantSpeed(speed, clipID: id, in: &$0) } }
+    }
     func changePresentation(_ change: (inout Presentation) -> Void) {
         guard let id = selectedClipID else { return }
         let local = localScope, variantID = variantID
@@ -409,6 +414,11 @@ final class EditorModel: ObservableObject {
         guard let id = selectedClipID else { return }; let v = variantID
         edit(L("Réinitialiser")) { d in if localScope, let i = d.variants.firstIndex(where: { $0.id == v }) { d.variants[i].overrides.removeValue(forKey: id.uuidString) } else { d.updateClip(id) { $0.presentation = .init() } } }
     }
+    func reuseImportedAsset(_ assetID: UUID, asOverlay: Bool = false) {
+        guard let asset = document.assets.first(where: { $0.id == assetID }) else { return }
+        stop(); importTask?.cancel()
+        pendingOverlay = asOverlay; pendingReplacement = nil; pendingImports = [asset]
+    }
     func importFiles(_ urls: [URL], asOverlay: Bool = false, replaceID: UUID? = nil) {
         busy = L("Import…")
         importTask?.cancel()
@@ -488,9 +498,13 @@ final class EditorModel: ObservableObject {
         addToSelectedScene(clip)
         inspector = .text
     }
-    func addShape() {
+    func addShape(_ shape: MaskKind = .ellipse) {
         var clip = Clip(kind: .shape, duration: selectedScene?.duration ?? .init(seconds: 5), layer: 4)
-        clip.presentation.scale = 0.35; clip.presentation.color = "#EBA65A"; clip.presentation.mask = .ellipse
+        clip.presentation.scale = 0.35; clip.presentation.color = "#EBA65A"; clip.presentation.mask = shape
+        // Start with a balanced silhouette, not a shape stretched to the video ratio.
+        let aspect = variant.widthRatio / variant.heightRatio
+        clip.presentation.maskWidth = min(1, 1 / aspect)
+        clip.presentation.maskHeight = min(1, aspect)
         addToSelectedScene(clip); inspector = .image
     }
     func addToSelectedScene(_ clip: Clip) {

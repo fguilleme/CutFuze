@@ -8,7 +8,7 @@ import Combine
     @Published private(set) var preparing = false
     @Published private(set) var position = 0.0
     @Published private(set) var error: String?
-    private let plan: RenderPlan
+    private var plan: RenderPlan
     private let rootURL: URL
     private var player: AVPlayer?
     private var task: Task<Void, Never>?
@@ -37,6 +37,10 @@ import Combine
         let lower = max(0, start.seconds), upper = min(duration.seconds, end.seconds)
         guard start.seconds.isFinite, end.seconds.isFinite, duration.seconds.isFinite, upper > lower else { return nil }
         return lower...upper
+    }
+
+    func replacePlan(_ plan: RenderPlan) {
+        stop(); player = nil; self.plan = plan; error = nil
     }
 
     func toggle(id: UUID, start: MediaTime, end: MediaTime) {

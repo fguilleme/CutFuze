@@ -7,6 +7,116 @@ import UIKit
 @testable import CutFuze
 
 @MainActor final class MediaTests: XCTestCase {
+    func testAnimatedMaskChangesRenderedAndExportedSilhouette() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        var clip = Clip(kind: .shape, duration: .init(seconds: 2))
+        clip.presentation.mask = .rectangle; clip.presentation.color = "#FFFFFF"
+        clip.presentation.maskHeight = 0.5
+        clip.keyframes = [.init(time: .zero, property: .maskWidth, value: 0.2), .init(time: .init(seconds: 1), property: .maskWidth, value: 0.6, easing: .easeOut)]
+        let document = ProjectDocument(globalClips: [clip]); try document.validate()
+        let variant = document.variants[1].id
+        let plan = RenderPlan.compile(document: document, variantID: variant)
+        let renderer = FrameRenderer(softwareRendering: true)
+        let early = try await renderer.render(plan: plan, time: .zero, rootURL: root, size: .init(width: 128, height: 128))
+        let late = try await renderer.render(plan: plan, time: .init(seconds: 1), rootURL: root, size: .init(width: 128, height: 128))
+        XCTAssertLessThan(pixel(early, x: 40, y: 64)[0], 10)
+        XCTAssertGreaterThan(pixel(late, x: 40, y: 64)[0], 200)
+        let output = root.appendingPathComponent("animated-mask.mp4")
+        _ = try await MovieExporter().export(document: document, variantID: variant, rootURL: root, settings: MovieExportSettings(longEdge: 128), outputURL: output, progress: { _ in })
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: output))
+        generator.requestedTimeToleranceBefore = .zero; generator.requestedTimeToleranceAfter = .zero
+        let decoded = try await generator.image(at: .init(seconds: 1, preferredTimescale: 600))
+        XCTAssertEqual(decoded.actualTime.seconds, 1, accuracy: 1 / 24.0)
+        XCTAssertGreaterThan(pixel(decoded.image, x: 40, y: 64)[0], 180)
+    }
+
+    func testShapeFreeResizeRendersAndExportsWithoutCroppingOrAspectLock() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        var clip = Clip(kind: .shape, duration: .init(seconds: 0.2))
+        clip.presentation.mask = .rectangle; clip.presentation.scale = 0.35
+        clip.presentation.maskHeight = 9.0 / 16; clip.presentation.color = "#FFFFFF"
+        clip.presentation = PreviewInteractionGeometry.resizedShapePresentation(from: clip.presentation, translation: .init(width: 30, height: 0), canvasSize: .init(width: 360, height: 640))
+        let document = ProjectDocument(globalClips: [clip])
+        let plan = RenderPlan.compile(document: document, variantID: document.variants[0].id)
+        let image = try await FrameRenderer(softwareRendering: true).render(plan: plan, time: .zero, rootURL: root, size: .init(width: 180, height: 320))
+        // Expected silhouette: 93 × 63 px centred on this portrait canvas.
+        XCTAssertGreaterThan(pixel(image, x: 47, y: 160)[0], 200)
+        XCTAssertLessThan(pixel(image, x: 40, y: 160)[0], 10)
+        XCTAssertGreaterThan(pixel(image, x: 90, y: 134)[0], 200)
+        XCTAssertLessThan(pixel(image, x: 90, y: 122)[0], 10)
+        let output = root.appendingPathComponent("wide-shape.mp4")
+        _ = try await MovieExporter().export(document: document, variantID: document.variants[0].id, rootURL: root, settings: MovieExportSettings(longEdge: 320), outputURL: output, progress: { _ in })
+        let decoded = try await AVAssetImageGenerator(asset: AVURLAsset(url: output)).image(at: .zero).image
+        XCTAssertEqual(decoded.width, 180); XCTAssertEqual(decoded.height, 320)
+        XCTAssertGreaterThan(pixel(decoded, x: 47, y: 160)[0], 180)
+        XCTAssertLessThan(pixel(decoded, x: 90, y: 122)[0], 30)
+    }
+
+    func testOverlayShapesRenderDistinctSilhouettesAndExport() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let renderer = FrameRenderer(softwareRendering: true)
+        var images = Set<Data>()
+        for shape in MaskKind.overlayShapes {
+            var clip = Clip(kind: .shape, duration: .init(seconds: 0.2))
+            clip.presentation.mask = shape; clip.presentation.color = "#EBA65A"
+            clip.presentation.maskWidth = 0.7; clip.presentation.maskHeight = 0.7
+            let document = ProjectDocument(globalClips: [clip])
+            try document.validate()
+            XCTAssertEqual(try DocumentCodec.decode(DocumentCodec.encode(document)), document)
+            let image = try await renderer.render(plan: .compile(document: document, variantID: document.variants[1].id), time: .zero, rootURL: root, size: CGSize(width: 128, height: 128))
+            images.insert(try XCTUnwrap(image.dataProvider?.data as Data?))
+            XCTAssertGreaterThan(pixel(image, x: 64, y: 64)[0], 100)
+            XCTAssertLessThan(pixel(image, x: 5, y: 5)[0], 10)
+            let attachment = XCTAttachment(image: UIImage(cgImage: image)); attachment.name = "overlay-\(shape.rawValue)"; attachment.lifetime = .keepAlways; add(attachment)
+            if [.cloud, .star, .heart].contains(shape) {
+                let output = root.appendingPathComponent("\(shape.rawValue).mp4")
+                _ = try await MovieExporter().export(document: document, variantID: document.variants[1].id, rootURL: root, settings: MovieExportSettings(longEdge: 128), outputURL: output, progress: { _ in })
+                let decoded = try await AVAssetImageGenerator(asset: AVURLAsset(url: output)).image(at: .zero).image
+                XCTAssertGreaterThan(pixel(decoded, x: 64, y: 64)[0], 100)
+            }
+        }
+        XCTAssertEqual(images.count, MaskKind.overlayShapes.count)
+    }
+    func testShortAudioAtDoubleSpeedPreparesPlaysAndExportsWithAdaptedDuration() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("short.caf"); try audioFixture(at: source, seconds: 0.12)
+        let asset = try await MediaImporter().importFile(url: source, to: root)
+        let clip = Clip(assetID: asset.id, kind: .audio, duration: asset.duration, sourceDuration: asset.duration)
+        var doc = ProjectDocument(assets: [asset], globalClips: [clip])
+        try DocumentEditor.setConstantSpeed(2, clipID: clip.id, in: &doc); try doc.validate()
+        let plan = RenderPlan.compile(document: doc, variantID: nil)
+        XCTAssertEqual(plan.duration.seconds, 0.06, accuracy: 0.0001)
+        let prepared = try await AudioComposer.prepare(plan: plan, rootURL: root)
+        XCTAssertTrue(prepared.hasAudio)
+        let tracks = try await prepared.composition.loadTracks(withMediaType: .audio)
+        let range = try await XCTUnwrap(tracks.first).load(.timeRange)
+        XCTAssertEqual(range.duration.seconds, 0.06, accuracy: 0.0001)
+        let audition = CaptionSegmentPlayer(plan: plan, rootURL: root)
+        audition.toggle(id: clip.id, start: .zero, end: plan.duration)
+        try await waitForAudition { audition.activeID == nil }
+        XCTAssertNil(audition.error)
+        let output = root.appendingPathComponent("short-double-speed.mp4")
+        let result = try await MovieExporter().export(document: doc, variantID: doc.variants[1].id, rootURL: root, settings: .init(longEdge: 128, frameRate: 24, bitrate: 200_000), outputURL: output, progress: { _ in })
+        XCTAssertTrue(result.hasAudio)
+        let attachment = XCTAttachment(contentsOfFile: output); attachment.name = "short-double-speed"; attachment.lifetime = .keepAlways; add(attachment)
+    }
+
+    func testVolumeCurveChangesDecodedAudioAndAllowsZeroBaseVolume() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("tone.caf"); try audioFixture(at: source)
+        let asset = try await MediaImporter().importFile(url: source, to: root)
+        let clip = Clip(assetID: asset.id, kind: .audio, duration: asset.duration, sourceDuration: asset.duration,
+            keyframes: [.init(time: .zero, property: .volume, value: 0.08), .init(time: .init(seconds: 0.4), property: .volume, value: 0.08), .init(time: .init(seconds: 0.6), property: .volume, value: 0.6, easing: .easeInOut), .init(time: asset.duration, property: .volume, value: 0.6)], volume: 0)
+        let doc = ProjectDocument(assets: [asset], globalClips: [clip]); try doc.validate()
+        let prepared = try await AudioComposer.prepare(plan: .compile(document: doc, variantID: nil), rootURL: root)
+        XCTAssertTrue(prepared.hasAudio, "Positive volume keys must remain audible when the base volume is zero")
+        let output = root.appendingPathComponent("volume-curve.mp4")
+        _ = try await MovieExporter().export(document: doc, variantID: doc.variants[1].id, rootURL: root, settings: .init(longEdge: 128, frameRate: 24, bitrate: 200_000), outputURL: output, progress: { _ in })
+        let peaks = try await MediaImporter().waveform(url: output, bins: 10)
+        XCTAssertGreaterThan(peaks.suffix(2).min() ?? 0, (peaks.prefix(2).max() ?? 1) * 4)
+        let attachment = XCTAttachment(contentsOfFile: output); attachment.name = "volume-curve"; attachment.lifetime = .keepAlways; add(attachment)
+    }
+
     func testCreativeEffectsRenderDeterministicallyAndSurviveSplitOnCPU() async throws {
         let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
         let url = root.appendingPathComponent("pattern.png"); try imageFixture(at: url)

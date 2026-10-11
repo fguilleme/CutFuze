@@ -1,0 +1,35 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "C92C72AB-1726-4A12-9732-4E518F429DC8",
+        "deviceName" : "CutFuze App Store iPad",
+        "exportedFileName" : "674F99C4-B108-4C46-AA38-8F3DDE51D1DC.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "overlay-dimensions-panel_0_88C4AAC8-9F9A-4603-8D51-EE0B22052CF7.png",
+        "timestamp" : 1791711734.121
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "C92C72AB-1726-4A12-9732-4E518F429DC8",
+        "deviceName" : "CutFuze App Store iPad",
+        "exportedFileName" : "55C7915E-465B-4E66-B573-46084807463F.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "overlay-free-height_0_1B3D3248-764F-4F02-A3BD-FB3B2FA3A026.png",
+        "timestamp" : 1791711726.488
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "C92C72AB-1726-4A12-9732-4E518F429DC8",
+        "deviceName" : "CutFuze App Store iPad",
+        "exportedFileName" : "5283DDCF-6C92-428B-85F0-62AA57035107.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "overlay-free-width_0_0FCAC3B0-C09A-4F7C-9D2A-84230E7EE481.png",
+        "timestamp" : 1791711724.334
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testShapePreviewResizesWithoutLockedAspectRatio()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testShapePreviewResizesWithoutLockedAspectRatio"
+  }
+]

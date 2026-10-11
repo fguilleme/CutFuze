@@ -27,7 +27,7 @@ enum AudioComposer {
     @concurrent static func prepare(plan: RenderPlan, rootURL: URL) async throws -> PreparedAudio {
         let composition = AVMutableComposition()
         var entries: [(RenderClip, AVMutableAudioMixInputParameters)] = []
-        let candidates = plan.clips.filter { ($0.clip.kind == .audio || $0.clip.kind == .video) && !$0.clip.muted && !$0.clip.reversed && $0.clip.volume > 0 }
+        let candidates = plan.clips.filter { ($0.clip.kind == .audio || $0.clip.kind == .video) && !$0.clip.muted && !$0.clip.reversed && ($0.clip.volume > 0 || $0.clip.keyframes.contains { $0.property == .volume && $0.value > 0 }) }
         for item in candidates {
             try Task.checkCancellation()
             guard let asset = plan.assets.first(where: { $0.id == item.clip.assetID }), asset.hasAudio else { continue }
@@ -70,7 +70,7 @@ enum AudioComposer {
             let clip = item.clip
             let animationLocal = local + clip.animationOffset.seconds
             let duration = clip.animationDuration?.seconds ?? item.duration.seconds
-            var value = max(0, clip.volume)
+            var value = item.evaluatedVolume(at: .init(seconds: seconds))
             if clip.fadeIn.seconds > 0 { value *= min(1, max(0, animationLocal / clip.fadeIn.seconds)) }
             if clip.fadeOut.seconds > 0 { value *= min(1, max(0, (duration - animationLocal) / clip.fadeOut.seconds)) }
             // Project audio is treated as music. Scene audio is narration; the shared
@@ -97,13 +97,16 @@ enum AudioComposer {
         for (item, parameters) in entries {
             let interval = 0.05
             let count = max(1, Int(ceil(item.duration.seconds / interval)))
+            var times = (0...count).map { min(item.end.seconds, item.globalStart.seconds + Double($0) * interval) }
+            times += item.clip.keyframes.filter { $0.property == .volume }.map { (item.globalStart + $0.time - item.clip.animationOffset).seconds }
+                .filter { $0 >= item.globalStart.seconds && $0 <= item.end.seconds }
+            times = Array(Set(times)).sorted()
             func normalized(_ seconds: Double) -> Float {
                 let total = entries.reduce(0.0) { $0 + gain($1.0, seconds) }
                 return Float(gain(item, seconds) * min(1, 0.80 / max(0.80, total)))
             }
-            for index in 0..<count {
-                let start = item.globalStart.seconds + Double(index) * interval
-                let end = min(item.end.seconds, start + interval)
+            for index in 1..<times.count {
+                let start = times[index - 1], end = times[index]
                 let range = CMTimeRange(start: MediaTime(seconds: start).cmTime, end: MediaTime(seconds: end).cmTime)
                 parameters.setVolumeRamp(fromStartVolume: normalized(start), toEndVolume: normalized(end), timeRange: range)
             }

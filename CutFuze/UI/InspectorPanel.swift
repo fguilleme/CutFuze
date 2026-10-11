@@ -145,7 +145,7 @@ struct InspectorPanel: View {
                 }.buttonStyle(.bordered)
             }
             Text(L("L’animation est commune aux formats. Les valeurs affichées tiennent compte du cadrage actif.")).font(.caption).foregroundStyle(.secondary)
-            Button(L("Retirer les points")) { model.changeClip(L("Images clés")) { $0.keyframes.removeAll() } }.font(.caption).disabled(clip.keyframes.isEmpty)
+            Button(L("Retirer les points")) { model.changeClip(L("Images clés")) { $0.keyframes.removeAll { $0.property != .volume } } }.font(.caption).disabled(!clip.keyframes.contains { $0.property != .volume })
         }
     }
     private func anchorControls(_ clip: Clip) -> some View {
@@ -179,6 +179,9 @@ struct ValueSlider: View {
     }
 }
 func effectLabel(_ value: String) -> String {
+    if value == "cloud" { return AppLocalization.bilingual("Nuage", "Cloud") }
+    if value == "star" { return AppLocalization.bilingual("Étoile", "Star") }
+    if value == "heart" { return AppLocalization.bilingual("Cœur", "Heart") }
     switch value {
     case "impactZoom": return AppLocalization.bilingual("Zoom impact", "Impact zoom")
     case "shortGlitch": return AppLocalization.bilingual("Glitch court", "Short glitch")

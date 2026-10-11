@@ -1,0 +1,26 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "783382BB-7A4A-428F-9C83-73BB5B117D02.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "overlay-free-height_0_44BA732F-4703-41EC-AE50-8590B15C3ACD.png",
+        "timestamp" : 1791711558.594
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CB1C784E-3D82-43FC-8F2D-9CF39750E73D",
+        "deviceName" : "CutFuze App Store iPhone 6.3",
+        "exportedFileName" : "C4E00F19-AD6F-4C91-AD0F-0755341704BF.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "overlay-free-width_0_15526E99-5F9D-416F-BCFF-3985829310D5.png",
+        "timestamp" : 1791711556.566
+      }
+    ],
+    "testIdentifier" : "WorkspaceUITests/testShapePreviewResizesWithoutLockedAspectRatio()",
+    "testIdentifierURL" : "test://com.apple.xcode/CutFuze/CutFuzeUITests/WorkspaceUITests/testShapePreviewResizesWithoutLockedAspectRatio"
+  }
+]

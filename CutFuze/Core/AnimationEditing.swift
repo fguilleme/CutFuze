@@ -87,11 +87,21 @@ enum AnimationEditing {
         case .scale: presentation.scale
         case .rotation: presentation.rotation
         case .opacity: presentation.opacity
+        case .volume: 1 // Volume belongs to Clip, not to format-specific Presentation.
+        case .maskWidth: presentation.maskWidth
+        case .maskHeight: presentation.maskHeight
+        case .maskX: presentation.maskX
+        case .maskY: presentation.maskY
+        case .maskRotation: presentation.maskRotation
+        case .maskFeather: presentation.maskFeather
         }
     }
     static func commonValue(displayed: Double, property: KeyframeProperty, common: Presentation, variant: Presentation) throws -> Double {
         guard displayed.isFinite else { throw DocumentError.invalid("Valeur de point non finie") }
         switch property {
+        case .volume:
+            guard (0...8).contains(displayed) else { throw DocumentError.invalid("Volume") }
+            return displayed
         case .x: return common.x + displayed - variant.x
         case .y: return common.y + displayed - variant.y
         case .rotation: return common.rotation + displayed - variant.rotation
@@ -101,6 +111,12 @@ enum AnimationEditing {
         case .opacity:
             guard displayed >= 0, variant.opacity > 0 else { throw DocumentError.invalid("Rétablissez une opacité de format supérieure à zéro avant de créer ce point") }
             return common.opacity > 0.000001 ? displayed * common.opacity / variant.opacity : displayed / variant.opacity
+        case .maskWidth, .maskHeight:
+            let baseline = value(property, in: variant)
+            guard displayed > 0, baseline > 0 else { throw DocumentError.invalid("Dimensions du masque") }
+            return displayed * value(property, in: common) / baseline
+        case .maskX, .maskY, .maskRotation, .maskFeather:
+            return value(property, in: common) + displayed - value(property, in: variant)
         }
     }
     static func upsert(clipID: UUID, property: KeyframeProperty, at globalTime: MediaTime, displayedValue: Double, variantID: UUID?, easing: KeyframeEasing, in document: inout ProjectDocument) throws {
@@ -118,7 +134,8 @@ enum AnimationEditing {
         if variantID == nil { rendered.presentation = rendered.clip.presentation }
         let visible = rendered.evaluatedPresentation(at: globalTime)
         let localTime = globalTime - rendered.globalStart + rendered.clip.animationOffset
-        for property in KeyframeProperty.allCases {
+        let properties = KeyframeProperty.visual + (visible.mask != .none ? KeyframeProperty.mask : [])
+        for property in properties {
             // A fully transparent variant cannot define a multiplicative opacity point.
             if property == .opacity && rendered.presentation.opacity == 0 { continue }
             let easing = rendered.clip.keyframes.first { $0.property == property && $0.time == localTime }?.easing ?? .linear

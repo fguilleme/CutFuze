@@ -58,7 +58,7 @@ enum VisualTool: String, CaseIterable, Identifiable {
     }
 }
 
-fileprivate enum EffectCategory: String, CaseIterable, Identifiable {
+enum EffectCategory: String, CaseIterable, Identifiable {
     case beauty = "Beauté"
     case geometry = "Géométrie"
     case creative = "Créatif"
@@ -95,6 +95,7 @@ struct ContextToolPanel: View {
         if tool == .font { return verticalSizeClass == .compact ? 130 : 232 }
         if tool == .visual { return visualTool.isEffectCategory ? 56 : (verticalSizeClass == .compact ? 96 : 144) }
         if tool == .animation { return verticalSizeClass == .compact ? 108 : 122 }
+        if tool == .speed || tool == .volume { return verticalSizeClass == .compact ? 100 : 108 }
         return verticalSizeClass == .compact ? 56 : 94
     }
 
@@ -113,6 +114,14 @@ struct ContextToolPanel: View {
                 .accessibilityLabel(L("Fermer"))
                 .accessibilityIdentifier("closeContextTool")
                 Spacer()
+                if tool == .visual, visualTool.effectCategory == nil {
+                    Button { showKeyframes = true } label: {
+                        Label(AppLocalization.bilingual("Courbes", "Curves"), systemImage: "chart.xyaxis.line")
+                            .font(.caption.weight(.semibold)).frame(minWidth: 44, minHeight: 44)
+                    }.buttonStyle(.plain).foregroundStyle(DesignTokens.amber).accessibilityLabel(AppLocalization.bilingual("Éditer la courbe", "Edit curve"))
+                        .accessibilityIdentifier("editVisualCurve")
+                        .disabled(visualTool == .mask && model.presentation.mask == .none)
+                }
                 if model.localScope, tool == .visual, visualTool.effectCategory == nil {
                     Text("\(Int(model.variant.widthRatio)):\(Int(model.variant.heightRatio))")
                         .font(.caption2.weight(.bold)).foregroundStyle(DesignTokens.amber)
@@ -176,7 +185,10 @@ struct ContextToolPanel: View {
         .padding(.horizontal, 14).padding(.top, 8).padding(.bottom, 10)
         .background(DesignTokens.panel)
         .sheet(isPresented: $showCaptions) { CaptionEditorSheet(model: model) }
-        .sheet(isPresented: $showKeyframes) { KeyframeEditorSheet(model: model) }
+        .sheet(isPresented: $showKeyframes) {
+            KeyframeEditorSheet(model: model, initialProperty: tool == .volume ? .volume : tool == .visual && visualTool == .opacity ? .opacity : tool == .visual && visualTool == .mask ? .maskWidth : .scale,
+                                properties: tool == .visual ? (visualTool == .mask ? KeyframeProperty.mask : visualTool == .opacity ? [.opacity] : KeyframeProperty.transform + (model.selectedClip?.kind == .shape ? [.maskWidth, .maskHeight] : [])) : nil)
+        }
         .sheet(item: $editingEffect) { effect in EffectEditorSheet(model: model, effectID: effect.id) }
         .onAppear { textDraft = model.selectedClip?.text ?? "" }
         .onChange(of: model.selectedClipID) { _, _ in textDraft = model.selectedClip?.text ?? ""; textFocused = false }
@@ -187,11 +199,13 @@ struct ContextToolPanel: View {
         switch tool {
         case .speed:
             VStack(spacing: 5) {
-                ValueSlider(title: L("Vitesse"), value: Binding(get: { model.selectedClip?.speed ?? 1 }, set: { value in model.changeClip(L("Vitesse")) { $0.speed = value; $0.duration = $0.sourceDuration / value } }), range: 0.1...4, suffix: "×", editing: gesture)
+                ValueSlider(title: L("Vitesse"), value: Binding(get: { model.selectedClip?.speed ?? 1 }, set: model.changeSpeed), range: 0.1...4, suffix: "×", editing: gesture)
                 HStack(spacing: 8) {
                     ForEach([0.5, 1.0, 2.0], id: \.self) { value in
-                        Button("\(value, specifier: "%g")×") { model.changeClip(L("Vitesse")) { $0.speed = value; $0.duration = $0.sourceDuration / value } }
+                        Button("\(value, specifier: "%g")×") { model.changeSpeed(value) }
                             .buttonStyle(.bordered).frame(minHeight: 44)
+                            .accessibilityIdentifier("speedPreset-\(Int(value * 100))")
+                            .accessibilityAddTraits(clip.speed == value ? .isSelected : [])
                     }
                     Spacer()
                     Button(L("Réglage précis"), action: showTiming).buttonStyle(.bordered).frame(minHeight: 44)
@@ -200,7 +214,13 @@ struct ContextToolPanel: View {
         case .volume:
             VStack(spacing: 8) {
                 ValueSlider(title: L("Volume"), value: Binding(get: { model.selectedClip?.volume ?? 1 }, set: { value in model.changeClip(L("Volume")) { $0.volume = value } }), range: 0...2, editing: gesture)
-                Toggle(L("Muet"), isOn: Binding(get: { model.selectedClip?.muted ?? false }, set: { value in model.changeClip(L("Muet")) { $0.muted = value } })).frame(minHeight: 44)
+                HStack(spacing: 12) {
+                    Toggle(L("Muet"), isOn: Binding(get: { model.selectedClip?.muted ?? false }, set: { value in model.changeClip(L("Muet")) { $0.muted = value } })).fixedSize().frame(minHeight: 44)
+                    Spacer(minLength: 0)
+                    Button { showKeyframes = true } label: {
+                        Label(AppLocalization.bilingual("Courbe de volume", "Volume curve"), systemImage: "waveform.path").frame(minHeight: 44)
+                    }.buttonStyle(.bordered).accessibilityIdentifier("editVolumeCurve")
+                }.font(.caption)
             }
         case .fade:
             VStack(spacing: 5) {
@@ -239,6 +259,12 @@ struct ContextToolPanel: View {
                             .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel(L("Réinitialiser"))
+                }
+                if clip.kind == .shape {
+                    ValueSlider(title: L("Largeur"), value: presentation(\.maskWidth), range: 0.05...1, editing: gesture)
+                        .accessibilityIdentifier("shapeWidth")
+                    ValueSlider(title: L("Hauteur"), value: presentation(\.maskHeight), range: 0.05...1, editing: gesture)
+                        .accessibilityIdentifier("shapeHeight")
                 }
                 ValueSlider(title: L("Échelle"), value: presentation(\.scale), range: 0.1...4, editing: gesture)
                 ValueSlider(title: L("Horizontal"), value: presentation(\.x), range: -0.5...1.5, editing: gesture)
@@ -304,11 +330,11 @@ struct ContextToolPanel: View {
                     }
                 }
                 HStack(spacing: 8) {
-                    Text(clip.keyframes.isEmpty ? L("Aucune animation") : "\(clip.keyframes.count) \(L("points d’animation"))")
+                    Text(clip.keyframes.allSatisfy { $0.property == .volume } ? L("Aucune animation") : "\(clip.keyframes.filter { $0.property != .volume }.count) \(L("points d’animation"))")
                         .font(.caption2).foregroundStyle(DesignTokens.muted)
                     Spacer()
-                    if !clip.keyframes.isEmpty {
-                        Button(L("Effacer")) { model.changeClip(L("Animation")) { $0.keyframes.removeAll() } }
+                    if clip.keyframes.contains(where: { $0.property != .volume }) {
+                        Button(L("Effacer")) { model.changeClip(L("Animation")) { $0.keyframes.removeAll { $0.property != .volume } } }
                             .font(.caption).foregroundStyle(.red)
                     }
                     Button(L("Éditer les points")) { showKeyframes = true }

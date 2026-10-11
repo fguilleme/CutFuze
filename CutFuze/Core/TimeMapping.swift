@@ -75,11 +75,21 @@ enum KeyframeEvaluator {
         result.scale = value(property: .scale, at: time, keyframes: keyframes, fallback: result.scale)
         result.rotation = value(property: .rotation, at: time, keyframes: keyframes, fallback: result.rotation)
         result.opacity = value(property: .opacity, at: time, keyframes: keyframes, fallback: result.opacity)
+        result.maskWidth = value(property: .maskWidth, at: time, keyframes: keyframes, fallback: result.maskWidth)
+        result.maskHeight = value(property: .maskHeight, at: time, keyframes: keyframes, fallback: result.maskHeight)
+        result.maskX = value(property: .maskX, at: time, keyframes: keyframes, fallback: result.maskX)
+        result.maskY = value(property: .maskY, at: time, keyframes: keyframes, fallback: result.maskY)
+        result.maskRotation = value(property: .maskRotation, at: time, keyframes: keyframes, fallback: result.maskRotation)
+        result.maskFeather = value(property: .maskFeather, at: time, keyframes: keyframes, fallback: result.maskFeather)
         return result
     }
 }
 
 extension RenderClip {
+    func evaluatedVolume(at globalTime: MediaTime) -> Double {
+        max(0, min(8, KeyframeEvaluator.value(property: .volume, at: globalTime - globalStart + clip.animationOffset, keyframes: clip.keyframes, fallback: clip.volume)))
+    }
+
     func evaluatedPresentation(at globalTime: MediaTime) -> Presentation {
         let base = clip.presentation
         let animated = KeyframeEvaluator.evaluate(presentation: base, keyframes: clip.keyframes, at: globalTime - globalStart + clip.animationOffset)
@@ -92,6 +102,12 @@ extension RenderClip {
         if properties.contains(.scale) { resolved.scale *= animated.scale / max(0.000001, base.scale) }
         if properties.contains(.rotation) { resolved.rotation += animated.rotation - base.rotation }
         if properties.contains(.opacity) { resolved.opacity *= base.opacity > 0.000001 ? animated.opacity / base.opacity : animated.opacity }
+        if properties.contains(.maskWidth) { resolved.maskWidth *= animated.maskWidth / max(0.000001, base.maskWidth) }
+        if properties.contains(.maskHeight) { resolved.maskHeight *= animated.maskHeight / max(0.000001, base.maskHeight) }
+        if properties.contains(.maskX) { resolved.maskX += animated.maskX - base.maskX }
+        if properties.contains(.maskY) { resolved.maskY += animated.maskY - base.maskY }
+        if properties.contains(.maskRotation) { resolved.maskRotation += animated.maskRotation - base.maskRotation }
+        if properties.contains(.maskFeather) { resolved.maskFeather = min(0.2, max(0, resolved.maskFeather + animated.maskFeather - base.maskFeather)) }
         return resolved
     }
 }

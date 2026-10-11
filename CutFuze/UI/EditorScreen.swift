@@ -9,6 +9,8 @@ struct EditorScreen: View {
     @State private var photos: [PhotosPickerItem] = []
     @State private var showPhotos = false
     @State private var showFiles = false
+    @State private var showAudioFiles = false
+    @State private var showAudioLibrary = false
     @State private var showExport = false
     @State private var showCompare = false
     @State private var showStory = false
@@ -22,6 +24,8 @@ struct EditorScreen: View {
     @State private var showStabilization = false
     @State private var showMediaLibrary = false
     @State private var showCanvas = false
+    @State private var showShapePicker = false
+    @State private var editingShape = false
     @State private var showBeats = false
     @State private var showSceneEdit = false
     @State private var showFullScreenPreview = false
@@ -48,6 +52,7 @@ struct EditorScreen: View {
             case .visual?: compact ? 218 : 266
             case .animation?: compact ? 176 : 188
             case .font?: compact ? 192 : 294
+            case .speed?, .volume?: compact ? 162 : 170
             case .textStyle? where horizontalSizeClass == .regular && !compact: 322
             default: compact ? 118 : 156
             }
@@ -80,6 +85,9 @@ struct EditorScreen: View {
         .fileImporter(isPresented: $showFiles, allowedContentTypes: [.movie, .image, .audio, .plainText], allowsMultipleSelection: true) { result in
             switch result { case .success(let urls): importURLs(urls); case .failure(let error): model.error = error.localizedDescription }
         }
+        .fileImporter(isPresented: $showAudioFiles, allowedContentTypes: [.audio], allowsMultipleSelection: true) { result in
+            switch result { case .success(let urls): model.importFiles(urls); case .failure(let error): model.error = error.localizedDescription }
+        }
         .sheet(isPresented: $showExport) { ExportScreen(model: model) }
         .sheet(isPresented: $showCompare) { VariantComparison(model: model) }
         .sheet(isPresented: $showStory) { StoryModeSheet(model: model) }
@@ -90,7 +98,14 @@ struct EditorScreen: View {
         .sheet(isPresented: $showStabilization) { StabilizationSheet(model: model) }
         .sheet(isPresented: $showVision) { VisionSheet(model: model) }
         .sheet(isPresented: $showMediaLibrary) { MediaLibrarySheet(model: model) }
+        .sheet(isPresented: $showAudioLibrary) { MediaLibrarySheet(model: model, audioOnly: true) }
         .sheet(isPresented: $showCanvas) { CanvasSheet(model: model) }
+        .sheet(isPresented: $showShapePicker) {
+            ShapePickerSheet(selected: editingShape ? model.presentation.mask : nil) { shape in
+                if editingShape { model.changePresentation { $0.mask = shape } }
+                else { model.addShape(shape) }
+            }
+        }
         .sheet(isPresented: $showBeats) { BeatMarkersSheet(model: model) }
         .sheet(isPresented: $showTiming) { TimingSheet(model: model) }
         .sheet(isPresented: $showSceneEdit) { SceneEditSheet(model: model) }
@@ -255,7 +270,7 @@ struct EditorScreen: View {
 
     @ViewBuilder private var noSelectionActions: some View {
         Menu { mediaMenuItems } label: { ContextActionLabel(title: "Médias", symbol: "photo.on.rectangle.angled") }.accessibilityIdentifier("addMedia")
-        Menu { audioMenuItems } label: { ContextActionLabel(title: "Audio", symbol: "waveform") }
+        Menu { audioMenuItems } label: { ContextActionLabel(title: "Audio", symbol: "waveform") }.accessibilityIdentifier("addAudio")
         Menu { textMenuItems } label: { ContextActionLabel(title: "Texte", symbol: "textformat") }
         Menu { overlayMenuItems } label: { ContextActionLabel(title: "Overlay", symbol: "square.on.square") }
         Menu { effectsMenuItems } label: { ContextActionLabel(title: "Effets", symbol: "sparkles") }
@@ -280,6 +295,9 @@ struct EditorScreen: View {
         action("Dupliquer", "doc.on.doc", perform: duplicateSelected); action("Supprimer", "trash", destructive: true, perform: model.deleteClip)
     }
     @ViewBuilder private var overlayActions: some View {
+        if model.selectedClip?.kind == .shape {
+            action("Forme", "circle.square", perform: { editingShape = true; showShapePicker = true }, identifier: "editOverlayShape")
+        }
         tool("Effets", "camera.filters", .visual)
         if let clip = model.selectedClip, clip.kind == .image || clip.kind == .video { cutoutAction }
         tool("Animation", "diamond", .animation)
@@ -337,21 +355,20 @@ struct EditorScreen: View {
         Button(L("Ressources locales"), systemImage: "rectangle.stack") { showMediaLibrary = true }
     }
     @ViewBuilder private var audioMenuItems: some View {
-        Button(L("Musique"), systemImage: "music.note") { showMediaLibrary = true }
-        Button(L("Effets sonores"), systemImage: "waveform.badge.plus") { showMediaLibrary = true }
+        Button(L("Importer un audio"), systemImage: "square.and.arrow.down") { model.stop(); showAudioFiles = true }.accessibilityIdentifier("importAudio")
+        Button(L("Audios déjà importés"), systemImage: "music.note.list") { showAudioLibrary = true }.accessibilityIdentifier("importedAudioLibrary")
         Button(L("Voix off"), systemImage: "mic") { model.stop(); showVoice = true }
         Button(L("Synthèse vocale"), systemImage: "text.bubble") { model.stop(); showNarration = true }
     }
     @ViewBuilder private var textMenuItems: some View {
         Button(L("Ajouter du texte"), systemImage: "textformat") { model.addText() }
-        Button(L("Sous-titres"), systemImage: "captions.bubble") { model.addText(caption: true) }
         Button(L("Sous-titres automatiques"), systemImage: "waveform.and.mic") { model.stop(); showTranscription = true }
         Button(L("Importer un SRT"), systemImage: "doc.text") { importingOverlay = false; showFiles = true }
     }
     @ViewBuilder private var overlayMenuItems: some View {
         Button(L("Photos et vidéos"), systemImage: "photo.on.rectangle.angled") { importingOverlay = true; replaceID = nil; showPhotos = true }
         Button(L("Fichiers"), systemImage: "folder") { importingOverlay = true; replaceID = nil; showFiles = true }
-        Button(L("Forme"), systemImage: "circle.square") { model.addShape() }
+        Button(L("Forme"), systemImage: "circle.square") { editingShape = false; showShapePicker = true }
     }
     @ViewBuilder private var effectsMenuItems: some View {
         Button(L("Transition"), systemImage: "rectangle.2.swap") { if let scene = model.selectedScene { model.selectScene(scene); showSceneEdit = true } }.disabled(model.selectedScene == nil)

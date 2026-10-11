@@ -2,6 +2,170 @@ import XCTest
 @testable import CutFuze
 
 final class CoreTests: XCTestCase {
+    @MainActor func testImportedAudioIsReusedWithoutNewResourceAndSupportsUndo() throws {
+        let root = try temporaryRoot()
+        let asset = MediaAsset(relativePath: "Media/music.caf", kind: .audio, name: "Ma musique", duration: .init(seconds: 2), hasAudio: true)
+        let original = ProjectDocument(assets: [asset], scenes: [.init(duration: .init(seconds: 3), clips: [Clip(kind: .shape, duration: .init(seconds: 3))])])
+        let model = EditorModel(document: original, store: ProjectStore(rootURL: root), rootURL: root)
+        model.reuseImportedAsset(asset.id)
+        XCTAssertEqual(model.pendingImports, [asset]); XCTAssertFalse(model.isReplacingPendingImport)
+        model.insertPendingImports(placement: .append)
+        XCTAssertEqual(model.document.assets, [asset])
+        XCTAssertEqual(model.document.globalClips.first?.assetID, asset.id)
+        XCTAssertEqual(model.document.globalClips.first?.start, .init(seconds: 3))
+        XCTAssertEqual(model.document.assets.first?.name, "Ma musique")
+        model.undo(); XCTAssertTrue(model.document.globalClips.isEmpty)
+        model.redo(); XCTAssertEqual(model.document.globalClips.first?.assetID, asset.id)
+        try model.document.validate()
+        model.pendingImports = []; model.reuseImportedAsset(UUID()); XCTAssertTrue(model.pendingImports.isEmpty)
+    }
+
+    func testEveryVisualEffectSupportsEditableIntensityCurve() throws {
+        XCTAssertEqual(Set(EffectCategory.allCases.flatMap(\.effects)), Set(EffectKind.allCases), "Every effect must remain reachable from the contextual editor")
+        for kind in EffectKind.allCases {
+            var effect = EffectInstance.readyToUse(kind, duration: .init(seconds: 2))
+            effect.start = nil; effect.duration = nil; effect.amountKeyframes = nil
+            let domain = MediaTime.zero...MediaTime(seconds: 2)
+            _ = try EffectAnimationEditing.upsert(at: .zero, value: 0, easing: .linear, domain: domain, in: &effect)
+            let endID = try EffectAnimationEditing.upsert(at: .init(seconds: 2), value: 0.8, easing: .easeIn, domain: domain, in: &effect)
+            XCTAssertEqual(effect.evaluatedAmount(at: .init(seconds: 1)) ?? -1, 0.2, accuracy: 0.0001, kind.rawValue)
+            try EffectAnimationEditing.move(endID, to: .init(seconds: 1), value: 0.6, domain: domain, in: &effect)
+            XCTAssertEqual(effect.evaluatedAmount(at: .init(seconds: 0.5)) ?? -1, 0.15, accuracy: 0.0001, kind.rawValue)
+            var clip = Clip(kind: .shape, duration: .init(seconds: 2)); clip.effects = [effect]
+            let document = ProjectDocument(globalClips: [clip]); try document.validate()
+            XCTAssertEqual(try DocumentCodec.decode(DocumentCodec.encode(document)), document)
+        }
+    }
+
+    func testMaskCurvesPreserveVariantsEasingSplitsAndUndo() throws {
+        var clip = Clip(kind: .shape, duration: .init(seconds: 2))
+        clip.presentation.mask = .rectangle
+        var document = ProjectDocument(globalClips: [clip])
+        let variantID = document.variants[1].id
+        var variant = clip.presentation; variant.maskWidth = 0.8; variant.maskX = 0.4
+        document.variants[1].overrides[clip.id.uuidString] = variant
+        for property in KeyframeProperty.mask {
+            let start = AnimationEditing.value(property, in: variant)
+            let end: Double = property == .maskWidth ? 0.4 : property == .maskHeight ? 0.6 : property == .maskRotation ? 90 : property == .maskFeather ? 0.1 : 0.7
+            try AnimationEditing.upsert(clipID: clip.id, property: property, at: .zero, displayedValue: start, variantID: variantID, easing: .linear, in: &document)
+            try AnimationEditing.upsert(clipID: clip.id, property: property, at: .init(seconds: 2), displayedValue: end, variantID: variantID, easing: .easeIn, in: &document)
+        }
+        let history = EditHistory(document: document)
+        let plan = RenderPlan.compile(document: document, variantID: variantID)
+        let rendered = try XCTUnwrap(plan.clips.first)
+        let middle = rendered.evaluatedPresentation(at: .init(seconds: 1))
+        XCTAssertEqual(middle.maskWidth, 0.7, accuracy: 0.0001)
+        XCTAssertEqual(middle.maskX, 0.475, accuracy: 0.0001)
+        XCTAssertEqual(middle.maskRotation, 22.5, accuracy: 0.0001)
+        XCTAssertEqual(middle.maskFeather, 0.025, accuracy: 0.0001)
+        var pose = document
+        try AnimationEditing.upsertCurrentPose(clipID: clip.id, at: .init(seconds: 1), variantID: variantID, in: &pose)
+        XCTAssertEqual(Set(pose.clip(clip.id)!.keyframes.filter { $0.time == .init(seconds: 1) }.map(\.property)), Set(KeyframeProperty.visual + KeyframeProperty.mask))
+        var invalid = document
+        invalid.globalClips[0].keyframes[0].value = 0
+        XCTAssertThrowsError(try invalid.validate())
+        let second = try DocumentEditor.splitClip(clip.id, at: .init(seconds: 1), in: &document)
+        let after = try XCTUnwrap(RenderPlan.compile(document: document, variantID: variantID).clips.first { $0.id == second })
+        XCTAssertEqual(after.evaluatedPresentation(at: .init(seconds: 1.5)), rendered.evaluatedPresentation(at: .init(seconds: 1.5)))
+        try history.perform(name: "Mask") { $0.globalClips[0].keyframes.removeAll { $0.property == .maskWidth } }
+        history.undo(); XCTAssertEqual(history.document.clip(clip.id)?.keyframes, rendered.clip.keyframes)
+        XCTAssertEqual(try DocumentCodec.decode(DocumentCodec.encode(document)), document)
+    }
+
+    func testShapeResizeChangesAxesIndependentlyAndSupportsRotationUndo() throws {
+        let canvas = CGSize(width: 360, height: 640)
+        var origin = Presentation()
+        origin.mask = .rectangle; origin.scale = 0.35; origin.maskHeight = 9.0 / 16
+        let wide = PreviewInteractionGeometry.resizedShapePresentation(from: origin, translation: .init(width: 30, height: 0), canvasSize: canvas)
+        XCTAssertEqual(wide.scale * wide.maskWidth * canvas.width, 186, accuracy: 0.01)
+        XCTAssertEqual(wide.scale * wide.maskHeight * canvas.height, 126, accuracy: 0.01)
+        XCTAssertLessThanOrEqual(wide.maskWidth, 1)
+        XCTAssertEqual(wide.x, origin.x); XCTAssertEqual(wide.y, origin.y)
+        let tall = PreviewInteractionGeometry.resizedShapePresentation(from: origin, translation: .init(width: 0, height: 20), canvasSize: canvas)
+        XCTAssertEqual(tall.scale * tall.maskWidth * canvas.width, 126, accuracy: 0.01)
+        XCTAssertEqual(tall.scale * tall.maskHeight * canvas.height, 166, accuracy: 0.01)
+        origin.rotation = 90
+        let rotated = PreviewInteractionGeometry.resizedShapePresentation(from: origin, translation: .init(width: 0, height: 30), canvasSize: canvas)
+        XCTAssertEqual(rotated.scale * rotated.maskWidth * canvas.width, 186, accuracy: 0.01)
+        XCTAssertEqual(rotated.scale * rotated.maskHeight * canvas.height, 126, accuracy: 0.01)
+        XCTAssertEqual(rotated.rotation, 90)
+        var clip = Clip(kind: .shape, duration: .init(seconds: 1)); clip.presentation = origin
+        let history = EditHistory(document: ProjectDocument(globalClips: [clip]))
+        try history.perform(name: "Resize") { $0.globalClips[0].presentation = rotated }
+        try history.document.validate()
+        XCTAssertEqual(try DocumentCodec.decode(DocumentCodec.encode(history.document)), history.document)
+        history.undo(); XCTAssertEqual(history.document.clip(clip.id)?.presentation, origin)
+        history.redo(); XCTAssertEqual(history.document.clip(clip.id)?.presentation, rotated)
+        XCTAssertEqual(PreviewInteractionGeometry.resizedShapePresentation(from: origin, translation: .init(width: 30, height: 10), canvasSize: .zero), origin)
+    }
+
+    func testOverlayShapeSelectionFitsBalancedSilhouette() throws {
+        var clip = Clip(kind: .shape, duration: .init(seconds: 1))
+        clip.presentation.mask = .heart; clip.presentation.scale = 0.35
+        clip.presentation.maskHeight = 9.0 / 16.0
+        let document = ProjectDocument(globalClips: [clip])
+        let plan = RenderPlan.compile(document: document, variantID: document.variants[0].id)
+        let layout = try XCTUnwrap(PreviewInteractionGeometry.layouts(plan: plan, time: .zero, canvasSize: .init(width: 360, height: 640)).first)
+        XCTAssertEqual(layout.size.width, 126, accuracy: 0.01)
+        XCTAssertEqual(layout.size.height, 126, accuracy: 0.01)
+        XCTAssertTrue(layout.contains(layout.center))
+        XCTAssertFalse(layout.contains(.init(x: layout.center.x, y: layout.center.y + 100)))
+    }
+
+    func testShortAudioSpeedResizesSegmentWithUndoAndKeepsSourceBounds() throws {
+        for seconds in [0.02, 0.08, 0.2, 1.0] {
+            let asset = MediaAsset(relativePath: "Media/short.caf", kind: .audio, name: "Short", duration: .init(seconds: seconds), hasAudio: true)
+            let clip = Clip(assetID: asset.id, kind: .audio, start: .init(seconds: 0.1), duration: asset.duration, sourceDuration: asset.duration)
+            let history = EditHistory(document: ProjectDocument(assets: [asset], globalClips: [clip]))
+            try history.perform(name: "2×") { try DocumentEditor.setConstantSpeed(2, clipID: clip.id, in: &$0) }
+            XCTAssertEqual(history.document.clip(clip.id)?.duration, .init(seconds: seconds / 2))
+            XCTAssertEqual(history.document.clip(clip.id)?.sourceDuration, asset.duration)
+            XCTAssertEqual(history.document.clip(clip.id)?.start, clip.start)
+            XCTAssertEqual(try DocumentCodec.decode(DocumentCodec.encode(history.document)), history.document)
+            history.undo(); XCTAssertEqual(history.document.clip(clip.id), clip)
+            history.redo(); XCTAssertEqual(history.document.clip(clip.id)?.speed, 2)
+        }
+    }
+
+    func testAudioSpeedExtendsSegmentAcrossSceneWithoutShiftingPictures() throws {
+        let asset = MediaAsset(relativePath: "Media/short.caf", kind: .audio, name: "Short", duration: .init(seconds: 2), hasAudio: true)
+        let clip = Clip(assetID: asset.id, kind: .audio, start: .init(seconds: 0.1), duration: .init(seconds: 0.2), sourceDuration: .init(seconds: 2))
+        var doc = ProjectDocument(assets: [asset], scenes: [.init(duration: .init(seconds: 3)), .init(duration: .init(seconds: 1), clips: [clip]), .init(duration: .init(seconds: 1))])
+        try DocumentEditor.setConstantSpeed(0.5, clipID: clip.id, in: &doc)
+        // Only the source heard in the original 0.2 s segment is retained.
+        XCTAssertEqual(doc.clip(clip.id)?.sourceDuration.seconds ?? 0, 0.2, accuracy: 0.00002)
+        XCTAssertEqual(doc.clip(clip.id)?.duration.seconds ?? 0, 0.4, accuracy: 0.00002)
+        try DocumentEditor.setConstantSpeed(0.1, clipID: clip.id, in: &doc)
+        try doc.validate()
+        XCTAssertEqual(doc.globalClips.first?.id, clip.id)
+        XCTAssertEqual(doc.globalClips.first?.start, .init(seconds: 3.1))
+        XCTAssertEqual(doc.scenes[1].duration, .init(seconds: 1))
+        XCTAssertEqual(RenderPlan.compile(document: doc, variantID: nil).scenes[2].start, .init(seconds: 4))
+    }
+
+    func testVolumeCurveUsesCommonGainAndPreservesEasingSplitAndHistory() throws {
+        let asset = MediaAsset(relativePath: "Media/volume.caf", kind: .audio, name: "Volume", duration: .init(seconds: 2), hasAudio: true)
+        let clip = Clip(assetID: asset.id, kind: .audio, duration: asset.duration, sourceDuration: asset.duration, volume: 0)
+        let history = EditHistory(document: ProjectDocument(assets: [asset], globalClips: [clip]))
+        try history.perform(name: "Volume") { doc in
+            try AnimationEditing.upsert(clipID: clip.id, property: .volume, at: .zero, displayedValue: 0.2, variantID: doc.variants[1].id, easing: .linear, in: &doc)
+            try AnimationEditing.upsert(clipID: clip.id, property: .volume, at: .init(seconds: 2), displayedValue: 0.6, variantID: doc.variants[1].id, easing: .easeIn, in: &doc)
+        }
+        for variant in history.document.variants {
+            let rendered = try XCTUnwrap(RenderPlan.compile(document: history.document, variantID: variant.id).clips.first)
+            XCTAssertEqual(rendered.evaluatedVolume(at: .init(seconds: 1)), 0.3, accuracy: 0.00001)
+        }
+        var split = history.document
+        try DocumentEditor.splitClip(clip.id, at: .init(seconds: 1), in: &split)
+        let right = try XCTUnwrap(RenderPlan.compile(document: split, variantID: nil).clips.last)
+        XCTAssertEqual(right.evaluatedVolume(at: .init(seconds: 1.5)), 0.425, accuracy: 0.00001)
+        XCTAssertEqual(try DocumentCodec.decode(DocumentCodec.encode(split)), split)
+        history.undo(); XCTAssertTrue(history.document.clip(clip.id)!.keyframes.isEmpty)
+        history.redo(); XCTAssertEqual(history.document.clip(clip.id)!.keyframes.count, 2)
+        var bad = split; bad.globalClips[0].keyframes[0].value = -0.1
+        XCTAssertThrowsError(try bad.validate())
+    }
+
     func testCreativePresetsRespectClipDomainAndRoundTripAfterSplit() throws {
         let offset = MediaTime(seconds: 5), duration = MediaTime(seconds: 2)
         for kind in [EffectKind.impactZoom, .shortGlitch, .lightSweep] {

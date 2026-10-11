@@ -69,11 +69,32 @@ enum PreviewInteractionGeometry {
         )
     }
 
+    // Shapes have no source aspect ratio to preserve. Resize in their local axes.
+    // Grow the source canvas scale when necessary so the mask is never clipped;
+    // compensate the other axis to keep its visible dimension unchanged.
+    static func resizedShapePresentation(from origin: Presentation, translation: CGSize, canvasSize: CGSize) -> Presentation {
+        guard canvasSize.width > 0, canvasSize.height > 0, origin.scale > 0 else { return origin }
+        let radians = origin.rotation * .pi / 180
+        let dx = translation.width * cos(radians) + translation.height * sin(radians)
+        let dy = -translation.width * sin(radians) + translation.height * cos(radians)
+        var result = origin
+        let width = min(4, max(origin.scale * 0.05, origin.scale * origin.maskWidth + 2 * dx / canvasSize.width))
+        let height = min(4, max(origin.scale * 0.05, origin.scale * origin.maskHeight + 2 * dy / canvasSize.height))
+        result.scale = max(origin.scale, max(width, height))
+        result.maskWidth = width / result.scale
+        result.maskHeight = height / result.scale
+        return result
+    }
+
     private static func elementSize(item: RenderClip, presentation: Presentation, plan: RenderPlan, canvasSize: CGSize) -> CGSize {
         if item.clip.kind == .text {
             return textSize(item.clip.text, presentation: presentation, canvasSize: canvasSize)
         }
         if item.clip.kind == .shape {
+            if MaskKind.overlayShapes.contains(presentation.mask), !presentation.maskInverted,
+               presentation.maskX == 0.5, presentation.maskY == 0.5, presentation.maskRotation == 0 {
+                return CGSize(width: max(44, canvasSize.width * presentation.scale * presentation.maskWidth), height: max(44, canvasSize.height * presentation.scale * presentation.maskHeight))
+            }
             return CGSize(width: max(44, canvasSize.width * presentation.scale), height: max(44, canvasSize.height * presentation.scale))
         }
         let asset = plan.assets.first { $0.id == item.clip.assetID }
@@ -177,7 +198,8 @@ struct PreviewCanvasEditor: View {
             edit(clip)
         }
         previewGestureHandle(symbol: "arrow.clockwise", label: L("Faire pivoter"), position: PreviewInteractionGeometry.containedHandlePosition(bottomLeft, canvasSize: canvasSize), gesture: rotationHandleGesture(center: layout.center))
-        previewGestureHandle(symbol: "arrow.up.left.and.arrow.down.right", label: L("Redimensionner"), position: PreviewInteractionGeometry.containedHandlePosition(bottomRight, canvasSize: canvasSize), gesture: scaleHandleGesture(center: layout.center))
+        previewGestureHandle(symbol: "arrow.up.left.and.arrow.down.right", label: L("Redimensionner"), position: PreviewInteractionGeometry.containedHandlePosition(bottomRight, canvasSize: canvasSize), gesture: scaleHandleGesture(center: layout.center, canvasSize: canvasSize, isShape: clip.kind == .shape))
+            .accessibilityIdentifier("previewResizeHandle")
     }
 
     private func previewHandle(symbol: String, label: String, position: CGPoint, destructive: Bool = false, action: @escaping () -> Void) -> some View {
@@ -210,7 +232,7 @@ struct PreviewCanvasEditor: View {
             .accessibilityAddTraits(.isButton)
     }
 
-    private func scaleHandleGesture(center: CGPoint) -> some Gesture {
+    private func scaleHandleGesture(center: CGPoint, canvasSize: CGSize, isShape: Bool) -> some Gesture {
         DragGesture(minimumDistance: 0, coordinateSpace: .named("previewCanvasSpace"))
             .onChanged { value in
                 let distance = max(1, hypot(value.location.x - center.x, value.location.y - center.y))
@@ -221,7 +243,12 @@ struct PreviewCanvasEditor: View {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }
                 guard let origin = handleOrigin, let start = handleStartValue else { return }
-                model.changePresentation { $0.scale = min(4, max(0.1, origin.scale * distance / start)) }
+                if isShape {
+                    let resized = PreviewInteractionGeometry.resizedShapePresentation(from: origin, translation: value.translation, canvasSize: canvasSize)
+                    model.changePresentation { $0.scale = resized.scale; $0.maskWidth = resized.maskWidth; $0.maskHeight = resized.maskHeight }
+                } else {
+                    model.changePresentation { $0.scale = min(4, max(0.1, origin.scale * distance / start)) }
+                }
             }
             .onEnded { _ in endHandleGesture() }
     }

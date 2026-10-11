@@ -25,7 +25,7 @@ final class LocalizationTests: XCTestCase {
             }
         }
         for tool in VisualTool.allCases { XCTAssertNotNil(AppLocalization.english(tool.rawValue), tool.rawValue) }
-        for key in ["Vitesse", "Volume", "Fondu", "Animation", "Modifier", "Style", "Police", "Effets visuels", "Écouter le segment", "Arrêter l’écoute", "Redimensionner l’aperçu et la timeline", "Remplacer"] {
+        for key in ["Vitesse", "Volume", "Fondu", "Animation", "Modifier", "Style", "Police", "Effets visuels", "Écouter le segment", "Arrêter l’écoute", "Redimensionner l’aperçu et la timeline", "Remplacer", "Importer un audio", "Audios déjà importés", "Aucun audio importé"] {
             XCTAssertNotNil(AppLocalization.english(key), key)
             XCTAssertEqual(AppLocalization.text(key, languageCode: "fr"), key)
         }

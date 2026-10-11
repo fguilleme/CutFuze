@@ -410,6 +410,9 @@ actor FrameRenderer {
         case .ellipse: context.fillEllipse(in: box)
         case .rectangle, .band: context.fill(box)
         case .roundedRectangle: context.addPath(CGPath(roundedRect: box, cornerWidth: min(box.width, box.height) * 0.18, cornerHeight: min(box.width, box.height) * 0.18, transform: nil)); context.fillPath()
+        case .cloud, .star, .heart:
+            let shape: TextBackgroundShape = p.mask == .cloud ? .cloud : (p.mask == .star ? .star : .heart)
+            context.addPath(shape.path(in: box)); context.fillPath()
         case .linear: context.fill(CGRect(x: -rect.width * 2, y: -rect.height * 2, width: rect.width * 4, height: rect.height * 2))
         }
         guard let raster = context.makeImage() else { throw MediaFailure.rendering("Masque raster") }
