@@ -35,7 +35,7 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
     private var visibleKeys: [EffectAmountKeyframe] { keys.filter { domain.contains($0.time) } }
     private var currentAmount: Double { draft?.animatedAmount(at: animationTime) ?? 0 }
     private var intensityRange: ClosedRange<Double> { draft?.kind.intensityRange ?? -1...1 }
-    private var isBurst: Bool { draft?.kind == .impactZoom || draft?.kind == .shortGlitch }
+    private var isBurst: Bool { draft?.kind.isTimedPreset == true }
     private var focusedWindow: ClosedRange<MediaTime>? {
         guard focusBurst, isBurst, let start = draft?.start, let duration = draft?.duration else { return nil }
         let lower = max(clipStart, clipStart + start - animationOffset)
@@ -87,7 +87,15 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
                     }.padding(.horizontal, 16).padding(.bottom, 6).background(DesignTokens.ink)
                     Form {
                         if effect.kind == .neon {
-                            Section(EFL("Halo du néon", "Neon glow")) { neonColorControls }
+                            Section(EFL("Halo du néon", "Neon glow")) { coloredEffectControls }
+                        }
+                        if effect.kind == .lightSweep {
+                            Section(EFL("Reflet lumineux", "Light reflection")) { coloredEffectControls }
+                        }
+                        if effect.kind == .liquidDistortion {
+                            Section(EFL("Ondulations", "Waves")) {
+                                parameterSlider(title: EFL("Vitesse des ondes", "Wave speed"), value: Binding(get: { draft?.liquidFlowSpeed ?? 1 }, set: { value in changeDraft { $0.liquidSpeed = value } }), range: 0.25...2, identifier: "liquidFlowSpeed", percentage: false)
+                            }
                         }
                         Section(L("Intensité")) {
                             Toggle(EFL("Effet actif", "Effect enabled"), isOn: Binding(get: { draft?.enabled ?? true }, set: { value in changeDraft { $0.enabled = value } })).accessibilityIdentifier("effectEnabled")
@@ -163,28 +171,23 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
         }.font(.caption).frame(minHeight: 44)
     }
 
-    private var neonColorControls: some View {
+    private var coloredEffectControls: some View {
         Group {
             HStack(spacing: 8) {
-                ForEach(["#49E6FF", "#FF48D7", "#A6FF45", "#FFBC47", "#FFFFFF"], id: \.self) { hex in
+                ForEach(draft?.kind == .neon ? ["#49E6FF", "#FF48D7", "#A6FF45", "#FFBC47", "#FFFFFF"] : ["#FFD58A", "#FFFFFF", "#49E6FF", "#FF48D7", "#A6FF45"], id: \.self) { hex in
                     Button { changeDraft { $0.colorHex = hex } } label: {
                         Circle().fill(Color(hex: hex)).frame(width: 24, height: 24)
                             .overlay { if draft?.colorHex == hex { Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(.black) } }
                             .frame(width: 44, height: 44)
-                    }.buttonStyle(.plain).accessibilityLabel(hex).accessibilityIdentifier("neonColor-\(hex)").accessibilityAddTraits(draft?.colorHex == hex ? .isSelected : [])
+                    }.buttonStyle(.plain).accessibilityLabel(hex).accessibilityIdentifier("\(draft?.kind == .neon ? "neonColor" : "effectColor")-\(hex)").accessibilityAddTraits(draft?.colorHex == hex ? .isSelected : [])
                 }
             }.accessibilityElement(children: .contain)
-            VStack(spacing: 2) {
-                HStack {
-                    Text(EFL("Étendue du halo", "Glow spread"))
-                    Spacer()
-                    Text("\(Int(((draft?.neonGlowRadius ?? 0.45) * 100).rounded())) %").monospacedDigit().foregroundStyle(DesignTokens.amber)
-                }.font(.caption)
-                Slider(value: Binding(get: { draft?.neonGlowRadius ?? 0.45 }, set: { value in changeDraft { $0.glowRadius = value } }), in: 0...1, onEditingChanged: editGesture)
-                    .accessibilityLabel(EFL("Étendue du halo", "Glow spread")).accessibilityIdentifier("neonGlowRadius")
-                    .accessibilityValue("\(Int(((draft?.neonGlowRadius ?? 0.45) * 100).rounded())) %")
-            }.frame(minHeight: 48)
-            ColorPicker(EFL("Personnaliser", "Custom color"), selection: Binding(get: { Color(hex: draft?.colorHex ?? "#49E6FF") }, set: { color in
+            if draft?.kind == .neon {
+                parameterSlider(title: EFL("Étendue du halo", "Glow spread"), value: Binding(get: { draft?.neonGlowRadius ?? 0.45 }, set: { value in changeDraft { $0.glowRadius = value } }), range: 0...1, identifier: "neonGlowRadius")
+            } else {
+                parameterSlider(title: EFL("Largeur du reflet", "Reflection width"), value: Binding(get: { draft?.lightSweepWidth ?? 0.35 }, set: { value in changeDraft { $0.sweepWidth = value } }), range: 0...1, identifier: "lightSweepWidth")
+            }
+            ColorPicker(EFL("Personnaliser", "Custom color"), selection: Binding(get: { Color(hex: draft?.colorHex ?? (draft?.kind == .neon ? "#49E6FF" : "#FFD58A")) }, set: { color in
                 var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
                 UIColor(color).getRed(&r, green: &g, blue: &b, alpha: &a)
                 changeDraft { $0.colorHex = String(format: "#%02X%02X%02X", Int((r * 255).rounded()), Int((g * 255).rounded()), Int((b * 255).rounded())) }
@@ -192,11 +195,23 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
         }
     }
 
+    private func parameterSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>, identifier: String, percentage: Bool = true) -> some View {
+        let label = percentage ? "\(Int((value.wrappedValue * 100).rounded())) %" : String(format: "%.2f ×", value.wrappedValue)
+        return VStack(spacing: 2) {
+            HStack { Text(title); Spacer(); Text(label).monospacedDigit().foregroundStyle(DesignTokens.amber) }.font(.caption)
+            Slider(value: value, in: range, onEditingChanged: editGesture)
+                .accessibilityLabel(title).accessibilityIdentifier(identifier).accessibilityValue(label)
+        }.frame(minHeight: 48)
+    }
+
     private func load() {
         guard snapshot == nil, let clip = model.selectedClip, let effect = clip.effects.first(where: { $0.id == effectID }) else { return }
         model.stop(); snapshot = model.document; draft = effect; clipID = clip.id
         scrub(min(max(0, model.playhead - clipStart.seconds), max(0, clipDuration.seconds - 1 / 60_000)))
-        if isBurst, let start = effect.start, effect.evaluatedAmount(at: animationTime) == nil {
+        if effect.kind == .lightSweep, let start = effect.start, let duration = effect.duration {
+            // Show the reflection itself on entry rather than the empty beginning of its pass.
+            scrub((start - animationOffset).seconds + duration.seconds * 0.5)
+        } else if isBurst, let start = effect.start, effect.evaluatedAmount(at: animationTime) == nil {
             scrub((start - animationOffset).seconds)
         }
     }
@@ -294,6 +309,9 @@ private func effectDescription(_ kind: EffectKind) -> String? {
     case .impactZoom: EFL("Zoom rapide, secousse et flou radial.", "Quick zoom, shake and radial blur.")
     case .shortGlitch: EFL("Décalages en bandes et séparation des couleurs sur une courte rafale.", "Band shifts and color separation in a short burst.")
     case .neon: EFL("Contour lumineux et halo diffus. Réglez son étendue indépendamment de l’intensité.", "Luminous outline with a soft glow. Adjust its spread independently of intensity.")
+    case .dream: EFL("Lumière douce, détails adoucis et couleurs pastel. L’intensité reste animable.", "Soft light, softened details and pastel colors. Intensity can be animated.")
+    case .lightSweep: EFL("Reflet mobile : couleur et largeur réglables. La plage définit sa durée.", "Moving reflection: adjustable color and width. The time range sets its duration.")
+    case .liquidDistortion: EFL("Ondulations animées, comme une image vue à travers l’eau. Réglez l’intensité et la vitesse des ondes.", "Animated ripples, like an image seen through water. Adjust intensity and wave speed.")
     default: nil
     }
 }

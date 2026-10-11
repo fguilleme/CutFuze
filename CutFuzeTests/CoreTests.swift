@@ -4,7 +4,7 @@ import XCTest
 final class CoreTests: XCTestCase {
     func testCreativePresetsRespectClipDomainAndRoundTripAfterSplit() throws {
         let offset = MediaTime(seconds: 5), duration = MediaTime(seconds: 2)
-        for kind in [EffectKind.impactZoom, .shortGlitch] {
+        for kind in [EffectKind.impactZoom, .shortGlitch, .lightSweep] {
             let effect = EffectInstance.readyToUse(kind, duration: duration, offset: offset, localTime: 1.99)
             try effect.validateAnimation()
             let start = try XCTUnwrap(effect.start), length = try XCTUnwrap(effect.duration)
@@ -12,7 +12,8 @@ final class CoreTests: XCTestCase {
             XCTAssertLessThanOrEqual(start + length, offset + duration)
             XCTAssertNil(effect.evaluatedAmount(at: start - .init(value: 1)))
             XCTAssertNil(effect.evaluatedAmount(at: start + length))
-            XCTAssertGreaterThan(try XCTUnwrap(effect.evaluatedAmount(at: start)), 0.5)
+            if kind == .lightSweep { XCTAssertEqual(effect.evaluatedAmount(at: start), 0) }
+            else { XCTAssertGreaterThan(try XCTUnwrap(effect.evaluatedAmount(at: start)), 0.5) }
             XCTAssertEqual(effect.amountKeyframes?.last?.value, 0)
             XCTAssertTrue(effect.amountKeyframes!.allSatisfy { kind.intensityRange.contains($0.value) })
             var clip = Clip(kind: .shape, duration: duration, effects: [effect])
@@ -42,6 +43,19 @@ final class CoreTests: XCTestCase {
         wide.glowRadius = .nan; XCTAssertThrowsError(try wide.validateAnimation())
         wide.glowRadius = 1.1; XCTAssertThrowsError(try wide.validateAnimation())
         try EffectInstance.readyToUse(.shortGlitch, duration: .init(value: 1)).validateAnimation()
+        try EffectInstance.readyToUse(.lightSweep, duration: .init(value: 1)).validateAnimation()
+        let sweep = EffectInstance.readyToUse(.lightSweep, duration: duration, offset: offset, localTime: 0.25)
+        XCTAssertEqual(sweep.start, offset + .init(seconds: 0.25)); XCTAssertEqual(sweep.duration, .init(seconds: 1.2))
+        XCTAssertEqual(sweep.lightSweepWidth, 0.35); XCTAssertEqual(sweep.colorHex, "#FFD58A")
+        let dream = EffectInstance.readyToUse(.dream, duration: duration)
+        XCTAssertEqual(dream.amount, 0.55); XCTAssertNil(dream.amountKeyframes); XCTAssertNil(dream.duration)
+        var liquid = EffectInstance.readyToUse(.liquidDistortion, duration: duration)
+        XCTAssertEqual(liquid.liquidFlowSpeed, 1); XCTAssertNil(liquid.duration)
+        liquid.liquidSpeed = 1.75
+        XCTAssertEqual(try JSONDecoder().decode(EffectInstance.self, from: JSONEncoder().encode(liquid)), liquid)
+        liquid.liquidSpeed = .infinity; XCTAssertThrowsError(try liquid.validateAnimation())
+        liquid.liquidSpeed = 0; XCTAssertThrowsError(try liquid.validateAnimation())
+        var invalidSweep = sweep; invalidSweep.sweepWidth = 2; XCTAssertThrowsError(try invalidSweep.validateAnimation())
     }
     func testChangingEasingImmediatelyChangesRenderedCurveAndSupportsUndo() throws {
         let start = Keyframe(time: .zero, property: .scale, value: 1)

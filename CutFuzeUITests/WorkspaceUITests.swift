@@ -1,6 +1,88 @@
 import XCTest
 
 final class WorkspaceUITests: XCTestCase {
+    @MainActor private func revealEffectParameter(_ slider: XCUIElement, in settings: XCUIElement) {
+        // A full swipe can skip the short first section on an iPhone.
+        // Bring the complete thumb inside the viewport with small, reversible scrolls.
+        var upward = true
+        for _ in 0..<16 {
+            let viewport = settings.frame
+            if slider.exists {
+                let frame = slider.frame
+                if slider.isHittable, frame.minY >= viewport.minY + 12, frame.maxY <= viewport.maxY - 28 { return }
+                upward = frame.maxY > viewport.maxY - 28
+            } else { upward.toggle() }
+            // Hold before lifting to stop inertial scrolling; use the gutter,
+            // not the slider itself, as the start of the scroll gesture.
+            settings.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: upward ? 0.75 : 0.35))
+                .press(forDuration: 0.1, thenDragTo: settings.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: upward ? 0.65 : 0.45)), withVelocity: XCUIGestureVelocity(rawValue: 50), thenHoldForDuration: 0.3)
+        }
+    }
+
+    @MainActor func testSecondCreativeSeriesEditsCurvesReflectionAndWaveSpeed() throws {
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Effets visuels"].tap()
+        app.buttons["visualTool-Créatif"].tap()
+        capture("creative-second-series-catalog")
+        let points = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "graphKey-"))
+        for kind in ["dream", "lightSweep", "liquidDistortion"] {
+            app.buttons["effect-\(kind)"].tap()
+            XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+            let settings = app.descendants(matching: .any)["effectSettings"]
+            var storedParameter: String?
+            if kind == "dream" {
+                XCTAssertEqual(points.count, 0)
+                app.descendants(matching: .any)["keyframeGraph"].coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.3)).tap()
+                app.buttons["effectSaveKeyframe"].tap()
+                XCTAssertEqual(points.count, 1)
+            } else if kind == "lightSweep" {
+                XCTAssertEqual(points.count, 4)
+                XCTAssertTrue(points.allElementsBoundByIndex.allSatisfy { $0.isHittable })
+                let color = app.buttons["effectColor-#49E6FF"]
+                for _ in 0..<5 where !color.isHittable { settings.swipeUp() }
+                XCTAssertTrue(color.isHittable); color.tap(); XCTAssertTrue(color.isSelected)
+                let width = app.sliders["lightSweepWidth"]
+                revealEffectParameter(width, in: settings)
+                XCTAssertTrue(width.isHittable); width.adjust(toNormalizedSliderPosition: 0.8)
+                storedParameter = try XCTUnwrap(width.value as? String)
+                XCTAssertEqual(try XCTUnwrap(Double(storedParameter!.replacingOccurrences(of: " %", with: ""))), 80, accuracy: 5)
+                app.buttons["effectUndo"].tap(); XCTAssertEqual(width.value as? String, "35 %")
+                app.buttons["effectRedo"].tap(); XCTAssertEqual(width.value as? String, storedParameter)
+            } else {
+                let speed = app.sliders["liquidFlowSpeed"]
+                revealEffectParameter(speed, in: settings)
+                XCTAssertTrue(speed.isHittable); speed.adjust(toNormalizedSliderPosition: 0.75)
+                storedParameter = try XCTUnwrap(speed.value as? String)
+                XCTAssertEqual(try XCTUnwrap(Double(storedParameter!.replacingOccurrences(of: " ×", with: ""))), 1.5625, accuracy: 0.1)
+                app.buttons["effectUndo"].tap(); XCTAssertEqual(speed.value as? String, "1.00 ×")
+                app.buttons["effectRedo"].tap(); XCTAssertEqual(speed.value as? String, storedParameter)
+                app.descendants(matching: .any)["keyframeGraph"].coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.3)).tap()
+            }
+            Thread.sleep(forTimeInterval: 1)
+            XCTAssertFalse(app.descendants(matching: .any)["effectEditorError"].exists)
+            capture("creative-second-\(kind)")
+            app.buttons["effectApply"].tap()
+            app.buttons["effect-\(kind)"].tap()
+            XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 5))
+            if kind == "dream" { XCTAssertEqual(points.count, 1) }
+            else {
+                let slider = app.sliders[kind == "lightSweep" ? "lightSweepWidth" : "liquidFlowSpeed"]
+                revealEffectParameter(slider, in: settings)
+                XCTAssertEqual(slider.value as? String, storedParameter)
+                if kind == "lightSweep" {
+                    let color = app.buttons["effectColor-#49E6FF"]
+                    for _ in 0..<5 where !color.isHittable { settings.swipeDown() }
+                    XCTAssertTrue(color.isSelected)
+                }
+            }
+            XCTAssertFalse(app.descendants(matching: .any)["effectEditorError"].exists)
+            app.buttons["effectCancel"].tap()
+        }
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        app.terminate()
+    }
+
     @MainActor func testCreativePresetsHaveFocusedEditableCurvesAndNeonColor() throws {
         let app = launchDemo()
         firstTimelineClip(app, kind: "video").tap()

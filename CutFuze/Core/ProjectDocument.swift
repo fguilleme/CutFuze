@@ -50,6 +50,7 @@ enum EffectKind: String, Codable, CaseIterable, Sendable {
     case bulge, pinch, twirl, kaleidoscope
     case comic, crystallize
     case impactZoom, shortGlitch, neon
+    case dream, lightSweep, liquidDistortion
 }
 enum KeyframeProperty: String, Codable, CaseIterable, Sendable { case x, y, scale, rotation, opacity }
 enum KeyframeEasing: String, Codable, CaseIterable, Sendable { case linear, easeIn, easeOut, easeInOut }
@@ -119,6 +120,8 @@ struct EffectInstance: Codable, Identifiable, Equatable, Sendable {
     var colorHex: String? = nil
     /// Normalized halo spread, independent of animated intensity. Nil supports older projects.
     var glowRadius: Double? = nil
+    var sweepWidth: Double? = nil
+    var liquidSpeed: Double? = nil
 }
 
 struct Keyframe: Codable, Identifiable, Equatable, Sendable {

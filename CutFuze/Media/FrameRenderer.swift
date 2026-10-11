@@ -140,7 +140,7 @@ actor FrameRenderer {
             personMask = try segmentPerson(in: image, cacheKey: key, feather: p.maskFeather)
         }
         let animationTime = time - item.globalStart + clip.animationOffset
-        for var effect in clip.effects where effect.kind != .neon {
+        for var effect in clip.effects where effect.kind != .neon && effect.kind != .lightSweep {
             guard let amount = effect.evaluatedAmount(at: animationTime), amount != 0 else { continue }
             effect.amount = amount
             image = apply(effect, to: image, time: animationTime.seconds, seed: clip.effectSeed ?? clip.id)
@@ -156,10 +156,11 @@ actor FrameRenderer {
         }
         // Contour effects must see the alpha produced by cutout/chroma/masks;
         // otherwise masking would erase their halo after it was generated.
-        for var effect in clip.effects where effect.kind == .neon {
+        for var effect in clip.effects where effect.kind == .neon || effect.kind == .lightSweep {
             guard let amount = effect.evaluatedAmount(at: animationTime), amount != 0 else { continue }
             effect.amount = amount
-            image = neon(effect, image: image, isolated: clip.kind == .text || clip.kind == .shape || personMask != nil || p.chromaKeyColor != nil || p.mask != .none)
+            if effect.kind == .lightSweep { image = lightSweep(effect, image: image, time: animationTime.seconds) }
+            else { image = neon(effect, image: image, isolated: clip.kind == .text || clip.kind == .shape || personMask != nil || p.chromaKeyColor != nil || p.mask != .none) }
         }
         let fitting = p.fill ? max(rect.width / sourceRect.width, rect.height / sourceRect.height) : min(rect.width / sourceRect.width, rect.height / sourceRect.height)
         let scale = fitting * p.scale
@@ -226,6 +227,34 @@ actor FrameRenderer {
             var split = effect; split.kind = .rgbSplit; split.amount = strength * 0.75
             return apply(split, to: displaced.cropped(to: rect), time: time, seed: seed).cropped(to: rect)
         case .neon: return neon(effect, image: image, isolated: false)
+        case .dream:
+            let strength = min(1, max(0, a))
+            let soft = image.clampedToExtent().applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: (2 + strength * 9) * radius])
+                .applyingFilter("CIBloom", parameters: [kCIInputRadiusKey: (10 + strength * 26) * radius, kCIInputIntensityKey: strength * 0.85])
+                .applyingFilter("CIColorControls", parameters: [kCIInputSaturationKey: 0.88, kCIInputContrastKey: 0.90, kCIInputBrightnessKey: 0.04])
+                .cropped(to: rect)
+            return alpha(soft, strength * 0.8).composited(over: image).cropped(to: rect)
+        case .lightSweep: return lightSweep(effect, image: image, time: time)
+        case .liquidDistortion:
+            // Smooth deterministic height field, not random frame history. Animation time
+            // remains unchanged after a cut, so the waves do not restart on the second segment.
+            let phase = time * effect.liquidFlowSpeed * 1.8
+            var bytes = [UInt8](repeating: 0, count: 64 * 64 * 4)
+            for y in 0..<64 { for x in 0..<64 {
+                let u = Double(x) / 63, v = Double(y) / 63
+                let wave = sin(u * .pi * 4 + phase + sin(v * .pi * 3 - phase * 0.7)) * 0.65
+                    + sin(v * .pi * 5 - phase * 0.9 + u * .pi * 2) * 0.35
+                let height = UInt8(min(255, max(0, (128 + wave * 100).rounded())))
+                let offset = (y * 64 + x) * 4
+                bytes[offset] = height; bytes[offset + 1] = height; bytes[offset + 2] = height; bytes[offset + 3] = 255
+            } }
+            let texture = CIImage(bitmapData: Data(bytes), bytesPerRow: 256, size: CGSize(width: 64, height: 64), format: .RGBA8, colorSpace: nil)
+                .transformed(by: .init(scaleX: rect.width / 64, y: rect.height / 64)).cropped(to: rect)
+            // Texture gradients get weaker when stretched over larger images.
+            // Calibrated against rendered edges to keep ripples visible at every output size.
+            let dimension = max(rect.width, rect.height)
+            return image.clampedToExtent().applyingFilter("CIDisplacementDistortion", parameters: ["inputDisplacementImage": texture,
+                kCIInputScaleKey: min(1, max(0, a)) * dimension * dimension * 0.02]).cropped(to: rect)
         case .pixelate: return image.applyingFilter("CIPixellate", parameters: [kCIInputScaleKey: max(1, abs(a) * 45 * radius)])
         case .shake: return image.transformed(by: CGAffineTransform(translationX: sin(time * 47) * a * 12 * radius, y: cos(time * 61) * a * 9 * radius))
         case .retro:
@@ -294,6 +323,33 @@ actor FrameRenderer {
         let halo = glowSource.applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: (2 + spread * 52) * unit])
         return alpha(outline, amount).composited(over: alpha(nearGlow, amount * 0.85))
             .composited(over: alpha(halo, amount)).composited(over: image).cropped(to: rect)
+    }
+
+    private func lightSweep(_ effect: EffectInstance, image: CIImage, time: Double) -> CIImage {
+        let rect = image.extent, length = max(1 / 60_000, effect.duration?.seconds ?? 1.2)
+        let progress = min(1, max(0, (time - (effect.start?.seconds ?? 0)) / length))
+        let normal = CGVector(dx: 0.94, dy: 0.342)
+        let halfSpan = (rect.width * normal.dx + rect.height * normal.dy) / 2
+        let width = max(rect.width, rect.height) * (0.025 + effect.lightSweepWidth * 0.22)
+        let distance = (progress * 2 - 1) * (halfSpan + width)
+        let center = CGPoint(x: rect.midX + normal.dx * distance, y: rect.midY + normal.dy * distance)
+        var bytes = [UInt8](repeating: 0, count: 64 * 64 * 4)
+        for y in 0..<64 { for x in 0..<64 {
+            let px = rect.minX + (Double(x) + 0.5) * rect.width / 64
+            let py = rect.minY + (Double(y) + 0.5) * rect.height / 64
+            let projection = normal.dx * (px - center.x) + normal.dy * (py - center.y)
+            let ramp = max(0, 1 - abs(projection) / width)
+            let value = UInt8((ramp * ramp * (3 - 2 * ramp) * 255).rounded())
+            let offset = (y * 64 + x) * 4
+            bytes[offset] = value; bytes[offset + 1] = value; bytes[offset + 2] = value; bytes[offset + 3] = 255
+        } }
+        let band = CIImage(bitmapData: Data(bytes), bytesPerRow: 256, size: CGSize(width: 64, height: 64), format: .RGBA8, colorSpace: nil)
+            .transformed(by: .init(scaleX: rect.width / 64, y: rect.height / 64)).cropped(to: rect).applyingFilter("CIMaskToAlpha")
+        let transparent = CIImage(color: .clear).cropped(to: rect)
+        let light = CIImage(color: color(effect.colorHex ?? "#FFD58A")).cropped(to: rect)
+            .applyingFilter("CIBlendWithAlphaMask", parameters: [kCIInputBackgroundImageKey: transparent, kCIInputMaskImageKey: band])
+            .applyingFilter("CIBlendWithAlphaMask", parameters: [kCIInputBackgroundImageKey: transparent, kCIInputMaskImageKey: image])
+        return alpha(light, min(1, max(0, effect.amount))).composited(over: image).cropped(to: rect)
     }
 
     private func segmentPerson(in image: CIImage, cacheKey: String, feather: Double) throws -> CIImage {

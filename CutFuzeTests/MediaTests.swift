@@ -15,26 +15,28 @@ import UIKit
         let original = Clip(assetID: asset.id, kind: .image, duration: .init(seconds: 1), sourceDuration: .init(seconds: 1))
         let plain = ProjectDocument(assets: [asset], scenes: [.init(duration: .init(seconds: 1), clips: [original])])
         let baseline = try await renderer.render(plan: .compile(document: plain, variantID: nil), time: .init(seconds: 0.15), rootURL: root, size: size)
-        for kind in [EffectKind.impactZoom, .shortGlitch, .neon] {
+        for kind in [EffectKind.impactZoom, .shortGlitch, .neon, .dream, .lightSweep, .liquidDistortion] {
+            let sampleTime = MediaTime(seconds: kind == .lightSweep ? 0.5 : 0.15)
             var doc = plain
             doc.scenes[0].clips[0].effects = [.readyToUse(kind, duration: .init(seconds: 1))]
             let plan = RenderPlan.compile(document: doc, variantID: nil)
-            let image = try await renderer.render(plan: plan, time: .init(seconds: 0.15), rootURL: root, size: size)
+            let image = try await renderer.render(plan: plan, time: sampleTime, rootURL: root, size: size)
             XCTAssertNotEqual(image.dataProvider?.data as Data?, baseline.dataProvider?.data as Data?, "\(kind) must visibly change a patterned image")
-            let repeated = try await renderer.render(plan: plan, time: .init(seconds: 0.15), rootURL: root, size: size)
+            let repeated = try await renderer.render(plan: plan, time: sampleTime, rootURL: root, size: size)
             XCTAssertEqual(image.dataProvider?.data as Data?, repeated.dataProvider?.data as Data?)
             try DocumentEditor.splitClip(original.id, at: .init(seconds: 0.12), in: &doc)
-            let split = try await renderer.render(plan: .compile(document: doc, variantID: nil), time: .init(seconds: 0.15), rootURL: root, size: size)
+            let split = try await renderer.render(plan: .compile(document: doc, variantID: nil), time: sampleTime, rootURL: root, size: size)
             XCTAssertEqual(image.dataProvider?.data as Data?, split.dataProvider?.data as Data?, "\(kind) must keep the same phase after splitting")
             let attachment = XCTAttachment(image: UIImage(cgImage: image)); attachment.name = "creative-render-\(kind.rawValue)"; attachment.lifetime = .keepAlways; add(attachment)
             let movie = root.appendingPathComponent("\(kind.rawValue).mp4")
             let settings = MovieExportSettings(longEdge: 160, frameRate: 24, bitrate: 1_000_000)
             _ = try await MovieExporter().export(document: doc, variantID: doc.variants[1].id, rootURL: root, settings: settings, outputURL: movie, progress: { _ in })
-            let expected = try await renderer.render(plan: .compile(document: doc, variantID: doc.variants[1].id), time: .init(seconds: 0.125), rootURL: root, size: size)
+            let exportTime = kind == .lightSweep ? 0.5 : 0.125
+            let expected = try await renderer.render(plan: .compile(document: doc, variantID: doc.variants[1].id), time: .init(seconds: exportTime), rootURL: root, size: size)
             let generator = AVAssetImageGenerator(asset: AVURLAsset(url: movie)); generator.appliesPreferredTrackTransform = true
             generator.requestedTimeToleranceBefore = .zero; generator.requestedTimeToleranceAfter = .zero
-            let frame = try await generator.image(at: CMTime(seconds: 0.125, preferredTimescale: 24))
-            XCTAssertEqual(frame.actualTime.seconds, 0.125, accuracy: 0.0001, "Compare the exact animated frame, not a nearby keyframe")
+            let frame = try await generator.image(at: CMTime(seconds: exportTime, preferredTimescale: 24))
+            XCTAssertEqual(frame.actualTime.seconds, exportTime, accuracy: 0.0001, "Compare the exact animated frame, not a nearby keyframe")
             let decoded = frame.image
             var totalError = 0
             for y in stride(from: 10, to: 150, by: 5) { for x in stride(from: 10, to: 150, by: 5) {
@@ -43,10 +45,57 @@ import UIKit
             } }
             XCTAssertLessThan(Double(totalError) / (28 * 28 * 3), 15, "\(kind) preview and export agree after a cut")
             let exported = XCTAttachment(contentsOfFile: movie); exported.name = "creative-export-\(kind.rawValue)"; exported.lifetime = .keepAlways; add(exported)
-            if kind != .neon {
+            if kind == .impactZoom || kind == .shortGlitch {
                 let outside = try await renderer.render(plan: plan, time: .init(seconds: 0.6), rootURL: root, size: size)
                 XCTAssertEqual(outside.dataProvider?.data as Data?, baseline.dataProvider?.data as Data?)
             }
+        }
+    }
+
+    func testLiquidWavesMoveOverTimeAndRespectSpeedAndNeutralIntensity() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("pattern.png"); try imageFixture(at: url)
+        let asset = try await MediaImporter().importFile(url: url, to: root)
+        let clip = Clip(assetID: asset.id, kind: .image, duration: .init(seconds: 1), sourceDuration: .init(seconds: 1), effects: [.readyToUse(.liquidDistortion, duration: .init(seconds: 1))])
+        var doc = ProjectDocument(assets: [asset], globalClips: [clip])
+        let renderer = FrameRenderer(softwareRendering: true), size = CGSize(width: 160, height: 160)
+        let first = try await renderer.render(plan: .compile(document: doc, variantID: nil), time: .init(seconds: 0.2), rootURL: root, size: size)
+        let boundaries = stride(from: 20, to: 145, by: 15).compactMap { y in
+            (20..<140).first { x in let rgba = pixel(first, x: x, y: y); return rgba[2] > rgba[0] }
+        }
+        XCTAssertGreaterThan((boundaries.max() ?? 0) - (boundaries.min() ?? 0), 2, "A straight edge must visibly ripple, not merely shift as one flat plane")
+        let later = try await renderer.render(plan: .compile(document: doc, variantID: nil), time: .init(seconds: 0.7), rootURL: root, size: size)
+        XCTAssertNotEqual(first.dataProvider?.data as Data?, later.dataProvider?.data as Data?, "Liquid must move, not be a static distortion")
+        doc.globalClips[0].effects[0].liquidSpeed = 2
+        let faster = try await renderer.render(plan: .compile(document: doc, variantID: nil), time: .init(seconds: 0.7), rootURL: root, size: size)
+        XCTAssertNotEqual(faster.dataProvider?.data as Data?, later.dataProvider?.data as Data?)
+        doc.globalClips[0].effects[0].amount = 0
+        let zero = try await renderer.render(plan: .compile(document: doc, variantID: nil), time: .init(seconds: 0.7), rootURL: root, size: size)
+        doc.globalClips[0].effects = []
+        let plain = try await renderer.render(plan: .compile(document: doc, variantID: nil), time: .init(seconds: 0.7), rootURL: root, size: size)
+        XCTAssertEqual(zero.dataProvider?.data as Data?, plain.dataProvider?.data as Data?)
+        for (name, image) in [("liquid-first", first), ("liquid-later", later)] {
+            let attachment = XCTAttachment(image: UIImage(cgImage: image)); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+        }
+    }
+
+    func testLightSweepMovesAcrossMaskedLayerWithoutLightingOutsideIt() async throws {
+        let root = try temporaryRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        var effect = EffectInstance.readyToUse(.lightSweep, duration: .init(seconds: 1))
+        effect.start = .init(seconds: 0.2); effect.duration = .init(seconds: 0.6); effect.amountKeyframes = nil; effect.amount = 1
+        var clip = shape("#303030", duration: 1); clip.effects = [effect]
+        clip.presentation.mask = .rectangle; clip.presentation.maskWidth = 0.6; clip.presentation.maskHeight = 0.6
+        let doc = ProjectDocument(globalClips: [clip]), renderer = FrameRenderer(softwareRendering: true), size = CGSize(width: 160, height: 160)
+        let early = try await renderer.render(plan: .compile(document: doc, variantID: doc.variants[1].id), time: .init(seconds: 0.38), rootURL: root, size: size)
+        let late = try await renderer.render(plan: .compile(document: doc, variantID: doc.variants[1].id), time: .init(seconds: 0.62), rootURL: root, size: size)
+        XCTAssertGreaterThan(Int(pixel(early, x: 40, y: 80)[0]), Int(pixel(late, x: 40, y: 80)[0]) + 20)
+        XCTAssertGreaterThan(Int(pixel(late, x: 120, y: 80)[0]), Int(pixel(early, x: 120, y: 80)[0]) + 20)
+        XCTAssertEqual(pixel(early, x: 10, y: 80)[0], 0, "The reflection must respect the mask alpha")
+        let before = try await renderer.render(plan: .compile(document: doc, variantID: doc.variants[1].id), time: .init(seconds: 0.1), rootURL: root, size: size)
+        let after = try await renderer.render(plan: .compile(document: doc, variantID: doc.variants[1].id), time: .init(seconds: 0.9), rootURL: root, size: size)
+        XCTAssertEqual(before.dataProvider?.data as Data?, after.dataProvider?.data as Data?)
+        for (name, image) in [("sweep-early", early), ("sweep-late", late)] {
+            let attachment = XCTAttachment(image: UIImage(cgImage: image)); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
         }
     }
 

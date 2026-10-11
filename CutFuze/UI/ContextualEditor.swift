@@ -69,7 +69,7 @@ fileprivate enum EffectCategory: String, CaseIterable, Identifiable {
         switch self {
         case .beauty: [.skinSmooth, .skinGlow, .sharpness]
         case .geometry: [.bulge, .pinch, .twirl, .kaleidoscope, .pixelate]
-        case .creative: [.impactZoom, .shortGlitch, .neon, .comic, .crystallize, .glow, .rgbSplit, .shake, .retro, .grain, .vignette, .blur, .fade]
+        case .creative: [.dream, .lightSweep, .liquidDistortion, .impactZoom, .shortGlitch, .neon, .comic, .crystallize, .glow, .rgbSplit, .shake, .retro, .grain, .vignette, .blur, .fade]
         case .light: [.exposure, .brightness, .contrast, .saturation, .temperature, .tint, .highlights, .shadows]
         }
     }
@@ -534,6 +534,9 @@ private func effectSymbol(_ kind: EffectKind) -> String {
     case .impactZoom: "burst.fill"
     case .shortGlitch: "bolt.horizontal.fill"
     case .neon: "lightbulb.max.fill"
+    case .dream: "cloud.sun.fill"
+    case .lightSweep: "rays"
+    case .liquidDistortion: "water.waves"
     }
 }
 
