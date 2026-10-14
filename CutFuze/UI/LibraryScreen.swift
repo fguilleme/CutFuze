@@ -7,6 +7,7 @@ struct LibraryScreen: View {
     @State private var collection = ""
     @State private var showImport = false
     @State private var showSettings = false
+    @State private var showHelp = false
     @State private var showTemplates = false
     @State private var editing: ProjectDocument?
     @State private var deleting: ProjectDocument?
@@ -46,6 +47,10 @@ struct LibraryScreen: View {
                         }.padding(.vertical, 12)
                     }
                     exampleCard
+                    Button { showHelp = true } label: {
+                        Label(AppLocalization.bilingual("Aide et tutoriel", "Help and tutorial"), systemImage: "book")
+                            .font(.headline).frame(maxWidth: .infinity, minHeight: 48)
+                    }.buttonStyle(.bordered).accessibilityIdentifier("openHelp")
                     HStack(spacing: 8) { Image(systemName: "lock.shield"); Text(L("Vos médias restent sur cet appareil.")) }.font(.caption).foregroundStyle(.secondary).padding(.bottom, 16)
                 }.padding(22).frame(maxWidth: 900)
             }.frame(maxWidth: .infinity).background(DesignTokens.paper).foregroundStyle(DesignTokens.ink)
@@ -54,6 +59,7 @@ struct LibraryScreen: View {
         .overlay { if workspace.busy { ZStack { Color.black.opacity(0.2).ignoresSafeArea(); ProgressView(L("Préparation…")).padding(26).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18)) } } }
         .fileImporter(isPresented: $showImport, allowedContentTypes: [.init(exportedAs: "com.guilleme.cutfuze.project"), .data]) { result in switch result { case .success(let url): workspace.importProject(url); case .failure(let error): workspace.error = error.localizedDescription } }
         .sheet(isPresented: $showSettings) { SettingsScreen() }
+        .sheet(isPresented: $showHelp) { HelpScreen() }
         .sheet(isPresented: $showTemplates) { TemplatesScreen(workspace: workspace) }
         .sheet(item: $editing) { doc in RenameProjectSheet(document: doc) { title, collection in workspace.update(doc, title: title, collection: collection) } }
         .confirmationDialog(L("Supprimer ce projet ?"), isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) { Button(L("Supprimer"), role: .destructive) { if let doc = deleting { workspace.delete(doc) }; deleting = nil } } message: { Text(L("Le document sera supprimé. Les originaux partagés sont conservés.")) }
@@ -61,7 +67,12 @@ struct LibraryScreen: View {
     }
     private var header: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack { FrameMark(); Text("CutFuze").font(.system(size: 20, weight: .bold, design: .rounded)); Spacer(); Button { showSettings = true } label: { Image(systemName: "slider.horizontal.3").font(.title3).frame(width: 44, height: 44) }.accessibilityLabel(L("Réglages")) }
+            HStack {
+                FrameMark(); Text("CutFuze").font(.system(size: 20, weight: .bold, design: .rounded)); Spacer()
+                Button { showHelp = true } label: { Image(systemName: "questionmark.circle").font(.title3).frame(width: 44, height: 44) }
+                    .accessibilityLabel(AppLocalization.bilingual("Aide et tutoriel", "Help and tutorial")).accessibilityIdentifier("libraryHelp")
+                Button { showSettings = true } label: { Image(systemName: "slider.horizontal.3").font(.title3).frame(width: 44, height: 44) }.accessibilityLabel(L("Réglages"))
+            }
             Text(L("Votre atelier de montage.")).font(.system(size: 36, weight: .semibold, design: .serif)).tracking(-0.8).fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -130,9 +141,13 @@ struct RenameProjectSheet: View {
 struct SettingsScreen: View {
     @AppStorage("reversedLayout") private var reversed = false
     @Environment(\.dismiss) private var dismiss
+    @State private var showHelp = false
     var body: some View { NavigationStack { Form {
         Section(L("Propriétés")) { Toggle(L("Disposition inversée"), isOn: $reversed) }
+        Section(AppLocalization.bilingual("Aide", "Help")) {
+            Button { showHelp = true } label: { Label(AppLocalization.bilingual("Aide et tutoriel", "Help and tutorial"), systemImage: "book") }
+        }
         Section(L("Confidentialité")) { Label(L("Local, sans compte"), systemImage: "lock.shield"); Text(L("Aucun transfert automatique. Le partage est toujours déclenché par vous.")); Text(L("Vos médias restent sur cet appareil.")) }
         Section(L("Informations")) { Text("CutFuze · 1.0"); Text(L("Nom de développement provisoire. Aucune affiliation à un autre éditeur.")).font(.footnote) }
-    }.navigationTitle(L("Réglages")).toolbar { Button(L("Fermer")) { dismiss() } } } }
+    }.navigationTitle(L("Réglages")).toolbar { Button(L("Fermer")) { dismiss() } } }.sheet(isPresented: $showHelp) { HelpScreen() } }
 }

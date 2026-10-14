@@ -17,6 +17,14 @@ Un montage, plusieurs sorties : **9:16, 1:1 et 16:9** partagent les coupes, les 
 
 Captures réelles sur simulateurs, réalisées le **9 octobre 2026** avec les médias originaux du projet exemple. Elles illustrent l’éditeur à cette date ; les ajouts récents sont décrits ci-dessous. [Galerie iPhone](Docs/AppStore/Screenshots-iPhone-6.1-6.3-2026-10-09/README.md) · [Galerie iPad et provenance](Docs/AppStore/Screenshots-2026-10-09/README.md).
 
+### Documentation et tutoriel
+
+[Guide utilisateur détaillé](Docs/UserGuide.fr.md) · [Tutoriel : votre premier montage](Docs/Tutorial.fr.md)
+
+L’aide répond aux questions courantes sur l’import, la timeline, les textes, les sous-titres, le son, les effets et l’export. Les premiers pas accompagnent la création d’une vidéo en six étapes courtes, avec captures et schémas.
+
+Dans l’app, ouvrir **Aide et tutoriel** depuis le bouton **?** de la bibliothèque ou de l’éditeur, ou depuis les réglages. **Aide** présente les sujets à consulter ; **Premiers pas** affiche une étape à la fois et garde votre place lorsque vous revenez au montage. Le contenu fonctionne hors ligne et suit la langue de l’appareil. Après une modification des guides, exécuter `sh Scripts/sync-help.sh` pour mettre à jour leurs copies embarquées avant compilation.
+
 ### Fonctionnalités
 
 - **Timeline** : import Photos/Fichiers, sélection, déplacement, trim, division, duplication, snapping, zoom temporel, undo/redo et transitions entre scènes. Miniatures vidéo et formes d’onde audio servent de repères.
@@ -30,7 +38,7 @@ Captures réelles sur simulateurs, réalisées le **9 octobre 2026** avec les m�
 
 ### Ouvrir et lancer
 
-1. Ouvrir `CutFuze.xcodeproj` avec **Xcode 27 ou ultérieur**. Le projet cible actuellement **iOS/iPadOS 27.0**.
+1. Ouvrir `CutFuze.xcodeproj` avec **Xcode 27 ou ultérieur**. Le projet cible actuellement **iOS/iPadOS 26.0**.
 2. Choisir le schéma partagé **CutFuze** et un simulateur iPhone ou iPad compatible, puis lancer l’application.
 3. Sur appareil physique, configurer votre équipe dans **Signing & Capabilities** et vérifier le Bundle ID. Les identifiants de développement du dépôt ne constituent pas une configuration de distribution.
 4. Dans la bibliothèque, ouvrir le projet exemple : une histoire originale de 30 secondes, avec trois scènes, titres, sous-titres et son de référence. Aucun accès Photos n’est nécessaire.
@@ -94,6 +102,14 @@ One edit, several outputs: **9:16, 1:1 and 16:9** share cuts, text and audio whi
 
 Genuine simulator screenshots captured on **October 9, 2026**, using the original demo project's media. They show the editor at that date; recent additions are described below. [iPhone gallery](Docs/AppStore/Screenshots-iPhone-6.1-6.3-2026-10-09/README.md) · [iPad gallery and provenance](Docs/AppStore/Screenshots-2026-10-09/README.md).
 
+### Documentation and tutorial
+
+[Detailed user guide](Docs/UserGuide.en.md) · [Tutorial: your first edit](Docs/Tutorial.en.md)
+
+Help answers common questions about importing, timeline editing, text, captions, sound, effects and export. First steps walks through creating a video in six short steps with screenshots and diagrams.
+
+In the app, open **Help and tutorial** using the **?** button in the library or editor, or through Settings. **Help** lists topics to consult; **First steps** shows one step at a time and keeps your place when you return to editing. Content works offline and follows the device language. After editing the guides, run `sh Scripts/sync-help.sh` to refresh the bundled copies before building.
+
 ### Features
 
 - **Timeline**: Photos/Files import, selection, moving, trimming, splitting, duplication, snapping, temporal zoom, undo/redo and scene transitions. Video thumbnails and audio waveforms provide visual references.
@@ -107,7 +123,7 @@ Genuine simulator screenshots captured on **October 9, 2026**, using the origina
 
 ### Build and run
 
-1. Open `CutFuze.xcodeproj` in **Xcode 27 or later**. The project currently targets **iOS/iPadOS 27.0**.
+1. Open `CutFuze.xcodeproj` in **Xcode 27 or later**. The project currently targets **iOS/iPadOS 26.0**.
 2. Select the shared **CutFuze** scheme and a compatible iPhone or iPad simulator, then run the app.
 3. For a physical device, configure your own team in **Signing & Capabilities** and check the Bundle ID. The repository's development identifiers are not a distribution setup.
 4. Open the sample project from the library: an original 30-second story with three scenes, titles, captions and reference audio. No Photos access is required.

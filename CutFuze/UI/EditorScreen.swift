@@ -12,6 +12,7 @@ struct EditorScreen: View {
     @State private var showAudioFiles = false
     @State private var showAudioLibrary = false
     @State private var showExport = false
+    @State private var showHelp = false
     @State private var showCompare = false
     @State private var showStory = false
     @State private var showCaptions = false
@@ -94,6 +95,7 @@ struct EditorScreen: View {
             switch result { case .success(let urls): model.importFiles(urls); case .failure(let error): model.error = error.localizedDescription }
         }
         .sheet(isPresented: $showExport) { ExportScreen(model: model) }
+        .sheet(isPresented: $showHelp) { HelpScreen() }
         .sheet(isPresented: $showCompare) { VariantComparison(model: model) }
         .sheet(isPresented: $showStory) { StoryModeSheet(model: model) }
         .sheet(isPresented: $showCaptions, onDismiss: { captionEditorInitialID = nil }) { CaptionEditorSheet(model: model, initialSelectionID: captionEditorInitialID) }
@@ -134,6 +136,9 @@ struct EditorScreen: View {
                 Text(model.document.title).font(.subheadline.weight(.semibold)).lineLimit(1)
                 HStack(spacing: 4) { Image(systemName: model.saved ? "checkmark.circle.fill" : "circle.dotted"); Text(L(model.saved ? "Sauvegardé" : "Sauvegarde…")) }.font(.system(size: 9, weight: .medium)).foregroundStyle(DesignTokens.muted)
             }.frame(maxWidth: .infinity, alignment: .leading)
+            Button { model.stop(); showHelp = true } label: {
+                Image(systemName: "questionmark.circle").frame(width: 44, height: 44)
+            }.accessibilityLabel(AppLocalization.bilingual("Aide et tutoriel", "Help and tutorial")).accessibilityIdentifier("editorHelp")
             IconButton(symbol: "arrow.uturn.backward", label: "Annuler la modification", action: model.undo).disabled(!model.canUndo).opacity(model.canUndo ? 1 : 0.3)
             IconButton(symbol: "arrow.uturn.forward", label: "Rétablir", action: model.redo).disabled(!model.canRedo).opacity(model.canRedo ? 1 : 0.3)
             Button { model.stop(); showExport = true } label: { Image(systemName: "square.and.arrow.up").font(.system(size: 17, weight: .semibold)).frame(width: 44, height: 42).background(DesignTokens.amber, in: RoundedRectangle(cornerRadius: 12)).foregroundStyle(DesignTokens.ink) }
