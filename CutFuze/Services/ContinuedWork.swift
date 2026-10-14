@@ -39,7 +39,13 @@ import Combine
         let request = BGContinuedProcessingTaskRequest(identifier: id, title: title, subtitle: AppLocalization.bilingual("Traitement en cours", "Processing"))
         // No GPU entitlement required: exports use the CPU Core Image renderer.
         request.strategy = .fail
-        do { try await BGTaskScheduler.shared.submitTaskRequest(request) }
+        do {
+            if #available(iOS 27.0, *) {
+                try await BGTaskScheduler.shared.submitTaskRequest(request)
+            } else {
+                try BGTaskScheduler.shared.submit(request)
+            }
+        }
         catch { if identifier == id, !finished { unavailable() } }
     }
 

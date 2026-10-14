@@ -119,6 +119,7 @@ enum ExtraStrings {
         "À la suite du montage": "At the end of the edit",
         "Ajouter ou mettre à jour le point": "Add or update point",
         "Appliquer": "Apply",
+        "Appliqués": "Applied",
         "Appliquer le fondu": "Apply fade",
         "Calques": "Layers",
         "Chaque image ou vidéo devient une nouvelle scène à la fin.": "Each image or video becomes a new scene at the end.",

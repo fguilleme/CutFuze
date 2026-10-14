@@ -59,13 +59,8 @@ enum CaptionIntelligence {
                 if Task.isCancelled || error is CancellationError { throw CancellationError() }
                 let message: String
                 if let error = error as? CaptionReviewFailure { message = error.message }
-                else if let error = error as? LanguageModelError {
-                    switch error {
-                    case .unsupportedLanguageOrLocale: message = "Cette langue n’est pas prise en charge par Apple Intelligence."
-                    case .guardrailViolation: message = "Le filtre de contenu d’Apple Intelligence a bloqué la relecture. Aucun sous-titre n’a été modifié."
-                    case .refusal: message = "Apple Intelligence a refusé cette relecture. Aucun sous-titre n’a été modifié."
-                    default: message = "La relecture a échoué. Réessayez avec un seul segment. Aucun sous-titre n’a été modifié."
-                    }
+                else if #available(iOS 27.0, *), let error = error as? LanguageModelError {
+                    message = Self.message(for: error)
                 } else { message = "La relecture a échoué. Réessayez avec un seul segment. Aucun sous-titre n’a été modifié." }
                 throw CaptionReviewFailure(message: message, start: batch.first?.start, end: batch.last?.end)
             }
@@ -73,5 +68,15 @@ enum CaptionIntelligence {
             progress(completed, inputs.count)
         }
         return corrections
+    }
+
+    @available(iOS 27.0, *)
+    private static func message(for error: LanguageModelError) -> String {
+        switch error {
+        case .unsupportedLanguageOrLocale: "Cette langue n’est pas prise en charge par Apple Intelligence."
+        case .guardrailViolation: "Le filtre de contenu d’Apple Intelligence a bloqué la relecture. Aucun sous-titre n’a été modifié."
+        case .refusal: "Apple Intelligence a refusé cette relecture. Aucun sous-titre n’a été modifié."
+        default: "La relecture a échoué. Réessayez avec un seul segment. Aucun sous-titre n’a été modifié."
+        }
     }
 }

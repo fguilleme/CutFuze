@@ -73,7 +73,7 @@ import Combine
                 let session = AVAudioSession.sharedInstance()
                 previousSession = (session.category, session.mode, session.categoryOptions)
                 try session.setCategory(.playback, mode: .default)
-                let activation = Task { try await session.activate(options: []) }
+                let activation = Task { try await Self.activate(session) }
                 sessionOperation = activation
                 guard try await activation.value else { throw CaptionReviewFailure(message: "Impossible de lire le son de ce segment.") }
                 try Task.checkCancellation()
@@ -108,10 +108,26 @@ import Combine
             // Serialize deactivation/restoration before a new audition activates.
             sessionOperation = Task {
                 _ = try? await previousOperation?.value
-                _ = try? await session.deactivate(options: .notifyOthersOnDeactivation)
+                await Self.deactivate(session)
                 try? session.setCategory(previousSession.0, mode: previousSession.1, options: previousSession.2)
                 return true
             }
+        }
+    }
+
+    private static func activate(_ session: AVAudioSession) async throws -> Bool {
+        if #available(iOS 27.0, *) {
+            return try await session.activate(options: [])
+        }
+        try session.setActive(true)
+        return true
+    }
+
+    private static func deactivate(_ session: AVAudioSession) async {
+        if #available(iOS 27.0, *) {
+            _ = try? await session.deactivate(options: .notifyOthersOnDeactivation)
+        } else {
+            try? session.setActive(false, options: .notifyOthersOnDeactivation)
         }
     }
 }

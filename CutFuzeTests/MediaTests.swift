@@ -566,16 +566,22 @@ import UIKit
         let larger = MovieExportSettings(longEdge: 3840, frameRate: 60, qualityProfile: .balanced)
         XCTAssertGreaterThan(larger.estimatedBitrate(for: variant), balanced.estimatedBitrate(for: variant) * 7)
         let cq = balanced.compressionProperties(for: variant, supportsConstantQuality: true, supportsQualityPriority: true)
-        XCTAssertEqual(cq[kVTCompressionPropertyKey_ConstantQualityFactor as String] as? Double, 0.72)
-        XCTAssertNil(cq[AVVideoAverageBitRateKey])
+        if #available(iOS 27.0, *) {
+            XCTAssertEqual(cq[kVTCompressionPropertyKey_ConstantQualityFactor as String] as? Double, 0.72)
+            XCTAssertNil(cq[AVVideoAverageBitRateKey])
+        } else {
+            XCTAssertEqual(cq[AVVideoAverageBitRateKey] as? Int, balanced.estimatedBitrate(for: variant))
+        }
         XCTAssertEqual(cq[kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality as String] as? Bool, false)
         let fallback = balanced.compressionProperties(for: variant, supportsConstantQuality: false, supportsQualityPriority: false)
         XCTAssertEqual(fallback[AVVideoAverageBitRateKey] as? Int, balanced.estimatedBitrate(for: variant))
-        XCTAssertNil(fallback[kVTCompressionPropertyKey_ConstantQualityFactor as String])
         let manual = MovieExportSettings(bitrate: 4_000_000)
         let properties = manual.compressionProperties(for: variant, supportsConstantQuality: true, supportsQualityPriority: true)
         XCTAssertEqual(properties[AVVideoAverageBitRateKey] as? Int, 4_000_000)
-        XCTAssertNil(properties[kVTCompressionPropertyKey_ConstantQualityFactor as String])
+        if #available(iOS 27.0, *) {
+            XCTAssertNil(fallback[kVTCompressionPropertyKey_ConstantQualityFactor as String])
+            XCTAssertNil(properties[kVTCompressionPropertyKey_ConstantQualityFactor as String])
+        }
     }
 
     func testQualityProfilesProduceVerifiedH264AndHEVCFiles() async throws {
@@ -590,7 +596,7 @@ import UIKit
                 let output = root.appendingPathComponent("\(codec.rawValue)-\(profile.rawValue).mp4")
                 let supported = settings.supportedEncoderProperties(for: doc.variants[0])
                 let receipt = try await MovieExporter().export(document: doc, variantID: doc.variants[0].id, rootURL: root, settings: settings, outputURL: output, progress: { _ in })
-                XCTAssertEqual(receipt.constantQuality, supported.contains(kVTCompressionPropertyKey_ConstantQualityFactor as String))
+                XCTAssertEqual(receipt.constantQuality, settings.supportsConstantQuality(in: supported))
                 XCTAssertEqual(receipt.frameRate, 30, accuracy: 0.1)
                 XCTAssertGreaterThan(try Data(contentsOf: output).count, 500)
                 let generator = AVAssetImageGenerator(asset: AVURLAsset(url: output)); generator.appliesPreferredTrackTransform = true

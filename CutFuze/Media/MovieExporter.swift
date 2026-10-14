@@ -30,8 +30,8 @@ struct MovieExportSettings: Equatable, Sendable {
     }
     func compressionProperties(for variant: OutputVariant, supportsConstantQuality: Bool, supportsQualityPriority: Bool) -> [String: Any] {
         var properties: [String: Any] = [AVVideoExpectedSourceFrameRateKey: frameRate, AVVideoMaxKeyFrameIntervalKey: frameRate * 2]
-        if let qualityProfile, supportsConstantQuality {
-            properties[kVTCompressionPropertyKey_ConstantQualityFactor as String] = qualityProfile.factor
+        if let qualityProfile, supportsConstantQuality, #available(iOS 27.0, *) {
+            properties[Self.constantQualityPropertyKey] = qualityProfile.factor
         } else {
             properties[AVVideoAverageBitRateKey] = estimatedBitrate(for: variant)
         }
@@ -39,6 +39,16 @@ struct MovieExportSettings: Equatable, Sendable {
             properties[kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality as String] = false
         }
         return properties
+    }
+    func supportsConstantQuality(in properties: Set<String>) -> Bool {
+        if #available(iOS 27.0, *) {
+            return properties.contains(Self.constantQualityPropertyKey)
+        }
+        return false
+    }
+    @available(iOS 27.0, *)
+    private static var constantQualityPropertyKey: String {
+        kVTCompressionPropertyKey_ConstantQualityFactor as String
     }
     func supportedEncoderProperties(for variant: OutputVariant) -> Set<String> {
         let size = dimensions(for: variant)
@@ -98,7 +108,7 @@ actor MovieExporter {
         let parent = outputURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
         let supported = settings.supportedEncoderProperties(for: plan.variant)
-        let constantQuality = settings.qualityProfile != nil && supported.contains(kVTCompressionPropertyKey_ConstantQualityFactor as String)
+        let constantQuality = settings.qualityProfile != nil && settings.supportsConstantQuality(in: supported)
         // Quality-driven output has no fixed size; reserve conservatively and check while writing.
         try MediaFiles.checkSpace(at: parent, bytes: Int64(plan.duration.seconds * Double(settings.estimatedBitrate(for: plan.variant) + 256_000) / 8 * (constantQuality ? 3 : 1.25)) + 16_777_216)
         let temporary = parent.appendingPathComponent(".\(UUID().uuidString).mp4")
