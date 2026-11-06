@@ -331,6 +331,7 @@ actor FrameRenderer {
         case .highlights: return image.applyingFilter("CIHighlightShadowAdjust", parameters: ["inputHighlightAmount": 1 - a])
         case .shadows: return image.applyingFilter("CIHighlightShadowAdjust", parameters: ["inputShadowAmount": a])
         case .sharpness: return image.applyingFilter("CISharpenLuminance", parameters: [kCIInputSharpnessKey: a])
+        case .clarity4K: return clarity4K(effect, image: image)
         case .vignette: return image.applyingFilter("CIVignette", parameters: [kCIInputIntensityKey: max(0, a) * 2, kCIInputRadiusKey: min(rect.width, rect.height) * 0.6])
         case .fade: return image.applyingFilter("CIColorControls", parameters: [kCIInputBrightnessKey: a * 0.15, kCIInputContrastKey: 1 - a * 0.25])
         case .blur: return image.clampedToExtent().applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: abs(a) * 24 * radius]).cropped(to: rect)
@@ -455,6 +456,47 @@ actor FrameRenderer {
             let noise = CIImage(bitmapData: Data(bytes), bytesPerRow: 256, size: CGSize(width: 64, height: 64), format: .RGBA8, colorSpace: CGColorSpaceCreateDeviceRGB()).transformed(by: .init(scaleX: rect.width / 64, y: rect.height / 64))
             return alpha(noise, min(0.35, abs(a) * 0.25)).applyingFilter("CISoftLightBlendMode", parameters: [kCIInputBackgroundImageKey: image])
         }
+    }
+
+    /// A resolution-independent clarity look, not super-resolution. Mild denoising
+    /// precedes fine sharpening to avoid exaggerating compression noise. The wider
+    /// unsharp pass adds local contrast; clamp/crop prevents dark image borders.
+    private func clarity4K(_ effect: EffectInstance, image: CIImage) -> CIImage {
+        let rect = image.extent
+        let detail = effect.clarityDetailAmount, clarity = effect.clarityContrastAmount
+        let colorBoost = effect.clarityColorAmount
+        guard detail > 0 || clarity > 0 || colorBoost > 0 else { return image }
+        let unit = max(rect.width, rect.height) / 720
+        var processed = image
+        if detail > 0 {
+            processed = processed.clampedToExtent().applyingFilter("CINoiseReduction", parameters: [
+                "inputNoiseLevel": detail * 0.012, "inputSharpness": 0
+            ]).cropped(to: rect)
+            processed = processed.clampedToExtent().applyingFilter("CIUnsharpMask", parameters: [
+                kCIInputRadiusKey: max(0.35, unit * 1.2), kCIInputIntensityKey: detail * 1.5
+            ]).cropped(to: rect)
+        }
+        if clarity > 0 {
+            processed = processed.clampedToExtent().applyingFilter("CIUnsharpMask", parameters: [
+                kCIInputRadiusKey: max(1, unit * 12), kCIInputIntensityKey: clarity * 0.55
+            ]).cropped(to: rect)
+            processed = processed.applyingFilter("CIColorControls", parameters: [kCIInputContrastKey: 1 + clarity * 0.12])
+        }
+        if colorBoost > 0 {
+            processed = processed.applyingFilter("CIVibrance", parameters: ["inputAmount": colorBoost * 0.45])
+        }
+        // Restrict the final look to displayable values before mixing intensity.
+        // Preserve source alpha exactly, including translucent image overlays.
+        processed = processed.applyingFilter("CIColorClamp", parameters: [
+            "inputMinComponents": CIVector(x: 0, y: 0, z: 0, w: 0),
+            "inputMaxComponents": CIVector(x: 1, y: 1, z: 1, w: 1)
+        ]).applyingFilter("CIColorMatrix", parameters: [
+            "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+            "inputBiasVector": CIVector(x: 0, y: 0, z: 0, w: 1)
+        ]).applyingFilter("CIBlendWithAlphaMask", parameters: [
+            kCIInputBackgroundImageKey: CIImage(color: .clear).cropped(to: rect), kCIInputMaskImageKey: image
+        ])
+        return mixEffect(processed, over: image, amount: effect.amount)
     }
 
     /// Interpolate pixels (including alpha), without duplicating translucent layers

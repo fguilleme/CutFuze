@@ -57,6 +57,7 @@ enum EffectKind: String, Codable, CaseIterable, Sendable {
     case directionalBlur, popHalftone, duotone
     case lensPulse, ghostTrail, stopMotion
     case roughEdges, writeOn, timeScan
+    case clarity4K
 }
 enum KeyframeProperty: String, Codable, CaseIterable, Sendable {
     case x, y, scale, rotation, opacity, volume
@@ -150,6 +151,10 @@ struct EffectInstance: Codable, Identifiable, Equatable, Sendable {
     var scanDuration: Double? = nil
     var scanStart: MediaTime? = nil
     var scanLineVisible: Bool? = nil
+    /// Independent controls for the clarity look; optional for older project files.
+    var clarityDetail: Double? = nil
+    var clarityContrast: Double? = nil
+    var clarityColor: Double? = nil
 }
 
 struct Keyframe: Codable, Identifiable, Equatable, Sendable {

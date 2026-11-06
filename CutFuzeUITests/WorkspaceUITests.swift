@@ -1,6 +1,43 @@
 import XCTest
 
 final class WorkspaceUITests: XCTestCase {
+    @MainActor func testClarity4KControlsPreviewAndSelectedClip() throws {
+        let app = launchDemo()
+        firstTimelineClip(app, kind: "video").tap()
+        app.buttons["tool-Effets visuels"].tap()
+        app.buttons["visualTool-Lumière"].tap()
+        XCTAssertTrue(app.buttons["effect-clarity4K"].waitForExistence(timeout: 5))
+        app.buttons["effect-clarity4K"].tap()
+        XCTAssertTrue(app.buttons["effectApply"].waitForExistence(timeout: 8))
+        capture("clarity4k-preview")
+        app.buttons["effectPreviewCompare"].tap()
+        XCTAssertTrue(app.buttons["effectPreviewCompare"].isSelected)
+        capture("clarity4k-original")
+        app.buttons["effectPreviewCompare"].tap()
+        let time = app.staticTexts["effectPreviewTime"], before = time.label
+        app.buttons["effectPreviewPlay"].tap()
+        let advanced = NSPredicate { _, _ in time.label != before }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: advanced, object: app)], timeout: 10), .completed)
+        app.buttons["effectPreviewPlay"].tap()
+        let settings = app.descendants(matching: .any)["effectSettings"]
+        for (identifier, amount) in [("clarityDetail", 0.8), ("clarityContrast", 0.6), ("clarityColor", 0.35)] {
+            let slider = app.sliders[identifier]
+            revealEffectParameter(slider, in: settings)
+            XCTAssertTrue(slider.isHittable)
+            slider.adjust(toNormalizedSliderPosition: amount)
+        }
+        capture("clarity4k-settings")
+        app.buttons["effectApply"].tap()
+        app.buttons["showAppliedEffects"].tap()
+        XCTAssertTrue(app.buttons["appliedEffect-clarity4K"].waitForExistence(timeout: 5))
+        app.buttons["toggleAppliedEffect-clarity4K"].tap()
+        app.buttons["toggleAppliedEffect-clarity4K"].tap()
+        app.buttons["deleteAppliedEffect-clarity4K"].tap()
+        XCTAssertFalse(app.buttons["appliedEffect-clarity4K"].exists)
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        app.terminate()
+    }
+
     @MainActor func testPreviewDragRequiresSelectionAndMissedTextResizeDoesNotMoveVideo() throws {
         let app = launchDemo()
         let canvas = app.otherElements["previewCanvas"]

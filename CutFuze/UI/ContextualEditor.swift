@@ -71,7 +71,7 @@ enum EffectCategory: String, CaseIterable, Identifiable {
         case .beauty: [.skinSmooth, .skinGlow, .sharpness]
         case .geometry: [.bulge, .pinch, .twirl, .kaleidoscope, .pixelate]
         case .creative: [.timeScan, .roughEdges, .writeOn, .lensPulse, .ghostTrail, .stopMotion, .directionalBlur, .popHalftone, .duotone, .dream, .lightSweep, .liquidDistortion, .impactZoom, .shortGlitch, .neon, .comic, .crystallize, .glow, .rgbSplit, .shake, .retro, .grain, .vignette, .blur, .fade]
-        case .light: [.exposure, .brightness, .contrast, .saturation, .temperature, .tint, .highlights, .shadows]
+        case .light: [.clarity4K, .exposure, .brightness, .contrast, .saturation, .temperature, .tint, .highlights, .shadows]
         }
     }
 }
@@ -565,6 +565,7 @@ private func effectSymbol(_ kind: EffectKind) -> String {
     case .contrast: "circle.lefthalf.filled"
     case .saturation, .temperature, .tint: "paintpalette"
     case .sharpness: "camera.aperture"
+    case .clarity4K: "sparkle.magnifyingglass"
     case .vignette: "circle.dashed"
     case .grain: "circle.grid.3x3.fill"
     case .fade: "circle.bottomhalf.filled"

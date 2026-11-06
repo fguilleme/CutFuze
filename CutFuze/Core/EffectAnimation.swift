@@ -4,7 +4,7 @@ extension EffectKind {
     var intensityRange: ClosedRange<Double> {
         switch self {
         case .exposure: -2...2
-        case .impactZoom, .shortGlitch, .neon, .dream, .lightSweep, .liquidDistortion, .directionalBlur, .popHalftone, .duotone, .lensPulse, .ghostTrail, .stopMotion, .roughEdges, .writeOn, .timeScan: 0...1
+        case .impactZoom, .shortGlitch, .neon, .dream, .lightSweep, .liquidDistortion, .directionalBlur, .popHalftone, .duotone, .lensPulse, .ghostTrail, .stopMotion, .roughEdges, .writeOn, .timeScan, .clarity4K: 0...1
         default: -1...1
         }
     }
@@ -20,6 +20,9 @@ struct EffectAmountKeyframe: Codable, Identifiable, Equatable, Sendable {
 }
 
 extension EffectInstance {
+    var clarityDetailAmount: Double { min(1, max(0, clarityDetail ?? 0.65)) }
+    var clarityContrastAmount: Double { min(1, max(0, clarityContrast ?? 0.45)) }
+    var clarityColorAmount: Double { min(1, max(0, clarityColor ?? 0.25)) }
     var neonGlowRadius: Double { min(1, max(0, glowRadius ?? 0.45)) }
     var lightSweepWidth: Double { min(1, max(0, sweepWidth ?? 0.35)) }
     var liquidFlowSpeed: Double { min(2, max(0.25, liquidSpeed ?? 1)) }
@@ -37,6 +40,7 @@ extension EffectInstance {
     /// Splitting a clip preserves this envelope and the renderer's deterministic seed.
     static func readyToUse(_ kind: EffectKind, duration: MediaTime, offset: MediaTime = .zero, localTime: Double = 0, defaultAmount: Double = 0.45) -> EffectInstance {
         var effect = EffectInstance(kind: kind, amount: kind == .neon ? 0.65 : defaultAmount)
+        if kind == .clarity4K { effect.amount = 0.7; effect.clarityDetail = 0.65; effect.clarityContrast = 0.45; effect.clarityColor = 0.25 }
         if kind == .neon { effect.colorHex = "#49E6FF"; effect.glowRadius = 0.45 }
         if kind == .dream { effect.amount = 0.55 }
         if kind == .liquidDistortion { effect.amount = 0.55; effect.liquidSpeed = 1 }
@@ -105,6 +109,9 @@ extension EffectInstance {
               heldFrameRate.map({ $0.isFinite && (2...24).contains($0) }) ?? true,
               scanDuration.map({ $0.isFinite && (0.2...10).contains($0) }) ?? true,
               scanStart.map(valid) ?? true,
+              clarityDetail.map({ $0.isFinite && (0...1).contains($0) }) ?? true,
+              clarityContrast.map({ $0.isFinite && (0...1).contains($0) }) ?? true,
+              clarityColor.map({ $0.isFinite && (0...1).contains($0) }) ?? true,
               roughnessScale.map({ $0.isFinite && (0...1).contains($0) }) ?? true,
               brushWidth.map({ $0.isFinite && (0.01...0.5).contains($0) }) ?? true,
               brushPath.map({ ($0.isEmpty || $0.count >= 2) && $0.count <= 4096 && $0.allSatisfy { $0.x.isFinite && $0.y.isFinite && (0...1).contains($0.x) && (0...1).contains($0.y) } }) ?? true,

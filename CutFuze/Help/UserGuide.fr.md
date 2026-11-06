@@ -169,6 +169,8 @@ Si rien ne bouge, vérifiez que les deux points ont des valeurs différentes. Fa
 
 Quelques idées : le **Néon** pour un contour lumineux, la **Traînée fantôme** sur un sujet en mouvement ou le **Stop-motion** pour un mouvement saccadé. Le **Scan temporel** fige progressivement l’image dans la direction choisie.
 
+Dans **Lumière → Clarté 4K**, renforcez les **Détails**, le **Microcontraste** et l’**Éclat des couleurs** pour une image plus définie. Commencez avec les valeurs proposées et comparez avec l’original. Si les contours deviennent trop marqués, baissez Détails ou l’intensité. La courbe permet de faire apparaître progressivement ce rendu ; l’effet ne change pas la résolution de la vidéo.
+
 Pour l’**Écriture tracée**, ouvrez la zone de dessin. Levez le doigt et reprenez ailleurs pour créer plusieurs traits. **Effacer** permet de recommencer ; validez lorsque le tracé vous convient.
 
 Dans **Appliqués**, retrouvez les effets du segment, ouvrez leurs réglages, désactivez-les temporairement ou supprimez-les avec la poubelle rouge. Consulter une catégorie n’applique pas un effet à elle seule.

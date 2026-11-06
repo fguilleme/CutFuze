@@ -169,6 +169,8 @@ If nothing moves, check that points have different values. Drag the bar beneath 
 
 Try **Neon** for a glowing outline, **Ghost trail** on a moving subject or **Stop motion** for stepped movement. **Time scan** progressively freezes the picture in your chosen direction.
 
+Under **Light → 4K clarity**, adjust **Details**, **Local contrast** and **Color vibrance** for a more defined picture. Start with the suggested values and compare with the original. If edges look too strong, lower Details or intensity. Use the curve to introduce the look gradually; the effect does not change video resolution.
+
 For **Write-on**, open the drawing area. Lift your finger and resume elsewhere for separate strokes. Use **Clear** to start again and confirm when ready.
 
 Under **Applied**, find effects, open settings, disable them temporarily or delete them with the red trash button. Browsing a category does not apply an effect by itself.

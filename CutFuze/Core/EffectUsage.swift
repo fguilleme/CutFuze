@@ -12,7 +12,7 @@ extension EffectKind {
         case .skinSmooth, .skinGlow: .portraits
         case .ghostTrail, .stopMotion, .timeScan: .movingLayers
         case .exposure, .brightness, .contrast, .saturation, .temperature, .tint, .highlights, .shadows, .sharpness,
-             .vignette, .grain, .retro, .comic, .crystallize, .dream, .popHalftone, .duotone: .photoVideo
+             .vignette, .grain, .retro, .comic, .crystallize, .dream, .popHalftone, .duotone, .clarity4K: .photoVideo
         default: .allVisual
         }
     }

@@ -139,6 +139,15 @@ private func EFL(_ french: String, _ english: String) -> String { AppLocalizatio
                         if let message = error ?? renderError { Label(message, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.red).accessibilityIdentifier("effectEditorError") }
                     }.padding(.bottom, 6)
                     }.listRowBackground(DesignTokens.ink)
+                        if effect.kind == .clarity4K {
+                            Section(EFL("Clarté 4K", "4K clarity")) {
+                                parameterSlider(title: EFL("Détails", "Details"), value: Binding(get: { draft?.clarityDetailAmount ?? 0.65 }, set: { value in changeDraft { $0.clarityDetail = value } }), range: 0...1, identifier: "clarityDetail")
+                                parameterSlider(title: EFL("Microcontraste", "Local contrast"), value: Binding(get: { draft?.clarityContrastAmount ?? 0.45 }, set: { value in changeDraft { $0.clarityContrast = value } }), range: 0...1, identifier: "clarityContrast")
+                                parameterSlider(title: EFL("Éclat des couleurs", "Color vibrance"), value: Binding(get: { draft?.clarityColorAmount ?? 0.25 }, set: { value in changeDraft { $0.clarityColor = value } }), range: 0...1, identifier: "clarityColor")
+                                Text(EFL("Renforce la netteté et le relief de l’image. Réduisez Détails si les contours deviennent trop marqués. Cet effet ne change pas la résolution de la vidéo.", "Boosts image definition and depth. Lower Details if edges look too strong. This effect does not change video resolution."))
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
                         if effect.kind == .neon {
                             Section(EFL("Halo du néon", "Neon glow")) { coloredEffectControls }
                         }
